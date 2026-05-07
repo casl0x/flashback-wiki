@@ -1,206 +1,65 @@
-"use client";
+import Image from "next/image";
 
-import CharacterCard from "@/components/wiki/CharacterCard";
-import CharacterDetail from "@/components/wiki/CharacterDetail";
-import NavBar from "@/components/wiki/NavBar";
-import Sidebar from "@/components/wiki/Sidebar";
-import { Character, Player, Version } from "@/lib/db";
-import { useAdmin } from "@/lib/useAdmin";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-import styles from "./page.module.css";
-
-function WikiContent({
-  chars,
-  versions,
-  selVer,
-  query,
-}: {
-  chars: Character[];
-  versions: Version[];
-  selVer: string;
-  query: string;
-}) {
-  const searchParams = useSearchParams();
-  const { isAdmin } = useAdmin();
-  const [selChar, setSelChar] = useState<Character | null>(null);
-
-  useEffect(() => {
-    setSelChar(null);
-  }, [selVer, query]);
-
-  const filtered = chars.filter((c) => {
-    const mv = selVer === "all" || c.version_id === selVer;
-    const q = query.toLowerCase();
-    const ms =
-      !q ||
-      c.name.toLowerCase().includes(q) ||
-      (c.player as any)?.pseudo?.toLowerCase().includes(q) ||
-      c.job.toLowerCase().includes(q) ||
-      (c.tags || []).some((t: string) => t.toLowerCase().includes(q));
-    return mv && ms;
-  });
-
-  if (selChar) {
-    return (
-      <CharacterDetail
-        character={selChar}
-        allCharacters={chars}
-        onBack={() => setSelChar(null)}
-        onNavigate={setSelChar}
-      />
-    );
-  }
-
-  const upl = [...new Set(filtered.map((c) => (c.player as any)?.id))].length;
-
+export default function Home() {
   return (
-    <div className={styles.content}>
-      <div className={styles.contentTop}>
-        <div>
-          <div className={styles.contentTitle}>
-            {selVer === "all"
-              ? "Tous les personnages"
-              : versions.find((v) => v.id === selVer)?.label || selVer}
-          </div>
-          <div className={styles.contentSub}>
-            {filtered.length} personnage{filtered.length !== 1 ? "s" : ""} —{" "}
-            {upl} joueur{upl !== 1 ? "s" : ""}
-          </div>
-        </div>
-        {isAdmin && (
-          <a
-            href={`/admin?token=${searchParams.get("token") || ""}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              fontSize: 12,
-              fontWeight: 500,
-              background: "#1e1530",
-              border: "0.5px solid #4c2d8a",
-              borderRadius: 8,
-              color: "#a78bfa",
-              textDecoration: "none",
-            }}
-          >
-            <i
-              className="ti ti-settings"
-              style={{ fontSize: 13 }}
-              aria-hidden="true"
-            />{" "}
-            Admin
-          </a>
-        )}
-      </div>
-
-      <div className={styles.accentBar}>
-        <div className={styles.accentDot} />
-        <div className={styles.accentLine} />
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="empty">
-          <i className="ti ti-ghost" aria-hidden="true" />
-          Aucun personnage trouvé
-        </div>
-      ) : (
-        <div className={styles.grid}>
-          {filtered.map((c) => (
-            <CharacterCard
-              key={c.id}
-              character={c}
-              onClick={() => setSelChar(c)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function HomePage() {
-  const [data, setData] = useState<{
-    versions: Version[];
-    players: Player[];
-    characters: Character[];
-  }>({ versions: [], players: [], characters: [] });
-  const [selVer, setSelVer] = useState("all");
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  async function loadData() {
-    const r = await fetch(`/api/data?t=${Date.now()}`, { cache: "no-store" });
-    const d = await r.json();
-    setData(d);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    loadData();
-    window.addEventListener("focus", loadData);
-    return () => window.removeEventListener("focus", loadData);
-  }, []);
-
-  const counts: Record<string, number> = {};
-  data.characters.forEach((c) => {
-    counts[c.version_id] = (counts[c.version_id] || 0) + 1;
-  });
-  const totalRels = data.characters.reduce(
-    (acc, c) => acc + (c.relations?.length || 0),
-    0,
-  );
-
-  return (
-    <div className={styles.root}>
-      <NavBar
-        totalChars={data.characters.length}
-        totalPlayers={data.players.length}
-        totalVersions={data.versions.length}
-        query={query}
-        onQueryChange={setQuery}
-      />
-      <div className={styles.body}>
-        <Sidebar
-          versions={data.versions}
-          selected={selVer}
-          counts={counts}
-          totalChars={data.characters.length}
-          totalPlayers={data.players.length}
-          totalRels={totalRels}
-          onSelect={setSelVer}
+    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+        <Image
+          className="dark:invert"
+          src="/next.svg"
+          alt="Next.js logo"
+          width={100}
+          height={20}
+          priority
         />
-        {loading ? (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#4a4560",
-              fontSize: 14,
-            }}
+        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
+          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
+            To get started, edit the page.tsx file.
+          </h1>
+          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            Looking for a starting point or more instructions? Head over to{" "}
+            <a
+              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+              className="font-medium text-zinc-950 dark:text-zinc-50"
+            >
+              Templates
+            </a>{" "}
+            or the{" "}
+            <a
+              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+              className="font-medium text-zinc-950 dark:text-zinc-50"
+            >
+              Learning
+            </a>{" "}
+            center.
+          </p>
+        </div>
+        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+          <a
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
+            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            Chargement...
-          </div>
-        ) : (
-          <Suspense
-            fallback={
-              <div style={{ flex: 1, padding: 40, color: "#4a4560" }}>
-                Chargement...
-              </div>
-            }
-          >
-            <WikiContent
-              chars={data.characters}
-              versions={data.versions}
-              selVer={selVer}
-              query={query}
+            <Image
+              className="dark:invert"
+              src="/vercel.svg"
+              alt="Vercel logomark"
+              width={16}
+              height={16}
             />
-          </Suspense>
-        )}
-      </div>
+            Deploy Now
+          </a>
+          <a
+            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
+            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Documentation
+          </a>
+        </div>
+      </main>
     </div>
   );
 }

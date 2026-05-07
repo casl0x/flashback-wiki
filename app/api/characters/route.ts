@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
       RETURNING *
     `;
     return NextResponse.json(char, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -53,8 +53,8 @@ export async function PATCH(request: NextRequest) {
       RETURNING *
     `;
     return NextResponse.json(char);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -69,7 +69,7 @@ export async function DELETE(request: NextRequest) {
     const sql = getDb();
     await sql`DELETE FROM characters WHERE id = ${id}`;
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
   }
 }

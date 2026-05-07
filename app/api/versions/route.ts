@@ -19,8 +19,11 @@ export async function POST(request: NextRequest) {
       RETURNING *
     `;
     return NextResponse.json(version, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Erreur inconnue" },
+      { status: 500 }
+    );
   }
 }
 
@@ -41,8 +44,11 @@ export async function PATCH(request: NextRequest) {
       RETURNING *
     `;
     return NextResponse.json(version);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Erreur inconnue" },
+      { status: 500 }
+    );
   }
 }
 
@@ -55,7 +61,10 @@ export async function DELETE(request: NextRequest) {
     const sql = getDb();
     await sql`DELETE FROM versions WHERE id = ${id}`;
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Erreur inconnue" },
+      { status: 500 }
+    );
   }
 }
