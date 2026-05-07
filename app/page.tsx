@@ -131,7 +131,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   async function loadData() {
-    const r = await fetch("/api/data", { cache: "no-store" });
+    const r = await fetch(`/api/data?t=${Date.now()}`, { cache: "no-store" });
     const d = await r.json();
     setData(d);
     setLoading(false);
