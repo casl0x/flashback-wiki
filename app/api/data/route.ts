@@ -1,10 +1,12 @@
-import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getDb } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 // GET /api/data — toutes les données pour le wiki public (une seule requête)
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
-    const sql = getDb()
+    const sql = getDb();
 
     const [versions, players, characters, relations] = await Promise.all([
       sql`SELECT * FROM versions ORDER BY id`,
@@ -18,13 +20,13 @@ export async function GET() {
         JOIN characters c ON c.id = r.target_id
         JOIN players p ON p.id = c.player_id
       `,
-    ])
+    ]);
 
     // Assembler les données côté serveur
-    const playerMap = Object.fromEntries(players.map((p: any) => [p.id, p]))
-    const relsByChar: Record<number, any[]> = {}
+    const playerMap = Object.fromEntries(players.map((p: any) => [p.id, p]));
+    const relsByChar: Record<number, any[]> = {};
     for (const r of relations as any[]) {
-      if (!relsByChar[r.character_id]) relsByChar[r.character_id] = []
+      if (!relsByChar[r.character_id]) relsByChar[r.character_id] = [];
       relsByChar[r.character_id].push({
         id: r.id,
         relation_type: r.relation_type,
@@ -36,7 +38,7 @@ export async function GET() {
           version_id: r.t_version_id,
           player: { pseudo: r.t_player_pseudo },
         },
-      })
+      });
     }
 
     const enrichedChars = (characters as any[]).map((c) => ({
@@ -44,10 +46,10 @@ export async function GET() {
       player: playerMap[c.player_id] || null,
       version: versions.find((v: any) => v.id === c.version_id) || null,
       relations: relsByChar[c.id] || [],
-    }))
+    }));
 
-    return NextResponse.json({ versions, players, characters: enrichedChars })
+    return NextResponse.json({ versions, players, characters: enrichedChars });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

@@ -130,13 +130,17 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
+  async function loadData() {
+    const r = await fetch("/api/data");
+    const d = await r.json();
+    setData(d);
+    setLoading(false);
+  }
+
   useEffect(() => {
-    fetch("/api/data")
-      .then((r) => r.json())
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      });
+    loadData();
+    window.addEventListener("focus", loadData);
+    return () => window.removeEventListener("focus", loadData);
   }, []);
 
   const counts: Record<string, number> = {};
