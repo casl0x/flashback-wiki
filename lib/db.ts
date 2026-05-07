@@ -39,6 +39,7 @@ export type Character = {
   tags: string[];
   version_id: string;
   player_id: string;
+  status: "civil" | "illegal" | "fdo" | null;
   created_at?: string;
   player?: Player;
   version?: Version;

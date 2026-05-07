@@ -392,13 +392,30 @@ export function CharacterForm({
           </div>
         </div>
 
-        <div>
-          <label style={lbl}>Description</label>
-          <textarea
-            name="description"
-            defaultValue={editing?.description || ""}
-            style={{ ...inp, resize: "vertical", minHeight: 60 }}
-          />
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+        >
+          <div>
+            <label style={lbl}>Description</label>
+            <textarea
+              name="description"
+              defaultValue={editing?.description || ""}
+              style={{ ...inp, resize: "vertical", minHeight: 60 }}
+            />
+          </div>
+          <div>
+            <label style={lbl}>Statut</label>
+            <select
+              name="status"
+              defaultValue={(editing as any)?.status || ""}
+              style={inp}
+            >
+              <option value="">— Aucun —</option>
+              <option value="civil">👤 Civil</option>
+              <option value="illegal">💀 Illégal</option>
+              <option value="fdo">🔵 FDO</option>
+            </select>
+          </div>
         </div>
         <div>
           <label style={lbl}>Tags (virgules)</label>

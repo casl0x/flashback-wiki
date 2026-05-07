@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   if (!isAdmin(request))
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  const { name, job, description, tags, version_id, player_id } =
+  const { name, job, description, tags, version_id, player_id, status } =
     await request.json();
   if (!name || !job || !version_id || !player_id)
     return NextResponse.json(
@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
   try {
     const sql = getDb();
     const [char] = await sql`
-      INSERT INTO characters (name, job, description, tags, version_id, player_id)
-      VALUES (${name}, ${job}, ${description || null}, ${tags || []}, ${version_id}, ${player_id})
+      INSERT INTO characters (name, job, description, tags, version_id, player_id, status)
+      VALUES (${name}, ${job}, ${description || null}, ${tags || []}, ${version_id}, ${player_id}, ${status || null})
       RETURNING *
     `;
     return NextResponse.json(char, { status: 201 });
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   if (!isAdmin(request))
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  const { id, name, job, description, tags, version_id, player_id } =
+  const { id, name, job, description, tags, version_id, player_id, status } =
     await request.json();
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
@@ -47,7 +47,8 @@ export async function PATCH(request: NextRequest) {
         description= ${description ?? null},
         tags       = COALESCE(${tags ?? null}, tags),
         version_id = COALESCE(${version_id ?? null}, version_id),
-        player_id  = COALESCE(${player_id ?? null}, player_id)
+        player_id  = COALESCE(${player_id ?? null}, player_id),
+        status     = ${status ?? null}
       WHERE id = ${id}
       RETURNING *
     `;

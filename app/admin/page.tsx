@@ -5,6 +5,7 @@ import {
   PlayerForm,
   VersionForm,
 } from "@/components/admin/Forms";
+import StatusBadge from "@/components/ui/StatusBadge";
 import Toast from "@/components/ui/Toast";
 import VersionPill from "@/components/ui/VersionPill";
 import { Character, Player, Version } from "@/lib/db";
@@ -148,6 +149,7 @@ function AdminContent() {
         .filter(Boolean),
       version_id: fd.get("version_id"),
       player_id: resolvedPlayerId,
+      status: fd.get("status") || null,
     };
     let charId: number;
     if (editing?.id) {
@@ -424,6 +426,13 @@ function AdminContent() {
                             <VersionPill version={c.version_id} />
                           </td>
                           <td>{c.job}</td>
+                          <td>
+                            {(c as any).status ? (
+                              <StatusBadge status={(c as any).status} small />
+                            ) : (
+                              "—"
+                            )}
+                          </td>
                           <td style={{ color: "#a78bfa" }}>
                             {(c.relations || []).length}
                           </td>
