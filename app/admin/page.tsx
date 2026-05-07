@@ -406,12 +406,13 @@ function AdminContent() {
                 <table>
                   <thead>
                     <tr>
-                      <th style={{ width: "22%" }}>Nom</th>
-                      <th style={{ width: "16%" }}>Joueur</th>
-                      <th style={{ width: "8%" }}>Ver.</th>
-                      <th style={{ width: "22%" }}>Rôle</th>
-                      <th style={{ width: "10%" }}>Liens</th>
-                      <th style={{ width: "22%" }}>Actions</th>
+                      <th style={{ width: "18%" }}>Nom</th>
+                      <th style={{ width: "14%" }}>Joueur</th>
+                      <th style={{ width: "7%" }}>Ver.</th>
+                      <th style={{ width: "17%" }}>Rôle</th>
+                      <th style={{ width: "12%" }}>Statut</th>
+                      <th style={{ width: "8%" }}>Liens</th>
+                      <th style={{ width: "24%" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -457,7 +458,7 @@ function AdminContent() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           <div className="empty">Aucun personnage</div>
                         </td>
                       </tr>
