@@ -109,19 +109,45 @@ function AdminContent() {
   async function handleSaveChar(
     e: React.FormEvent<HTMLFormElement>,
     rels: { type: string; targetId: number }[],
+    playerSel: { existingId: string | null; newPseudo: string | null },
   ) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+
+    // Si nouveau joueur — le créer d'abord
+    let resolvedPlayerId = playerSel.existingId;
+    if (!resolvedPlayerId && playerSel.newPseudo) {
+      const pRes = await adminFetch("/api/players", {
+        method: "POST",
+        body: JSON.stringify({
+          pseudo: playerSel.newPseudo,
+          discord: fd.get("new_discord") || null,
+          tiktok: fd.get("new_tiktok") || null,
+          stream_url: fd.get("new_stream") || null,
+        }),
+      });
+      if (!pRes.ok) {
+        showToast("Erreur création joueur", "err");
+        return;
+      }
+      const pData = await pRes.json();
+      resolvedPlayerId = pData.id;
+    }
+    if (!resolvedPlayerId) {
+      showToast("Sélectionne ou crée un joueur", "err");
+      return;
+    }
+
     const body: any = {
       name: fd.get("name"),
       job: fd.get("job"),
       description: fd.get("description"),
       tags: String(fd.get("tags"))
         .split(",")
-        .map((t) => t.trim())
+        .map((t: string) => t.trim())
         .filter(Boolean),
       version_id: fd.get("version_id"),
-      player_id: fd.get("player_id"),
+      player_id: resolvedPlayerId,
     };
     let charId: number;
     if (editing?.id) {
