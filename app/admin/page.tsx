@@ -87,7 +87,7 @@ function AdminContent() {
   }
 
   async function load() {
-    const r = await fetch("/api/data");
+    const r = await fetch("/api/data", { cache: "no-store" });
     const d = await r.json();
     setVersions(d.versions || []);
     setPlayers(d.players || []);

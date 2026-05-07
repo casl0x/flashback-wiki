@@ -48,7 +48,15 @@ export async function GET() {
       relations: relsByChar[c.id] || [],
     }));
 
-    return NextResponse.json({ versions, players, characters: enrichedChars });
+    return NextResponse.json(
+      { versions, players, characters: enrichedChars },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          Pragma: "no-cache",
+        },
+      },
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
