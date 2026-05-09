@@ -53,6 +53,7 @@ export async function DELETE(request: NextRequest) {
     await prisma.relation.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
+    console.error("RELATIONS ERROR:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Unknown error" },
       { status: 500 },

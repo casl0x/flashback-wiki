@@ -33,9 +33,10 @@ export default function CharacterDetail({
 
       <div className="flex flex-col gap-3">
         {/* Fiche personnage */}
+        {/* Fiche personnage */}
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-3.5 mb-4 pb-3.5 border-b border-border">
-            <div>
+            <div className="flex-1 min-w-0">
               <h2 className="font-display font-bold text-[20px] text-text-primary tracking-wide">
                 {c.nom}
               </h2>
@@ -44,8 +45,20 @@ export default function CharacterDetail({
                   {c.metier}
                 </p>
               )}
-              <div className="flex items-center gap-1.5">
-                {c.versionId && <Badge variant="outline">{c.versionId}</Badge>}
+
+              <div className="flex items-center gap-1.5 flex-wrap pt-4">
+                {c.version && (
+                  <Badge
+                    variant="outline"
+                    style={{
+                      color: c.version.color ?? "var(--accent)",
+                      borderColor: `${c.version.color ?? "var(--accent)"}40`,
+                      background: `${c.version.color ?? "var(--accent)"}18`,
+                    }}
+                  >
+                    {c.version.id} — {c.version.label}
+                  </Badge>
+                )}
                 {c.role && (
                   <Badge variant="ghost">
                     {c.role === "civil" ? "Civil" : "Illégal"}
@@ -81,7 +94,7 @@ export default function CharacterDetail({
                     >
                       <div className="flex items-center gap-2">
                         {r.type_relation && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-bg border border-border-accent text-accent-light font-display tracking-wide">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-bg border border-border-accent text-accent-light font-display tracking-wide shrink-0">
                             {r.type_relation}
                           </span>
                         )}
@@ -97,10 +110,31 @@ export default function CharacterDetail({
                           </p>
                         </div>
                       </div>
+                      <i
+                        className="ti ti-chevron-right text-text-muted text-[12px] shrink-0"
+                        aria-hidden="true"
+                      />
                     </button>
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {c.lienReddif && (
+            <div className="pt-4">
+              <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] ">
+                Playlist Reddif
+              </p>
+              <a
+                href={c.lienReddif}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[12px] text-accent-light hover:underline mb-3"
+              >
+                <i className="ti ti-brand-youtube" aria-hidden="true" />
+                Voir la reddif
+              </a>
             </div>
           )}
         </div>

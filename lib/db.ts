@@ -37,7 +37,10 @@ export type Character = {
   versionId: string | null;
   createdAt: string;
   // Relations incluses par /api/data
-  player?: Pick<Player, "id" | "pseudo"> | null;
+  player?: Pick<
+    Player,
+    "id" | "pseudo" | "stream" | "lienChaine" | "reseaux"
+  > | null;
   version?: Pick<Version, "id" | "label" | "color"> | null;
   relations?: LinkedRelation[];
 };

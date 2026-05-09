@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { CharacterCombobox } from "./CharacterCombobox";
 import { PlayerCombobox } from "./PlayerCombobox";
 
 type Props = { players: Player[]; versions: Version[] };
@@ -31,8 +32,8 @@ type CharForm = {
   metier: string;
   description: string;
   playerId: string;
-  versionId: string | null;
-  role: string | null;
+  versionId: string;
+  role: string;
   lienReddif: string;
 };
 
@@ -55,13 +56,18 @@ export function CharactersTab({ players, versions }: Props) {
     lienReddif: "",
   });
   const [loading, setLoading] = useState(false);
+  const [localPlayers, setLocalPlayers] = useState<Player[]>([]);
 
-  const [localPlayers, setLocalPlayers] = useState<Player[]>(() => players);
+  // Relations dans le form
+  const [newRelPerso, setNewRelPerso] = useState("");
+  const [newRelType, setNewRelType] = useState("");
+  const [relLoading, setRelLoading] = useState(false);
 
   async function load() {
     const res = await fetch("/api/data");
     const data = await res.json();
     setChars(data.characters ?? []);
+    setLocalPlayers(data.players ?? []);
   }
 
   useEffect(() => {
@@ -70,7 +76,10 @@ export function CharactersTab({ players, versions }: Props) {
       try {
         const res = await fetch("/api/data");
         const data = await res.json();
-        if (mounted) setChars(data.characters ?? []);
+        if (mounted) {
+          setChars(data.characters ?? []);
+          setLocalPlayers(data.players ?? []);
+        }
       } catch (error) {
         console.error(error);
       }
@@ -93,11 +102,13 @@ export function CharactersTab({ players, versions }: Props) {
       nom: "",
       metier: "",
       description: "",
-      playerId: localPlayers[0]?.id ?? "",
+      playerId: "",
       versionId: "",
-      role: "civil",
+      role: "",
       lienReddif: "",
     });
+    setNewRelPerso("");
+    setNewRelType("");
     setModal("add");
   }
 
@@ -112,6 +123,8 @@ export function CharactersTab({ players, versions }: Props) {
       role: c.role ?? "civil",
       lienReddif: c.lienReddif ?? "",
     });
+    setNewRelPerso("");
+    setNewRelType("");
     setModal("edit");
   }
 
@@ -138,11 +151,29 @@ export function CharactersTab({ players, versions }: Props) {
     const headers = { "Content-Type": "application/json" };
 
     if (modal === "add") {
-      await fetch("/api/characters", {
+      const res = await fetch("/api/characters", {
         method: "POST",
         headers,
         body: JSON.stringify(body),
       });
+      const newChar = await res.json();
+      await load();
+      setLoading(false);
+      // Ouvrir l'édition directement pour pouvoir ajouter des relations
+      setSelected(newChar);
+      setForm({
+        nom: newChar.nom,
+        metier: newChar.metier ?? "",
+        description: newChar.description ?? "",
+        playerId: newChar.playerId ?? newChar.player_id ?? "",
+        versionId: newChar.versionId ?? newChar.version_id ?? "",
+        role: newChar.role ?? "civil",
+        lienReddif: newChar.lienReddif ?? newChar.lien_reddif ?? "",
+      });
+      setNewRelPerso("");
+      setNewRelType("");
+      setModal("edit");
+      return;
     } else if (modal === "edit" && selected) {
       await fetch("/api/characters", {
         method: "PATCH",
@@ -150,6 +181,7 @@ export function CharactersTab({ players, versions }: Props) {
         body: JSON.stringify({ id: selected.id, ...body }),
       });
     }
+
     await load();
     setLoading(false);
     closeModal();
@@ -165,6 +197,48 @@ export function CharactersTab({ players, versions }: Props) {
     await load();
     closeModal();
   }
+
+  async function addRelation() {
+    if (!selected || !newRelPerso) return;
+    console.log("addRelation payload:", {
+      // ← ajoute ça
+      personnage_a: selected.id,
+      personnage_b: newRelPerso,
+      type_relation: newRelType || null,
+    });
+    setRelLoading(true);
+    await fetch("/api/relations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        personnage_a: selected.id,
+        personnage_b: newRelPerso,
+        type_relation: newRelType || null,
+      }),
+    });
+    await load();
+    // Rafraîchir selected avec les nouvelles relations
+    setSelected((prev) =>
+      prev ? (chars.find((c) => c.id === prev.id) ?? prev) : null,
+    );
+    setNewRelPerso("");
+    setNewRelType("");
+    setRelLoading(false);
+  }
+
+  async function deleteRelation(id: string) {
+    await fetch("/api/relations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    await load();
+  }
+
+  // Relations du personnage en cours d'édition (toujours fraîches depuis chars)
+  const editRelations = selected
+    ? (chars.find((c) => c.id === selected.id)?.relations ?? [])
+    : [];
 
   return (
     <>
@@ -256,7 +330,7 @@ export function CharactersTab({ players, versions }: Props) {
         open={modal === "add" || modal === "edit"}
         onOpenChange={(o) => !o && closeModal()}
       >
-        <DialogContent className="bg-card border-border-mid max-w-md">
+        <DialogContent className="bg-card border-border-mid max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[14px] tracking-wide">
               {modal === "edit"
@@ -298,7 +372,9 @@ export function CharactersTab({ players, versions }: Props) {
                 </label>
                 <Select
                   value={form.role}
-                  onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, role: v ?? "" }))
+                  }
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Rôle" />
@@ -320,8 +396,8 @@ export function CharactersTab({ players, versions }: Props) {
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
                   Joueur
                 </label>
-
                 <PlayerCombobox
+                  key={modal + (selected?.id ?? "new")}
                   players={localPlayers}
                   value={form.playerId}
                   onValueChange={(v, newPlayer) => {
@@ -340,7 +416,9 @@ export function CharactersTab({ players, versions }: Props) {
               </label>
               <Select
                 value={form.versionId}
-                onValueChange={(v) => setForm((f) => ({ ...f, versionId: v }))}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, versionId: v ?? "" }))
+                }
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Aucune" />
@@ -371,18 +449,91 @@ export function CharactersTab({ players, versions }: Props) {
                 placeholder="Courte biographie…"
               />
             </div>
+            {modal === "edit" && (
+              <div className="border-t border-border pt-3 flex flex-col gap-2">
+                <p className="text-[10px] uppercase tracking-widest text-text-muted">
+                  Relations ({editRelations.length})
+                </p>
+
+                {/* Liste relations existantes */}
+                {editRelations.length > 0 && (
+                  <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
+                    {editRelations.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-elevated border border-border"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-[12px] font-medium text-text-primary truncate">
+                            {r.linked?.nom}
+                          </span>
+                          {r.type_relation && (
+                            <span className="text-[10px] text-text-muted shrink-0">
+                              — {r.type_relation}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => deleteRelation(r.id)}
+                          className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer shrink-0 ml-2"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] uppercase tracking-widest text-text-muted">
+                      Personnage
+                    </label>
+                    <CharacterCombobox
+                      key={modal + (selected?.id ?? "new")}
+                      characters={chars}
+                      value={newRelPerso}
+                      onValueChange={(v) => setNewRelPerso(v)}
+                      excludeId={selected?.id}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] uppercase tracking-widest text-text-muted">
+                      Type (optionnel)
+                    </label>
+                    <Input
+                      value={newRelType}
+                      onChange={(e) => setNewRelType(e.target.value)}
+                      placeholder="Frère, Associé…"
+                      className="h-9 text-[12px]"
+                    />
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={addRelation}
+                  disabled={relLoading || !newRelPerso}
+                  className="text-[11px] border-border-mid text-text-secondary cursor-pointer"
+                >
+                  {relLoading ? "…" : "+ Ajouter la relation"}
+                </Button>
+              </div>
+            )}
 
             {/* Lien Reddit */}
             <div className="flex flex-col gap-1">
               <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                Lien Reddit
+                Lien Reddif
               </label>
               <Input
                 value={form.lienReddif}
                 onChange={set("lienReddif")}
-                placeholder="https://reddit.com/r/…"
+                placeholder="https://youtube.com/..."
               />
             </div>
+
+            {/* Relations — uniquement en mode edit */}
           </div>
 
           <DialogFooter className="flex gap-2 sm:flex-row pt-1">
