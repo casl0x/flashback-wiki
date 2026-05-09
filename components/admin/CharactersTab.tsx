@@ -37,6 +37,12 @@ type CharForm = {
   lienReddif: string;
 };
 
+type PendingRelation = {
+  personnage_b: string;
+  type_relation: string | null;
+  linked: Character | undefined;
+};
+
 const ROLES = [
   { label: "Civil", value: "civil" },
   { label: "Illégal", value: "illegal" },
@@ -68,6 +74,13 @@ export function CharactersTab({ players, versions }: Props) {
   const [chars, setChars] = useState<Character[]>([]);
   const [modal, setModal] = useState<"form" | "delete" | null>(null);
   const [selected, setSelected] = useState<Character | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [activeRelations, setActiveRelations] = useState<
+    NonNullable<Character["relations"]>
+  >([]);
+  const [pendingRelations, setPendingRelations] = useState<PendingRelation[]>(
+    [],
+  );
   const [form, setForm] = useState<CharForm>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [localPlayers, setLocalPlayers] = useState<Player[]>(players);
@@ -77,12 +90,39 @@ export function CharactersTab({ players, versions }: Props) {
   const [relLoading, setRelLoading] = useState(false);
 
   const isEdit = !!selected;
+  const activeId = selected?.id ?? createdId;
+  type DisplayRelation = {
+    id: string;
+    linked:
+      | NonNullable<Character["relations"]>[number]["linked"]
+      | PendingRelation["linked"];
+    type_relation: string | null;
+  };
 
-  async function load() {
+  // Relations à afficher : soit les vraies (edit/après création), soit les pending (avant création)
+  const displayRelations: DisplayRelation[] = activeId
+    ? activeRelations.map((r) => ({
+        id: r.id,
+        linked: r.linked,
+        type_relation: r.type_relation,
+      }))
+    : pendingRelations.map((r, i) => ({
+        id: `pending-${i}`,
+        linked: r.linked,
+        type_relation: r.type_relation,
+      }));
+
+  async function load(refreshActiveId?: string) {
     const res = await fetch("/api/data");
     const data = await res.json();
-    setChars(data.characters ?? []);
+    const characters: Character[] = data.characters ?? [];
+    setChars(characters);
     setLocalPlayers(data.players ?? []);
+    if (refreshActiveId) {
+      setActiveRelations(
+        characters.find((c) => c.id === refreshActiveId)?.relations ?? [],
+      );
+    }
   }
 
   useEffect(() => {
@@ -114,6 +154,9 @@ export function CharactersTab({ players, versions }: Props) {
 
   function openAdd() {
     setSelected(null);
+    setCreatedId(null);
+    setActiveRelations([]);
+    setPendingRelations([]);
     setForm(EMPTY_FORM);
     setNewRelPerso("");
     setNewRelType("");
@@ -122,6 +165,9 @@ export function CharactersTab({ players, versions }: Props) {
 
   function openEdit(c: Character) {
     setSelected(c);
+    setCreatedId(null);
+    setActiveRelations(c.relations ?? []);
+    setPendingRelations([]);
     setForm(charToForm(c));
     setNewRelPerso("");
     setNewRelType("");
@@ -136,6 +182,9 @@ export function CharactersTab({ players, versions }: Props) {
   function closeModal() {
     setModal(null);
     setSelected(null);
+    setCreatedId(null);
+    setActiveRelations([]);
+    setPendingRelations([]);
   }
 
   async function submit() {
@@ -158,28 +207,37 @@ export function CharactersTab({ players, versions }: Props) {
         body: JSON.stringify(body),
       });
       const newChar = await res.json();
-      await load();
-      // Passer en mode édition pour pouvoir ajouter des relations
-      setSelected(newChar);
-      setForm(
-        charToForm({
-          ...newChar,
-          playerId: newChar.playerId ?? newChar.player_id,
-          versionId: newChar.versionId ?? newChar.version_id,
-          lienReddif: newChar.lienReddif ?? newChar.lien_reddif,
-        }),
+
+      // Envoyer les relations en attente
+      await Promise.all(
+        pendingRelations.map((r) =>
+          fetch("/api/relations", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              personnage_a: newChar.id,
+              personnage_b: r.personnage_b,
+              type_relation: r.type_relation,
+            }),
+          }),
+        ),
       );
-    } else {
-      await fetch("/api/characters", {
-        method: "PATCH",
-        headers,
-        body: JSON.stringify({ id: selected.id, ...body }),
-      });
-      await load();
-      closeModal();
+
+      setPendingRelations([]);
+      setCreatedId(newChar.id);
+      await load(newChar.id);
+      setLoading(false);
+      return;
     }
 
+    await fetch("/api/characters", {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ id: selected.id, ...body }),
+    });
+    await load();
     setLoading(false);
+    closeModal();
   }
 
   async function confirmDelete() {
@@ -194,40 +252,55 @@ export function CharactersTab({ players, versions }: Props) {
   }
 
   async function addRelation() {
-    if (!selected || !newRelPerso) return;
+    if (!newRelPerso) return;
+
+    if (!activeId) {
+      // Personnage pas encore créé : stocker en local
+      const linked = chars.find((c) => c.id === newRelPerso);
+      setPendingRelations((prev) => [
+        ...prev,
+        {
+          personnage_b: newRelPerso,
+          type_relation: newRelType || null,
+          linked,
+        },
+      ]);
+      setNewRelPerso("");
+      setNewRelType("");
+      return;
+    }
+
+    // Personnage déjà en base : appel API direct
     setRelLoading(true);
     await fetch("/api/relations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        personnage_a: selected.id,
+        personnage_a: activeId,
         personnage_b: newRelPerso,
         type_relation: newRelType || null,
       }),
     });
-    await load();
-    setSelected((prev) =>
-      prev ? (chars.find((c) => c.id === prev.id) ?? prev) : null,
-    );
+    await load(activeId);
     setNewRelPerso("");
     setNewRelType("");
     setRelLoading(false);
   }
 
   async function deleteRelation(id: string) {
+    if (id.startsWith("pending-")) {
+      const idx = parseInt(id.replace("pending-", ""));
+      setPendingRelations((prev) => prev.filter((_, i) => i !== idx));
+      return;
+    }
     await fetch("/api/relations", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
-    await load();
+    await load(activeId ?? undefined);
   }
 
-  const editRelations = selected
-    ? (chars.find((c) => c.id === selected.id)?.relations ?? [])
-    : [];
-
-  // ─── Form partagé ────────────────────────────────────────────────────────────
   const sharedForm = (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
@@ -282,7 +355,7 @@ export function CharactersTab({ players, versions }: Props) {
             Joueur
           </label>
           <PlayerCombobox
-            key={`${modal}-${selected?.id ?? "new"}`}
+            key={`${modal}-${selected?.id ?? createdId ?? "new"}`}
             players={localPlayers}
             value={form.playerId}
             onValueChange={(v, newPlayer) => {
@@ -341,80 +414,91 @@ export function CharactersTab({ players, versions }: Props) {
         />
       </div>
 
-      {/* Relations — uniquement en mode edit */}
-      {isEdit && (
-        <div className="border-t border-border pt-3 flex flex-col gap-2">
-          <p className="text-[10px] uppercase tracking-widest text-text-muted">
-            Relations ({editRelations.length})
-          </p>
-
-          {editRelations.length > 0 && (
-            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
-              {editRelations.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-elevated border border-border"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[12px] font-medium text-text-primary truncate">
-                      {r.linked?.nom}
-                    </span>
-                    {r.type_relation && (
-                      <span className="text-[10px] text-text-muted shrink-0">
-                        — {r.type_relation}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => deleteRelation(r.id)}
-                    className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer shrink-0 ml-2"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
+      {/* Relations — toujours visibles */}
+      <div className="border-t border-border pt-3 flex flex-col gap-2">
+        <p className="text-[10px] uppercase tracking-widest text-text-muted">
+          Relations ({displayRelations.length})
+          {!activeId && pendingRelations.length > 0 && (
+            <span className="ml-2 text-[9px] text-text-muted normal-case tracking-normal">
+              — seront enregistrées à la création
+            </span>
           )}
+        </p>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] uppercase tracking-widest text-text-muted">
-                Personnage
-              </label>
-              <CharacterCombobox
-                key={`rel-${selected?.id}`}
-                characters={chars}
-                value={newRelPerso}
-                onValueChange={(v) => setNewRelPerso(v)}
-                excludeId={selected?.id}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] uppercase tracking-widest text-text-muted">
-                Type (optionnel)
-              </label>
-              <Input
-                value={newRelType}
-                onChange={(e) => setNewRelType(e.target.value)}
-                placeholder="Frère, Associé…"
-                className="h-9 text-[12px]"
-              />
-            </div>
+        {displayRelations.length > 0 && (
+          <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
+            {displayRelations.map((r) => (
+              <div
+                key={r.id}
+                className={`flex items-center justify-between px-2.5 py-1.5 rounded-md border ${
+                  r.id.startsWith("pending-")
+                    ? "bg-elevated/50 border-border border-dashed"
+                    : "bg-elevated border-border"
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[12px] font-medium text-text-primary truncate">
+                    {r.linked?.nom}
+                  </span>
+                  {r.type_relation && (
+                    <span className="text-[10px] text-text-muted shrink-0">
+                      — {r.type_relation}
+                    </span>
+                  )}
+                  {r.id.startsWith("pending-") && (
+                    <span className="text-[9px] text-text-muted shrink-0 italic">
+                      en attente
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => deleteRelation(r.id)}
+                  className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer shrink-0 ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={addRelation}
-            disabled={relLoading || !newRelPerso}
-            className="text-[11px] border-border-mid text-text-secondary cursor-pointer"
-          >
-            {relLoading ? "…" : "+ Ajouter la relation"}
-          </Button>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-1">
+            <label className="text-[9px] uppercase tracking-widest text-text-muted">
+              Personnage
+            </label>
+            <CharacterCombobox
+              key={`rel-${activeId ?? "new"}`}
+              characters={chars}
+              value={newRelPerso}
+              onValueChange={(v) => setNewRelPerso(v)}
+              excludeId={activeId ?? undefined}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[9px] uppercase tracking-widest text-text-muted">
+              Type (optionnel)
+            </label>
+            <Input
+              value={newRelType}
+              onChange={(e) => setNewRelType(e.target.value)}
+              placeholder="Frère, Associé…"
+              className="h-9 text-[12px]"
+            />
+          </div>
         </div>
-      )}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={addRelation}
+          disabled={relLoading || !newRelPerso}
+          className="text-[11px] border-border-mid text-text-secondary cursor-pointer"
+        >
+          {relLoading ? "…" : "+ Ajouter la relation"}
+        </Button>
+      </div>
     </div>
   );
-  // ─────────────────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -499,7 +583,6 @@ export function CharactersTab({ players, versions }: Props) {
         ))}
       </div>
 
-      {/* Modal form commun add / edit */}
       <Dialog open={modal === "form"} onOpenChange={(o) => !o && closeModal()}>
         <DialogContent className="bg-card border-border-mid max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -521,17 +604,22 @@ export function CharactersTab({ players, versions }: Props) {
             </Button>
             <Button
               size="sm"
-              onClick={submit}
+              onClick={createdId ? closeModal : submit}
               disabled={loading || !form.nom}
               className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
             >
-              {loading ? "…" : isEdit ? "Enregistrer" : "Créer"}
+              {loading
+                ? "…"
+                : createdId
+                  ? "Terminer"
+                  : isEdit
+                    ? "Enregistrer"
+                    : "Créer"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Confirm delete */}
       <Dialog
         open={modal === "delete" && !!selected}
         onOpenChange={(o) => !o && closeModal()}
