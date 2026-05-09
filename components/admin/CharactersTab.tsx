@@ -42,26 +42,41 @@ const ROLES = [
   { label: "Illégal", value: "illegal" },
 ];
 
+const EMPTY_FORM: CharForm = {
+  nom: "",
+  metier: "",
+  description: "",
+  playerId: "",
+  versionId: "",
+  role: "civil",
+  lienReddif: "",
+};
+
+function charToForm(c: Character): CharForm {
+  return {
+    nom: c.nom,
+    metier: c.metier ?? "",
+    description: c.description ?? "",
+    playerId: c.playerId ?? "",
+    versionId: c.versionId ?? "",
+    role: c.role ?? "civil",
+    lienReddif: c.lienReddif ?? "",
+  };
+}
+
 export function CharactersTab({ players, versions }: Props) {
   const [chars, setChars] = useState<Character[]>([]);
-  const [modal, setModal] = useState<"add" | "edit" | "delete" | null>(null);
+  const [modal, setModal] = useState<"form" | "delete" | null>(null);
   const [selected, setSelected] = useState<Character | null>(null);
-  const [form, setForm] = useState<CharForm>({
-    nom: "",
-    metier: "",
-    description: "",
-    playerId: "",
-    versionId: "",
-    role: "civil",
-    lienReddif: "",
-  });
+  const [form, setForm] = useState<CharForm>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
-  const [localPlayers, setLocalPlayers] = useState<Player[]>([]);
+  const [localPlayers, setLocalPlayers] = useState<Player[]>(players);
 
-  // Relations dans le form
   const [newRelPerso, setNewRelPerso] = useState("");
   const [newRelType, setNewRelType] = useState("");
   const [relLoading, setRelLoading] = useState(false);
+
+  const isEdit = !!selected;
 
   async function load() {
     const res = await fetch("/api/data");
@@ -98,34 +113,19 @@ export function CharactersTab({ players, versions }: Props) {
   }
 
   function openAdd() {
-    setForm({
-      nom: "",
-      metier: "",
-      description: "",
-      playerId: "",
-      versionId: "",
-      role: "",
-      lienReddif: "",
-    });
+    setSelected(null);
+    setForm(EMPTY_FORM);
     setNewRelPerso("");
     setNewRelType("");
-    setModal("add");
+    setModal("form");
   }
 
   function openEdit(c: Character) {
     setSelected(c);
-    setForm({
-      nom: c.nom,
-      metier: c.metier ?? "",
-      description: c.description ?? "",
-      playerId: c.playerId ?? "",
-      versionId: c.versionId ?? "",
-      role: c.role ?? "civil",
-      lienReddif: c.lienReddif ?? "",
-    });
+    setForm(charToForm(c));
     setNewRelPerso("");
     setNewRelType("");
-    setModal("edit");
+    setModal("form");
   }
 
   function openDelete(c: Character) {
@@ -135,6 +135,7 @@ export function CharactersTab({ players, versions }: Props) {
 
   function closeModal() {
     setModal(null);
+    setSelected(null);
   }
 
   async function submit() {
@@ -150,7 +151,7 @@ export function CharactersTab({ players, versions }: Props) {
     };
     const headers = { "Content-Type": "application/json" };
 
-    if (modal === "add") {
+    if (!isEdit) {
       const res = await fetch("/api/characters", {
         method: "POST",
         headers,
@@ -158,33 +159,27 @@ export function CharactersTab({ players, versions }: Props) {
       });
       const newChar = await res.json();
       await load();
-      setLoading(false);
-      // Ouvrir l'édition directement pour pouvoir ajouter des relations
+      // Passer en mode édition pour pouvoir ajouter des relations
       setSelected(newChar);
-      setForm({
-        nom: newChar.nom,
-        metier: newChar.metier ?? "",
-        description: newChar.description ?? "",
-        playerId: newChar.playerId ?? newChar.player_id ?? "",
-        versionId: newChar.versionId ?? newChar.version_id ?? "",
-        role: newChar.role ?? "civil",
-        lienReddif: newChar.lienReddif ?? newChar.lien_reddif ?? "",
-      });
-      setNewRelPerso("");
-      setNewRelType("");
-      setModal("edit");
-      return;
-    } else if (modal === "edit" && selected) {
+      setForm(
+        charToForm({
+          ...newChar,
+          playerId: newChar.playerId ?? newChar.player_id,
+          versionId: newChar.versionId ?? newChar.version_id,
+          lienReddif: newChar.lienReddif ?? newChar.lien_reddif,
+        }),
+      );
+    } else {
       await fetch("/api/characters", {
         method: "PATCH",
         headers,
         body: JSON.stringify({ id: selected.id, ...body }),
       });
+      await load();
+      closeModal();
     }
 
-    await load();
     setLoading(false);
-    closeModal();
   }
 
   async function confirmDelete() {
@@ -200,12 +195,6 @@ export function CharactersTab({ players, versions }: Props) {
 
   async function addRelation() {
     if (!selected || !newRelPerso) return;
-    console.log("addRelation payload:", {
-      // ← ajoute ça
-      personnage_a: selected.id,
-      personnage_b: newRelPerso,
-      type_relation: newRelType || null,
-    });
     setRelLoading(true);
     await fetch("/api/relations", {
       method: "POST",
@@ -217,7 +206,6 @@ export function CharactersTab({ players, versions }: Props) {
       }),
     });
     await load();
-    // Rafraîchir selected avec les nouvelles relations
     setSelected((prev) =>
       prev ? (chars.find((c) => c.id === prev.id) ?? prev) : null,
     );
@@ -235,14 +223,201 @@ export function CharactersTab({ players, versions }: Props) {
     await load();
   }
 
-  // Relations du personnage en cours d'édition (toujours fraîches depuis chars)
   const editRelations = selected
     ? (chars.find((c) => c.id === selected.id)?.relations ?? [])
     : [];
 
+  // ─── Form partagé ────────────────────────────────────────────────────────────
+  const sharedForm = (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-text-muted">
+          Nom
+        </label>
+        <Input
+          value={form.nom}
+          onChange={set("nom")}
+          placeholder="Tony Mercer"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-text-muted">
+          Métier
+        </label>
+        <Input
+          value={form.metier}
+          onChange={set("metier")}
+          placeholder="Mécanicien, Avocat…"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-text-muted">
+            Rôle
+          </label>
+          <Select
+            value={form.role}
+            onValueChange={(v) => setForm((f) => ({ ...f, role: v ?? "" }))}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Rôle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Rôle</SelectLabel>
+                {ROLES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-text-muted">
+            Joueur
+          </label>
+          <PlayerCombobox
+            key={`${modal}-${selected?.id ?? "new"}`}
+            players={localPlayers}
+            value={form.playerId}
+            onValueChange={(v, newPlayer) => {
+              setForm((f) => ({ ...f, playerId: v }));
+              if (newPlayer) setLocalPlayers((p) => [...p, newPlayer]);
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-text-muted">
+          Version
+        </label>
+        <Select
+          value={form.versionId}
+          onValueChange={(v) => setForm((f) => ({ ...f, versionId: v ?? "" }))}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Aucune" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Version</SelectLabel>
+              <SelectItem value="">Aucune</SelectItem>
+              {versions.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.id} — {v.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-text-muted">
+          Description
+        </label>
+        <textarea
+          className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
+          value={form.description}
+          onChange={set("description")}
+          placeholder="Courte biographie…"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-text-muted">
+          Lien Reddif
+        </label>
+        <Input
+          value={form.lienReddif}
+          onChange={set("lienReddif")}
+          placeholder="https://youtube.com/..."
+        />
+      </div>
+
+      {/* Relations — uniquement en mode edit */}
+      {isEdit && (
+        <div className="border-t border-border pt-3 flex flex-col gap-2">
+          <p className="text-[10px] uppercase tracking-widest text-text-muted">
+            Relations ({editRelations.length})
+          </p>
+
+          {editRelations.length > 0 && (
+            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
+              {editRelations.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-elevated border border-border"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[12px] font-medium text-text-primary truncate">
+                      {r.linked?.nom}
+                    </span>
+                    {r.type_relation && (
+                      <span className="text-[10px] text-text-muted shrink-0">
+                        — {r.type_relation}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => deleteRelation(r.id)}
+                    className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer shrink-0 ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] uppercase tracking-widest text-text-muted">
+                Personnage
+              </label>
+              <CharacterCombobox
+                key={`rel-${selected?.id}`}
+                characters={chars}
+                value={newRelPerso}
+                onValueChange={(v) => setNewRelPerso(v)}
+                excludeId={selected?.id}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] uppercase tracking-widest text-text-muted">
+                Type (optionnel)
+              </label>
+              <Input
+                value={newRelType}
+                onChange={(e) => setNewRelType(e.target.value)}
+                placeholder="Frère, Associé…"
+                className="h-9 text-[12px]"
+              />
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={addRelation}
+            disabled={relLoading || !newRelPerso}
+            className="text-[11px] border-border-mid text-text-secondary cursor-pointer"
+          >
+            {relLoading ? "…" : "+ Ajouter la relation"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+  // ─────────────────────────────────────────────────────────────────────────────
+
   return (
     <>
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-[15px] font-bold tracking-wide text-text-primary">
@@ -257,7 +432,6 @@ export function CharactersTab({ players, versions }: Props) {
         </Button>
       </div>
 
-      {/* Liste */}
       <div className="flex flex-col gap-4">
         {chars.map((c) => (
           <Card key={c.id}>
@@ -325,216 +499,16 @@ export function CharactersTab({ players, versions }: Props) {
         ))}
       </div>
 
-      {/* Modal add/edit */}
-      <Dialog
-        open={modal === "add" || modal === "edit"}
-        onOpenChange={(o) => !o && closeModal()}
-      >
+      {/* Modal form commun add / edit */}
+      <Dialog open={modal === "form"} onOpenChange={(o) => !o && closeModal()}>
         <DialogContent className="bg-card border-border-mid max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[14px] tracking-wide">
-              {modal === "edit"
-                ? "Modifier le personnage"
-                : "Nouveau personnage"}
+              {isEdit ? "Modifier le personnage" : "Nouveau personnage"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col gap-3">
-            {/* Nom */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                Nom
-              </label>
-              <Input
-                value={form.nom}
-                onChange={set("nom")}
-                placeholder="Tony Mercer"
-              />
-            </div>
-
-            {/* Métier */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                Métier
-              </label>
-              <Input
-                value={form.metier}
-                onChange={set("metier")}
-                placeholder="Mécanicien, Avocat…"
-              />
-            </div>
-
-            {/* Rôle + Joueur */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Rôle
-                </label>
-                <Select
-                  value={form.role}
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, role: v ?? "" }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Rôle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Rôle</SelectLabel>
-                      {ROLES.map((r) => (
-                        <SelectItem key={r.value} value={r.value}>
-                          {r.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Joueur
-                </label>
-                <PlayerCombobox
-                  key={modal + (selected?.id ?? "new")}
-                  players={localPlayers}
-                  value={form.playerId}
-                  onValueChange={(v, newPlayer) => {
-                    setForm((f) => ({ ...f, playerId: v }));
-                    // Si joueur créé à la volée, l'ajouter à la liste locale
-                    if (newPlayer) setLocalPlayers((p) => [...p, newPlayer]);
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Version */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                Version
-              </label>
-              <Select
-                value={form.versionId}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, versionId: v ?? "" }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Aucune" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Version</SelectLabel>
-                    <SelectItem value="">Aucune</SelectItem>
-                    {versions.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.id} — {v.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Description */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                Description
-              </label>
-              <textarea
-                className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
-                value={form.description}
-                onChange={set("description")}
-                placeholder="Courte biographie…"
-              />
-            </div>
-            {modal === "edit" && (
-              <div className="border-t border-border pt-3 flex flex-col gap-2">
-                <p className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Relations ({editRelations.length})
-                </p>
-
-                {/* Liste relations existantes */}
-                {editRelations.length > 0 && (
-                  <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
-                    {editRelations.map((r) => (
-                      <div
-                        key={r.id}
-                        className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-elevated border border-border"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-[12px] font-medium text-text-primary truncate">
-                            {r.linked?.nom}
-                          </span>
-                          {r.type_relation && (
-                            <span className="text-[10px] text-text-muted shrink-0">
-                              — {r.type_relation}
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => deleteRelation(r.id)}
-                          className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer shrink-0 ml-2"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] uppercase tracking-widest text-text-muted">
-                      Personnage
-                    </label>
-                    <CharacterCombobox
-                      key={modal + (selected?.id ?? "new")}
-                      characters={chars}
-                      value={newRelPerso}
-                      onValueChange={(v) => setNewRelPerso(v)}
-                      excludeId={selected?.id}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] uppercase tracking-widest text-text-muted">
-                      Type (optionnel)
-                    </label>
-                    <Input
-                      value={newRelType}
-                      onChange={(e) => setNewRelType(e.target.value)}
-                      placeholder="Frère, Associé…"
-                      className="h-9 text-[12px]"
-                    />
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={addRelation}
-                  disabled={relLoading || !newRelPerso}
-                  className="text-[11px] border-border-mid text-text-secondary cursor-pointer"
-                >
-                  {relLoading ? "…" : "+ Ajouter la relation"}
-                </Button>
-              </div>
-            )}
-
-            {/* Lien Reddit */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                Lien Reddif
-              </label>
-              <Input
-                value={form.lienReddif}
-                onChange={set("lienReddif")}
-                placeholder="https://youtube.com/..."
-              />
-            </div>
-
-            {/* Relations — uniquement en mode edit */}
-          </div>
+          {sharedForm}
 
           <DialogFooter className="flex gap-2 sm:flex-row pt-1">
             <Button
@@ -551,7 +525,7 @@ export function CharactersTab({ players, versions }: Props) {
               disabled={loading || !form.nom}
               className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
             >
-              {loading ? "…" : modal === "edit" ? "Enregistrer" : "Créer"}
+              {loading ? "…" : isEdit ? "Enregistrer" : "Créer"}
             </Button>
           </DialogFooter>
         </DialogContent>
