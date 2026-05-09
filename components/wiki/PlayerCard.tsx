@@ -4,7 +4,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Character } from "@/lib/db";
 import { Badge } from "../ui/badge";
 
-// On n'a besoin que de id et pseudo ici — pas du Player complet
 type PartialPlayer = { id: string; pseudo: string };
 
 type Props = {
