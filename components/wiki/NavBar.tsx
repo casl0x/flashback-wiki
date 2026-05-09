@@ -1,37 +1,58 @@
-'use client'
+"use client";
 
-import styles from '@/app/page.module.css'
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
-  totalChars: number
-  totalPlayers: number
-  totalVersions: number
-  query: string
-  onQueryChange: (q: string) => void
-}
+  totalChars: number;
+  totalPlayers: number;
+  totalVersions: number;
+  query: string;
+  onQueryChange: (q: string) => void;
+};
 
-export default function NavBar({ totalChars, totalPlayers, totalVersions, query, onQueryChange }: Props) {
+export default function NavBar({
+  totalChars,
+  totalPlayers,
+  totalVersions,
+  query,
+  onQueryChange,
+}: Props) {
   return (
-    <nav className={styles.nav}>
-      <div className={styles.navBrand}>
-        <div className={styles.logoMark}>⚡</div>
-        <div><div className={styles.navTitle}>FLASH<span>BACK</span></div></div>
-        <span className={styles.navSub}>— Wiki WL</span>
+    <nav className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-3 bg-card border-b border-border">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-white font-bold">
+          ⚡
+        </div>
+        <div>
+          <div className="font-display font-bold text-[17px] text-text-primary">
+            FLASH<span className="text-accent-light">BACK</span>
+          </div>
+          <div className="text-[11px] text-text-faint">— Wiki WL</div>
+        </div>
       </div>
-      <div className={styles.navSearch}>
-        <i className="ti ti-search" style={{ fontSize: 13, color: '#4a4560' }} aria-hidden="true" />
+
+      <div className="flex-1 max-w-md">
         <input
           type="text"
           placeholder="Rechercher un personnage..."
           value={query}
-          onChange={e => onQueryChange(e.target.value)}
+          onChange={(e) => onQueryChange(e.target.value)}
+          className="h-9 w-full bg-elevated border border-border-mid rounded-lg px-3 py-1.5 text-xs placeholder:text-text-faint outline-none"
+          suppressHydrationWarning
         />
       </div>
-      <div className={styles.navStats}>
-        <span className={styles.navStat}><strong>{totalChars}</strong> persos</span>
-        <span className={styles.navStat}><strong>{totalPlayers}</strong> joueurs</span>
-        <span className={styles.navStat}><strong>{totalVersions}</strong> versions</span>
+
+      <div className="flex items-center gap-3">
+        {[
+          [totalChars, "persos"],
+          [totalPlayers, "joueurs"],
+          [totalVersions, "versions"],
+        ].map(([val, label]) => (
+          <Badge key={String(label)}>
+            {val} {label}
+          </Badge>
+        ))}
       </div>
     </nav>
-  )
+  );
 }

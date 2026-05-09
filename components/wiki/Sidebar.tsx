@@ -1,8 +1,8 @@
 "use client";
 
-import styles from "@/app/page.module.css";
+import { cn } from "@/lib/cn";
 import { Version } from "@/lib/db";
-import { vBadgeBg, vBadgeFg } from "@/lib/utils";
+import { Badge } from "../ui/badge";
 
 type Props = {
   versions: Version[];
@@ -26,61 +26,41 @@ export default function Sidebar({
   const allVersions = [{ id: "all", label: "Tout voir" }, ...versions];
 
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.sbLabel}>Versions</div>
+    <aside className="w-50 min-w-50 bg-card border-r border-border p-3 flex flex-col gap-2">
+      <div className="text-[9px] font-semibold text-text-faint uppercase tracking-[1px] px-2 py-1.5">
+        Versions
+      </div>
+
       {allVersions.map((v) => {
         const isOn = selected === v.id;
-        const bg = v.id === "all" ? "#1e1c2a" : vBadgeBg(v.id);
-        const fg = v.id === "all" ? "#6b6880" : vBadgeFg(v.id);
         return (
-          <div
+          <button
             key={v.id}
-            className={`${styles.verBtn} ${isOn ? styles.verBtnOn : ""}`}
             onClick={() => onSelect(v.id)}
+            className={cn(
+              "flex items-center justify-between px-2.5 py-1.5 rounded-lg w-full text-left transition-all",
+              isOn ? "bg-active border-border-accent" : "hover:bg-elevated",
+            )}
           >
-            <div className={styles.verBtnL}>
-              <div
-                className={styles.verBadge}
-                style={{ background: bg, color: fg }}
-              >
-                {v.id === "all" ? (
-                  <i
-                    className="ti ti-layout-grid"
-                    style={{ fontSize: 10 }}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  v.id
-                )}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold font-display">
+                {v.id === "all" ? <i className="ti ti-layout-grid" /> : v.id}
               </div>
-              <span className={styles.verName}>
+              <div
+                className={cn(
+                  "text-[13px]",
+                  isOn
+                    ? "text-accent-light font-medium"
+                    : "text-text-secondary",
+                )}
+              >
                 {v.id === "all" ? "Tout voir" : v.label}
-              </span>
+              </div>
             </div>
-            <span className={styles.verCount}>
-              {v.id === "all" ? totalChars : counts[v.id] || 0}
-            </span>
-          </div>
+            <Badge>{v.id === "all" ? totalChars : counts[v.id] || 0}</Badge>
+          </button>
         );
       })}
-
-      <div className={styles.sbDivider}>
-        <div className={styles.sbLabel} style={{ paddingTop: 10 }}>
-          Statistiques
-        </div>
-        <div className={styles.sbStatRow}>
-          <span className={styles.sbStatLabel}>Personnages</span>
-          <span className={styles.sbStatVal}>{totalChars}</span>
-        </div>
-        <div className={styles.sbStatRow}>
-          <span className={styles.sbStatLabel}>Joueurs</span>
-          <span className={styles.sbStatVal}>{totalPlayers}</span>
-        </div>
-        <div className={styles.sbStatRow}>
-          <span className={styles.sbStatLabel}>Relations</span>
-          <span className={styles.sbStatVal}>{totalRels}</span>
-        </div>
-      </div>
     </aside>
   );
 }

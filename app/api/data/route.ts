@@ -1,97 +1,112 @@
+export const dynamic = "force-dynamic";
+
 import { getDb } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-// GET /api/data — toutes les données pour le wiki public (une seule requête)
-export const dynamic = "force-dynamic";
-
-type VersionRow = {
-  id: number;
-};
-
 type PlayerRow = {
-  id: number;
+  id: string;
   pseudo: string;
+  stream: boolean;
+  lien_chaine: string | null;
+  reseaux: Record<string, string>;
 };
 
 type CharacterRow = {
-  id: number;
-  name: string;
-  job: string;
-  version_id: number;
-  player_id: number;
+  id: string;
+  nom: string;
+  role: "civil" | "illegal" | "fdo" | null;
+  description: string | null;
+  player_id: string;
+  metier: string | null;
+  lien_reddit: string | null;
 };
 
 type RelationQueryRow = {
-  id: number;
-  character_id: number;
-  relation_type: string;
-  target_id: number;
-  t_id: number;
-  t_name: string;
-  t_job: string;
-  t_version_id: number;
-  t_player_pseudo: string;
-};
-
-type RelationItem = {
-  id: number;
-  relation_type: string;
-  target_id: number;
-  target: {
-    id: number;
-    name: string;
-    job: string;
-    version_id: number;
-    player: { pseudo: string };
-  };
+  id: string;
+  personnage_a: string;
+  personnage_b: string;
+  type_relation: string | null;
+  // champs du personnage lié
+  linked_id: string;
+  linked_nom: string;
+  linked_role: string | null;
+  linked_metier: string | null;
+  linked_player_pseudo: string;
 };
 
 export async function GET() {
   try {
     const sql = getDb();
 
-    const [versions, players, characters, relations] = (await Promise.all([
-      sql`SELECT * FROM versions ORDER BY id`,
+    const [players, characters, relations] = (await Promise.all([
       sql`SELECT * FROM players ORDER BY pseudo`,
-      sql`SELECT * FROM characters ORDER BY name`,
+      sql`SELECT * FROM characters ORDER BY nom`,
       sql`
-        SELECT r.*, 
-          c.id as t_id, c.name as t_name, c.job as t_job, c.version_id as t_version_id,
-          p.pseudo as t_player_pseudo
-        FROM relations r
-        JOIN characters c ON c.id = r.target_id
-        JOIN players p ON p.id = c.player_id
-      `,
-    ])) as [VersionRow[], PlayerRow[], CharacterRow[], RelationQueryRow[]];
+    SELECT
+      r.id,
+      r.personnage_a,
+      r.personnage_b,
+      r.type_relation,
+      c.id            AS linked_id,
+      c.nom           AS linked_nom,
+      c.role          AS linked_role,
+      c.metier        AS linked_metier,
+      p.pseudo        AS linked_player_pseudo
+    FROM relations r
+    JOIN characters c ON c.id = CASE
+      WHEN r.personnage_a = c.id THEN r.personnage_b
+      ELSE r.personnage_a
+    END
+    JOIN players p ON p.id = c.player_id
+  `,
+    ])) as [PlayerRow[], CharacterRow[], RelationQueryRow[]];
 
-    // Assembler les données côté serveur
     const playerMap = Object.fromEntries(players.map((p) => [p.id, p]));
-    const relsByChar: Record<number, RelationItem[]> = {};
+
+    // Grouper les relations par personnage (les deux côtés)
+    const relsByChar: Record<
+      string,
+      {
+        id: string;
+        type_relation: string | null;
+        linked: {
+          id: string;
+          nom: string;
+          role: string | null;
+          metier: string | null;
+          player_pseudo: string;
+        };
+      }[]
+    > = {};
+
     for (const r of relations) {
-      if (!relsByChar[r.character_id]) relsByChar[r.character_id] = [];
-      relsByChar[r.character_id].push({
+      const entry = {
         id: r.id,
-        relation_type: r.relation_type,
-        target_id: r.target_id,
-        target: {
-          id: r.t_id,
-          name: r.t_name,
-          job: r.t_job,
-          version_id: r.t_version_id,
-          player: { pseudo: r.t_player_pseudo },
+        type_relation: r.type_relation,
+        linked: {
+          id: r.linked_id,
+          nom: r.linked_nom,
+          role: r.linked_role,
+          metier: r.linked_metier,
+          player_pseudo: r.linked_player_pseudo,
         },
-      });
+      };
+      // Côté a
+      if (!relsByChar[r.personnage_a]) relsByChar[r.personnage_a] = [];
+      relsByChar[r.personnage_a].push(entry);
+      // Côté b (symétrie)
+      if (!relsByChar[r.personnage_b]) relsByChar[r.personnage_b] = [];
+      relsByChar[r.personnage_b].push(entry);
     }
 
     const enrichedChars = characters.map((c) => ({
       ...c,
       player: playerMap[c.player_id] || null,
-      version: versions.find((v) => v.id === c.version_id) || null,
       relations: relsByChar[c.id] || [],
     }));
 
     return NextResponse.json(
-      { versions, players, characters: enrichedChars },
+      { players, characters: enrichedChars },
       {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate",

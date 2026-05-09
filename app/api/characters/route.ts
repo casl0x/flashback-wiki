@@ -8,24 +8,29 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   if (!isAdmin(request))
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  const { name, job, description, tags, version_id, player_id, status } =
+
+  const { nom, role, description, player_id, metier, lien_reddit } =
     await request.json();
-  if (!name || !job || !version_id || !player_id)
+
+  if (!nom || !player_id)
     return NextResponse.json(
-      { error: "Champs requis manquants" },
+      { error: "Champs requis manquants (nom, player_id)" },
       { status: 400 },
     );
 
   try {
     const sql = getDb();
     const [char] = await sql`
-      INSERT INTO characters (name, job, description, tags, version_id, player_id, status)
-      VALUES (${name}, ${job}, ${description || null}, ${tags || []}, ${version_id}, ${player_id}, ${status || null})
+      INSERT INTO characters (nom, role, description, player_id, metier, lien_reddit)
+      VALUES (${nom}, ${role || null}, ${description || null}, ${player_id}, ${metier || null}, ${lien_reddit || null})
       RETURNING *
     `;
     return NextResponse.json(char, { status: 201 });
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -33,8 +38,10 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   if (!isAdmin(request))
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  const { id, name, job, description, tags, version_id, player_id, status } =
+
+  const { id, nom, role, description, player_id, metier, lien_reddit } =
     await request.json();
+
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
   try {
@@ -42,19 +49,21 @@ export async function PATCH(request: NextRequest) {
     const [char] = await sql`
       UPDATE characters
       SET
-        name       = COALESCE(${name ?? null}, name),
-        job        = COALESCE(${job ?? null}, job),
-        description= ${description ?? null},
-        tags       = COALESCE(${tags ?? null}, tags),
-        version_id = COALESCE(${version_id ?? null}, version_id),
-        player_id  = COALESCE(${player_id ?? null}, player_id),
-        status     = ${status ?? null}
+        nom         = COALESCE(${nom ?? null}, nom),
+        role        = ${role ?? null},
+        description = ${description ?? null},
+        player_id   = COALESCE(${player_id ?? null}, player_id),
+        metier      = ${metier ?? null},
+        lien_reddit = ${lien_reddit ?? null}
       WHERE id = ${id}
       RETURNING *
     `;
     return NextResponse.json(char);
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -62,6 +71,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   if (!isAdmin(request))
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
   const { id } = await request.json();
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
@@ -70,6 +80,9 @@ export async function DELETE(request: NextRequest) {
     await sql`DELETE FROM characters WHERE id = ${id}`;
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 },
+    );
   }
 }

@@ -6,42 +6,50 @@ export function getDb() {
   });
 }
 
-// Types
+export type Player = {
+  id: string;
+  pseudo: string;
+  stream: boolean;
+  lien_chaine: string | null;
+  reseaux: Record<string, string>;
+  created_at?: string;
+};
+
+export type Character = {
+  id: string;
+  nom: string;
+  role: "civil" | "illegal" | "fdo" | null;
+  description: string | null;
+  player_id: string;
+  metier: string | null;
+  lien_reddit: string | null;
+  created_at?: string;
+  // champs enrichis par /api/data
+  player?: Player | null;
+  relations?: Relation[];
+};
+
+export type Relation = {
+  id: string;
+  personnage_a: string;
+  personnage_b: string;
+  type_relation: string | null;
+  created_at?: string;
+  linked?: {
+    id: string;
+    nom: string;
+    role: "civil" | "illegal" | "fdo" | null;
+    metier: string | null;
+    player_pseudo: string;
+  };
+};
+
 export type Version = {
   id: string;
   label: string;
   description: string | null;
+  color: string;
   created_at?: string;
 };
 
-export type Player = {
-  id: string;
-  pseudo: string;
-  discord: string | null;
-  tiktok: string | null;
-  stream_url: string | null;
-  created_at?: string;
-};
-
-export type Relation = {
-  id: number;
-  character_id: number;
-  target_id: number;
-  relation_type: string;
-  target?: Partial<Character>;
-};
-
-export type Character = {
-  id: number;
-  name: string;
-  job: string;
-  description: string | null;
-  tags: string[];
-  version_id: string;
-  player_id: string;
-  status: "civil" | "illegal" | "fdo" | null;
-  created_at?: string;
-  player?: Player;
-  version?: Version;
-  relations?: Relation[];
-};
+export type Tab = "characters" | "players" | "versions";

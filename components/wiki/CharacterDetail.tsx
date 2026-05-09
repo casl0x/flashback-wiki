@@ -1,9 +1,7 @@
 "use client";
 
-import styles from "@/app/page.module.css";
-import Avatar from "@/components/ui/Avatar";
-import StatusBadge from "@/components/ui/StatusBadge";
-import VersionPill from "@/components/ui/VersionPill";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import PlayerCard from "@/components/wiki/PlayerCard";
 import { Character } from "@/lib/db";
 
@@ -14,53 +12,63 @@ type Props = {
   onNavigate: (c: Character) => void;
 };
 
+type CharacterRelation = {
+  id: number | string;
+  relation_type: string;
+  target?: Pick<Character, "id" | "name" | "version_id" | "player">;
+};
+
 export default function CharacterDetail({
   character: c,
   allCharacters,
   onBack,
   onNavigate,
 }: Props) {
-  const pl = c.player as any;
-  const rels = c.relations || [];
+  const pl = c.player as { id?: string; pseudo?: string } | undefined;
+  const rels = (c.relations || []) as CharacterRelation[];
   const others = allCharacters.filter(
-    (x) => (x.player as any)?.id === pl?.id && x.id !== c.id,
+    (x) =>
+      (x.player as { id?: string } | undefined)?.id === pl?.id && x.id !== c.id,
   );
 
   return (
-    <div className={styles.content}>
-      <button className={styles.backBtn} onClick={onBack}>
-        ← Retour
+    <div className="flex-1 p-5 overflow-y-auto">
+      <button
+        onClick={onBack}
+        className="inline-flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text-primary mb-3.5 transition-colors bg-transparent border-none cursor-pointer"
+      >
+        <i className="ti ti-arrow-left" aria-hidden="true" /> Retour
       </button>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+      <div className="flex flex-col gap-3">
         {/* Fiche personnage */}
-        <div className={styles.detailCard}>
-          <div className={styles.detailTop}>
-            <Avatar name={c.name} size={52} fontSize={18} />
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-3.5 mb-4 pb-3.5 border-b border-border">
             <div>
-              <div className={styles.detailName}>{c.name}</div>
-              <div className={styles.detailJob}>{c.job}</div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 4,
-                }}
-              >
-                <VersionPill version={c.version_id} />
-                <StatusBadge status={c.status as any} />
+              <h2 className="font-display font-bold text-[20px] text-text-primary tracking-wide">
+                {c.name}
+              </h2>
+              <p className="text-[13px] text-text-secondary mb-1.5">{c.job}</p>
+              <div className="flex items-center gap-1.5">
+                <Badge variant="outline">{c.version_id}</Badge>
+                {c.status && <Badge variant="ghost">{c.status}</Badge>}
               </div>
             </div>
           </div>
 
           {c.description && (
-            <p className={styles.detailDesc}>{c.description}</p>
+            <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
+              {c.description}
+            </p>
           )}
 
           {(c.tags || []).length > 0 && (
-            <div className={styles.tagList}>
+            <div className="flex flex-wrap gap-1.5 mb-3">
               {(c.tags || []).map((t: string) => (
-                <span key={t} className={styles.tag}>
+                <span
+                  key={t}
+                  className="text-[11px] px-2 py-0.5 rounded-full bg-elevated border border-border-mid text-text-muted"
+                >
                   {t}
                 </span>
               ))}
@@ -68,106 +76,48 @@ export default function CharacterDetail({
           )}
 
           {rels.length > 0 && (
-            <RelationsList
-              relations={rels}
-              allCharacters={allCharacters}
-              onNavigate={onNavigate}
-            />
+            <div>
+              <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] mb-2">
+                Relations
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {rels.map((r) => {
+                  const tc = r.target;
+                  if (!tc) return null;
+                  const full = allCharacters.find((ch) => ch.id === tc.id);
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => {
+                        if (full) onNavigate(full);
+                      }}
+                      className="flex items-center justify-between px-3 py-2 bg-elevated rounded-lg border border-transparent hover:border-border-mid transition-all text-left w-full"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-bg border border-border-accent text-accent-light font-display tracking-wide">
+                          {r.relation_type}
+                        </span>
+                        <div>
+                          <p className="text-[13px] font-medium text-text-primary">
+                            {tc.name}
+                          </p>
+                          <p className="text-[10px] text-text-faint">
+                            {tc.player?.pseudo} — {tc.version_id}
+                          </p>
+                        </div>
+                      </div>
+                      <Avatar size="sm">
+                        <AvatarFallback>{tc.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Fiche joueur */}
-        <PlayerCard player={pl} others={others} onNavigate={onNavigate} />
-      </div>
-    </div>
-  );
-}
-
-// Sous-composant relations
-function RelationsList({
-  relations,
-  allCharacters,
-  onNavigate,
-}: {
-  relations: any[];
-  allCharacters: Character[];
-  onNavigate: (c: Character) => void;
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 600,
-          color: "#4a4560",
-          textTransform: "uppercase",
-          letterSpacing: ".8px",
-          marginBottom: 8,
-        }}
-      >
-        Relations
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-        {relations.map((r: any) => {
-          const tc = r.target;
-          if (!tc) return null;
-          const full = allCharacters.find((c) => c.id === tc.id);
-          return (
-            <div
-              key={r.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "8px 11px",
-                background: "#1a1824",
-                borderRadius: 8,
-                cursor: "pointer",
-                border: "0.5px solid transparent",
-                transition: "all .15s",
-              }}
-              onClick={() => {
-                if (full) onNavigate(full);
-              }}
-              onMouseOver={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = "#2a2535";
-              }}
-              onMouseOut={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor =
-                  "transparent";
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    padding: "2px 8px",
-                    borderRadius: 99,
-                    background: "#2a1040",
-                    border: "0.5px solid #4c2d8a",
-                    color: "#a78bfa",
-                    fontFamily: "'Rajdhani', sans-serif",
-                    letterSpacing: ".3px",
-                  }}
-                >
-                  {r.relation_type}
-                </span>
-                <div>
-                  <div
-                    style={{ fontSize: 13, color: "#e2dff0", fontWeight: 500 }}
-                  >
-                    {tc.name}
-                  </div>
-                  <div style={{ fontSize: 10, color: "#4a4560" }}>
-                    {tc.player?.pseudo} — {tc.version_id}
-                  </div>
-                </div>
-              </div>
-              <Avatar name={tc.name} size={28} fontSize={10} />
-            </div>
-          );
-        })}
+        <PlayerCard player={c.player} others={others} onNavigate={onNavigate} />
       </div>
     </div>
   );
