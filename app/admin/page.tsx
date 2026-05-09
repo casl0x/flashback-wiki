@@ -1,11 +1,12 @@
 "use client";
 
 import { CharactersTab } from "@/components/admin/CharactersTab";
-import { LoginScreen } from "@/components/admin/LoginScreen";
 import { PlayersTab } from "@/components/admin/PlayersTab";
 import { VersionsTab } from "@/components/admin/VersionsTab";
-import { Player, Tab, Version } from "@/lib/db";
+import { Player, Version } from "@/lib/db";
 import { useEffect, useState } from "react";
+
+type Tab = "characters" | "players" | "versions";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "characters", label: "Personnages" },
@@ -14,23 +15,20 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function AdminPage() {
-  const [token, setToken] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("characters");
   const [players, setPlayers] = useState<Player[]>([]);
   const [versions, setVersions] = useState<Version[]>([]);
 
   useEffect(() => {
-    if (!token) return;
     fetch("/api/data")
       .then((r) => r.json())
       .then((d) => {
         setPlayers(d.players ?? []);
         setVersions(d.versions ?? []);
       });
-  }, [token]);
+  }, []);
 
   if (typeof window === "undefined") return null;
-  if (!token) return <LoginScreen onLogin={setToken} />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,12 +43,6 @@ export default function AdminPage() {
           </span>
           <span className="text-[10px] text-text-muted ml-1">Admin</span>
         </div>
-        <button
-          onClick={() => setToken(null)}
-          className="text-[11px] text-text-muted hover:text-text-secondary cursor-pointer"
-        >
-          Déconnexion
-        </button>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-6">
@@ -73,10 +65,10 @@ export default function AdminPage() {
 
         {/* Content */}
         {tab === "characters" && (
-          <CharactersTab token={token} players={players} />
+          <CharactersTab players={players} versions={versions} />
         )}
-        {tab === "players" && <PlayersTab token={token} />}
-        {tab === "versions" && <VersionsTab token={token} />}
+        {tab === "players" && <PlayersTab />}
+        {tab === "versions" && <VersionsTab />}
       </div>
     </div>
   );

@@ -12,10 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Version } from "@/lib/db";
-import { authHeaders } from "@/lib/utils";
 import { useEffect, useState } from "react";
-
-type Props = { token: string };
 
 type VersionForm = {
   id: string;
@@ -27,7 +24,7 @@ type VersionForm = {
 const cls =
   "h-8 text-[12px] bg-[var(--elevated)] border-[var(--border-mid)] text-[var(--text-primary)] focus:border-[var(--accent)] focus:ring-0 placeholder:text-[var(--text-muted)]";
 
-export function VersionsTab({ token }: Props) {
+export function VersionsTab() {
   const [versions, setVersions] = useState<Version[]>([]);
   const [modal, setModal] = useState<"add" | "edit" | "delete" | null>(null);
   const [selected, setSelected] = useState<Version | null>(null);
@@ -87,13 +84,11 @@ export function VersionsTab({ token }: Props) {
     if (modal === "add") {
       await fetch("/api/versions", {
         method: "POST",
-        headers: authHeaders(token),
         body: JSON.stringify({ id: form.id, ...body }),
       });
     } else if (modal === "edit" && selected) {
       await fetch("/api/versions", {
         method: "PATCH",
-        headers: authHeaders(token),
         body: JSON.stringify({ id: selected.id, ...body }),
       });
     }
@@ -106,7 +101,6 @@ export function VersionsTab({ token }: Props) {
     if (!selected) return;
     await fetch("/api/versions", {
       method: "DELETE",
-      headers: authHeaders(token),
       body: JSON.stringify({ id: selected.id }),
     });
     await load();
@@ -118,7 +112,7 @@ export function VersionsTab({ token }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-[15px] font-bold tracking-wide text-[var(--text-primary)]">
+          <h2 className="text-[15px] font-bold tracking-wide text-text-primary">
             Versions
           </h2>
           <span className="text-[11px] text-[var(--text-muted)] bg-[var(--elevated)] border border-[var(--border)] px-2 py-0.5 rounded-full">
@@ -151,9 +145,9 @@ export function VersionsTab({ token }: Props) {
                   variant="outline"
                   className="text-[10px] uppercase font-bold"
                   style={{
-                    color: v.color,
-                    borderColor: `${v.color}40`,
-                    background: `${v.color}18`,
+                    color: v.color ?? undefined,
+                    borderColor: v.color ? `${v.color}40` : undefined,
+                    background: v.color ? `${v.color}18` : undefined,
                   }}
                 >
                   {v.id}

@@ -1,18 +1,21 @@
 "use client";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Character, Player } from "@/lib/db";
+import { Character } from "@/lib/db";
 import { Badge } from "../ui/badge";
 
+// On n'a besoin que de id et pseudo ici — pas du Player complet
+type PartialPlayer = { id: string; pseudo: string };
+
 type Props = {
-  player: Player | null | undefined;
+  player: PartialPlayer | null | undefined;
   others: Character[];
   onNavigate: (c: Character) => void;
 };
 
 export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
   if (!pl) return null;
-  const playerName = pl.pseudo?.trim() || "Joueur";
+  const playerName = pl.pseudo.trim() || "Joueur";
   const playerInitial = playerName.charAt(0) || "?";
 
   return (
@@ -48,11 +51,13 @@ export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
               >
                 <div>
                   <p className="text-[13px] font-medium text-text-primary">
-                    {o.name}
+                    {o.nom}
                   </p>
-                  <p className="text-[11px] text-text-muted">{o.job}</p>
+                  {o.metier && (
+                    <p className="text-[11px] text-text-muted">{o.metier}</p>
+                  )}
                 </div>
-                <Badge>{o.version_id}</Badge>
+                {o.versionId && <Badge>{o.versionId}</Badge>}
               </button>
             ))}
           </div>

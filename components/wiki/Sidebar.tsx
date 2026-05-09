@@ -19,8 +19,6 @@ export default function Sidebar({
   selected,
   counts,
   totalChars,
-  totalPlayers,
-  totalRels,
   onSelect,
 }: Props) {
   const allVersions = [{ id: "all", label: "Tout voir" }, ...versions];

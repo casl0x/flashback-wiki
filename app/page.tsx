@@ -8,8 +8,6 @@ import IntroBlock from "@/components/wiki/IntroBlock";
 import NavBar from "@/components/wiki/NavBar";
 import Sidebar from "@/components/wiki/Sidebar";
 import { Character, Player, Version } from "@/lib/db";
-import { useAdmin } from "@/lib/useAdmin";
-import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 function WikiContent({
@@ -23,20 +21,16 @@ function WikiContent({
   selVer: string;
   query: string;
 }) {
-  const searchParams = useSearchParams();
-  const { isAdmin } = useAdmin();
   const [selChar, setSelChar] = useState<Character | null>(null);
 
   const filtered = chars.filter((c) => {
-    const mv = selVer === "all" || c.version_id === selVer;
+    const mv = selVer === "all" || c.versionId === selVer;
     const q = query.toLowerCase();
-    const player = c.player as Partial<Player> | null | undefined;
     const ms =
       !q ||
-      c.name.toLowerCase().includes(q) ||
-      player?.pseudo?.toLowerCase().includes(q) ||
-      c.job.toLowerCase().includes(q) ||
-      (c.tags || []).some((t: string) => t.toLowerCase().includes(q));
+      c.nom.toLowerCase().includes(q) ||
+      c.player?.pseudo?.toLowerCase().includes(q) ||
+      c.metier?.toLowerCase().includes(q);
     return mv && ms;
   });
 
@@ -54,11 +48,9 @@ function WikiContent({
     );
   }
 
-  const upl = [
-    ...new Set(
-      filtered.map((c) => (c.player as Partial<Player> | null | undefined)?.id),
-    ),
-  ].length;
+  const upl = [...new Set(filtered.map((c) => c.player?.id).filter(Boolean))]
+    .length;
+
   const verLabel =
     selVer === "all"
       ? "Tous les personnages"
@@ -70,8 +62,6 @@ function WikiContent({
         verLabel={verLabel}
         filteredCount={filtered.length}
         upl={upl}
-        isAdmin={isAdmin}
-        adminHref={`/admin?token=${searchParams.get("token") || ""}`}
       />
 
       <IntroBlock />
@@ -112,19 +102,16 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    const init = () => {
-      void loadData();
-    };
-
-    queueMicrotask(init);
+    queueMicrotask(() => void loadData());
     window.addEventListener("focus", loadData);
     return () => window.removeEventListener("focus", loadData);
   }, []);
 
   const counts: Record<string, number> = {};
   data.characters.forEach((c) => {
-    counts[c.version_id] = (counts[c.version_id] || 0) + 1;
+    if (c.versionId) counts[c.versionId] = (counts[c.versionId] || 0) + 1;
   });
+
   const totalRels = data.characters.reduce(
     (acc, c) => acc + (c.relations?.length || 0),
     0,

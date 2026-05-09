@@ -4,17 +4,9 @@ type Props = {
   verLabel: string;
   filteredCount: number;
   upl: number;
-  isAdmin: boolean;
-  adminHref?: string;
 };
 
-export default function HeaderBlock({
-  verLabel,
-  filteredCount,
-  upl,
-  isAdmin,
-  adminHref,
-}: Props) {
+export default function HeaderBlock({ verLabel, filteredCount, upl }: Props) {
   return (
     <div className="flex items-start justify-between mb-1.5 pb-3.5 border-b border-border">
       <div>
@@ -26,15 +18,6 @@ export default function HeaderBlock({
           joueur{upl !== 1 ? "s" : ""}
         </p>
       </div>
-
-      {isAdmin && (
-        <a
-          href={adminHref}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium bg-active border border-border-accent rounded-lg text-accent-light hover:bg-accent-bg transition-all no-underline"
-        >
-          <i className="ti ti-settings text-[12px]" aria-hidden="true" /> Admin
-        </a>
-      )}
     </div>
   );
 }

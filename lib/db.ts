@@ -1,55 +1,55 @@
-import { neon } from "@neondatabase/serverless";
+import { PrismaClient } from "@prisma/client";
 
-export function getDb() {
-  return neon(process.env.DATABASE_URL!, {
-    fetchOptions: { cache: "no-store" },
-  });
-}
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+// ─── Player ──────────────────────────────────────────────────────────────────
 export type Player = {
   id: string;
   pseudo: string;
   stream: boolean;
-  lien_chaine: string | null;
+  lienChaine: string | null;
   reseaux: Record<string, string>;
-  created_at?: string;
+  createdAt: string;
 };
 
-export type Character = {
-  id: string;
-  nom: string;
-  role: "civil" | "illegal" | "fdo" | null;
-  description: string | null;
-  player_id: string;
-  metier: string | null;
-  lien_reddit: string | null;
-  created_at?: string;
-  // champs enrichis par /api/data
-  player?: Player | null;
-  relations?: Relation[];
-};
-
-export type Relation = {
-  id: string;
-  personnage_a: string;
-  personnage_b: string;
-  type_relation: string | null;
-  created_at?: string;
-  linked?: {
-    id: string;
-    nom: string;
-    role: "civil" | "illegal" | "fdo" | null;
-    metier: string | null;
-    player_pseudo: string;
-  };
-};
-
+// ─── Version ─────────────────────────────────────────────────────────────────
 export type Version = {
   id: string;
   label: string;
   description: string | null;
-  color: string;
-  created_at?: string;
+  color: string | null;
+  createdAt: string;
 };
 
-export type Tab = "characters" | "players" | "versions";
+// ─── Character ───────────────────────────────────────────────────────────────
+export type Character = {
+  id: string;
+  nom: string;
+  role: "civil" | "illegal" | null;
+  metier: string | null;
+  description: string | null;
+  lienReddif: string | null;
+  playerId: string | null;
+  versionId: string | null;
+  createdAt: string;
+  // Relations incluses par /api/data
+  player?: Pick<Player, "id" | "pseudo"> | null;
+  version?: Pick<Version, "id" | "label" | "color"> | null;
+  relations?: LinkedRelation[];
+};
+
+export type LinkedRelation = {
+  id: string;
+  type_relation: string | null;
+  linked: {
+    id: string;
+    nom: string;
+    role: "civil" | "illegal" | null;
+    metier: string | null;
+    player_pseudo: string | null;
+  };
+};

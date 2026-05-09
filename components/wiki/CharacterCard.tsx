@@ -28,7 +28,7 @@ export default function CharacterCard({ character, onClick }: Props) {
   return (
     <Card
       onClick={onClick}
-      className={`cursor-pointer border-t-2 ${statusBorderClass(character.status)} hover:bg-[var(--card-hover)] transition-colors`}
+      className={`cursor-pointer border-t-2 ${statusBorderClass(character.role)} hover:bg-(--card-hover) transition-colors`}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
@@ -37,36 +37,38 @@ export default function CharacterCard({ character, onClick }: Props) {
               className="rounded-[8px] text-[13px] font-bold border"
               style={{ background: bg, color: fg, borderColor: bd }}
             >
-              {character.name.slice(0, 2).toUpperCase()}
+              {character.nom.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <CardTitle className="truncate text-[13px] font-semibold text-[var(--text-primary)]">
-              {character.name}
+            <CardTitle className="truncate text-[13px] font-semibold text-(--text-primary)">
+              {character.nom}
             </CardTitle>
-            <CardDescription className="truncate text-[11px] text-[var(--text-secondary)]">
-              {character.job}
+            <CardDescription className="truncate text-[11px] text-(--text-secondary)">
+              {character.metier}
             </CardDescription>
           </div>
-          <Badge
-            className="text-[9px] uppercase tracking-wide"
-            variant="outline"
-            style={{ color: fg, borderColor: bd, background: bg }}
-          >
-            {character.version_id}
-          </Badge>
+          {character.versionId && (
+            <Badge
+              className="text-[9px] uppercase tracking-wide"
+              variant="outline"
+              style={{ color: fg, borderColor: bd, background: bg }}
+            >
+              {character.versionId}
+            </Badge>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="pt-0 px-6 flex items-center justify-between">
-        <span className="text-[10px] text-[var(--text-muted)]">
-          {(character.player as { pseudo?: string } | null)?.pseudo}
+        <span className="text-[10px] text-(--text-muted)">
+          {character.player?.pseudo}
         </span>
-        {character.status && (
+        {character.role && (
           <span
-            className={`text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded border ${statusBadgeClass(character.status)}`}
+            className={`text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded border ${statusBadgeClass(character.role)}`}
           >
-            {character.status}
+            {character.role === "civil" ? "Civil" : "Illégal"}
           </span>
         )}
       </CardContent>

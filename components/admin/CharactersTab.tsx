@@ -10,8 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Character, Player } from "@/lib/db";
-import { authHeaders, statusBadgeClass } from "@/lib/utils";
+import { Character, Player, Version } from "@/lib/db";
+import { statusBadgeClass } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
   Select,
@@ -24,15 +24,16 @@ import {
 } from "../ui/select";
 import { PlayerCombobox } from "./PlayerCombobox";
 
-type Props = { token: string; players: Player[] };
+type Props = { players: Player[]; versions: Version[] };
 
 type CharForm = {
   nom: string;
   metier: string;
   description: string;
-  player_id: string;
+  playerId: string;
+  versionId: string | null;
   role: string | null;
-  lien_reddit: string;
+  lienReddif: string;
 };
 
 const ROLES = [
@@ -40,7 +41,7 @@ const ROLES = [
   { label: "Illégal", value: "illegal" },
 ];
 
-export function CharactersTab({ token, players }: Props) {
+export function CharactersTab({ players, versions }: Props) {
   const [chars, setChars] = useState<Character[]>([]);
   const [modal, setModal] = useState<"add" | "edit" | "delete" | null>(null);
   const [selected, setSelected] = useState<Character | null>(null);
@@ -48,11 +49,14 @@ export function CharactersTab({ token, players }: Props) {
     nom: "",
     metier: "",
     description: "",
-    player_id: "",
-    role: "",
-    lien_reddit: "",
+    playerId: "",
+    versionId: "",
+    role: "civil",
+    lienReddif: "",
   });
   const [loading, setLoading] = useState(false);
+
+  const [localPlayers, setLocalPlayers] = useState<Player[]>(() => players);
 
   async function load() {
     const res = await fetch("/api/data");
@@ -89,9 +93,10 @@ export function CharactersTab({ token, players }: Props) {
       nom: "",
       metier: "",
       description: "",
-      player_id: String(players[0]?.id ?? ""),
+      playerId: localPlayers[0]?.id ?? "",
+      versionId: "",
       role: "civil",
-      lien_reddit: "",
+      lienReddif: "",
     });
     setModal("add");
   }
@@ -102,9 +107,10 @@ export function CharactersTab({ token, players }: Props) {
       nom: c.nom,
       metier: c.metier ?? "",
       description: c.description ?? "",
-      player_id: String(c.player_id),
-      role: c.role ?? "",
-      lien_reddit: c.lien_reddit ?? "",
+      playerId: c.playerId ?? "",
+      versionId: c.versionId ?? "",
+      role: c.role ?? "civil",
+      lienReddif: c.lienReddif ?? "",
     });
     setModal("edit");
   }
@@ -121,20 +127,26 @@ export function CharactersTab({ token, players }: Props) {
   async function submit() {
     setLoading(true);
     const body = {
-      ...form,
+      nom: form.nom,
+      metier: form.metier || null,
+      description: form.description || null,
+      player_id: form.playerId || null,
+      version_id: form.versionId || null,
       role: form.role || null,
-      lien_reddit: form.lien_reddit || null,
+      lien_reddif: form.lienReddif || null,
     };
+    const headers = { "Content-Type": "application/json" };
+
     if (modal === "add") {
       await fetch("/api/characters", {
         method: "POST",
-        headers: authHeaders(token),
+        headers,
         body: JSON.stringify(body),
       });
     } else if (modal === "edit" && selected) {
       await fetch("/api/characters", {
         method: "PATCH",
-        headers: authHeaders(token),
+        headers,
         body: JSON.stringify({ id: selected.id, ...body }),
       });
     }
@@ -147,7 +159,7 @@ export function CharactersTab({ token, players }: Props) {
     if (!selected) return;
     await fetch("/api/characters", {
       method: "DELETE",
-      headers: authHeaders(token),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: selected.id }),
     });
     await load();
@@ -162,7 +174,7 @@ export function CharactersTab({ token, players }: Props) {
           <h2 className="text-[15px] font-bold tracking-wide text-text-primary">
             Personnages
           </h2>
-          <span className="text-[11px] text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
+          <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
             {chars.length}
           </span>
         </div>
@@ -181,7 +193,7 @@ export function CharactersTab({ token, players }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-primary truncate">
+                  <span className="text-[13px] font-semibold text-text-primary truncate">
                     {c.nom}
                   </span>
                   {c.role && (
@@ -191,17 +203,33 @@ export function CharactersTab({ token, players }: Props) {
                       {ROLES.find((r) => r.value === c.role)?.label ?? c.role}
                     </span>
                   )}
+                  {c.version && (
+                    <span
+                      className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border"
+                      style={{
+                        color: c.version.color ?? "var(--accent)",
+                        borderColor: `${c.version.color ?? "var(--accent)"}40`,
+                        background: `${c.version.color ?? "var(--accent)"}18`,
+                      }}
+                    >
+                      {c.version.id}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   {c.metier && (
-                    <span className="text-[11px] text-secondary truncate">
+                    <span className="text-[11px] text-text-secondary truncate">
                       {c.metier}
                     </span>
                   )}
-                  <span className="text-muted">·</span>
-                  <span className="text-[10px] text-text-muted">
-                    @{c.player?.pseudo}
-                  </span>
+                  {c.metier && c.player && (
+                    <span className="text-text-muted">·</span>
+                  )}
+                  {c.player && (
+                    <span className="text-[10px] text-text-muted">
+                      @{c.player.pseudo}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex gap-1">
@@ -228,7 +256,7 @@ export function CharactersTab({ token, players }: Props) {
         open={modal === "add" || modal === "edit"}
         onOpenChange={(o) => !o && closeModal()}
       >
-        <DialogContent className="bg-card border-mid max-w-md">
+        <DialogContent className="bg-card border-border-mid max-w-md">
           <DialogHeader>
             <DialogTitle className="text-[14px] tracking-wide">
               {modal === "edit"
@@ -266,7 +294,7 @@ export function CharactersTab({ token, players }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Rôle sur le plateau
+                  Rôle
                 </label>
                 <Select
                   value={form.role}
@@ -292,12 +320,43 @@ export function CharactersTab({ token, players }: Props) {
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
                   Joueur
                 </label>
+
                 <PlayerCombobox
-                  players={players}
-                  value={form.player_id}
-                  onValueChange={(v) => setForm((f) => ({ ...f, player_id: v }))}
+                  players={localPlayers}
+                  value={form.playerId}
+                  onValueChange={(v, newPlayer) => {
+                    setForm((f) => ({ ...f, playerId: v }));
+                    // Si joueur créé à la volée, l'ajouter à la liste locale
+                    if (newPlayer) setLocalPlayers((p) => [...p, newPlayer]);
+                  }}
                 />
               </div>
+            </div>
+
+            {/* Version */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                Version
+              </label>
+              <Select
+                value={form.versionId}
+                onValueChange={(v) => setForm((f) => ({ ...f, versionId: v }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Aucune" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Version</SelectLabel>
+                    <SelectItem value="">Aucune</SelectItem>
+                    {versions.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.id} — {v.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Description */}
@@ -319,8 +378,8 @@ export function CharactersTab({ token, players }: Props) {
                 Lien Reddit
               </label>
               <Input
-                value={form.lien_reddit}
-                onChange={set("lien_reddit")}
+                value={form.lienReddif}
+                onChange={set("lienReddif")}
                 placeholder="https://reddit.com/r/…"
               />
             </div>
@@ -338,7 +397,7 @@ export function CharactersTab({ token, players }: Props) {
             <Button
               size="sm"
               onClick={submit}
-              disabled={loading}
+              disabled={loading || !form.nom}
               className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
             >
               {loading ? "…" : modal === "edit" ? "Enregistrer" : "Créer"}

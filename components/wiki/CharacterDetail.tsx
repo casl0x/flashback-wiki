@@ -12,23 +12,15 @@ type Props = {
   onNavigate: (c: Character) => void;
 };
 
-type CharacterRelation = {
-  id: number | string;
-  relation_type: string;
-  target?: Pick<Character, "id" | "name" | "version_id" | "player">;
-};
-
 export default function CharacterDetail({
   character: c,
   allCharacters,
   onBack,
   onNavigate,
 }: Props) {
-  const pl = c.player as { id?: string; pseudo?: string } | undefined;
-  const rels = (c.relations || []) as CharacterRelation[];
+  const rels = c.relations ?? [];
   const others = allCharacters.filter(
-    (x) =>
-      (x.player as { id?: string } | undefined)?.id === pl?.id && x.id !== c.id,
+    (x) => x.playerId === c.playerId && x.id !== c.id,
   );
 
   return (
@@ -46,12 +38,20 @@ export default function CharacterDetail({
           <div className="flex items-center gap-3.5 mb-4 pb-3.5 border-b border-border">
             <div>
               <h2 className="font-display font-bold text-[20px] text-text-primary tracking-wide">
-                {c.name}
+                {c.nom}
               </h2>
-              <p className="text-[13px] text-text-secondary mb-1.5">{c.job}</p>
+              {c.metier && (
+                <p className="text-[13px] text-text-secondary mb-1.5">
+                  {c.metier}
+                </p>
+              )}
               <div className="flex items-center gap-1.5">
-                <Badge variant="outline">{c.version_id}</Badge>
-                {c.status && <Badge variant="ghost">{c.status}</Badge>}
+                {c.versionId && <Badge variant="outline">{c.versionId}</Badge>}
+                {c.role && (
+                  <Badge variant="ghost">
+                    {c.role === "civil" ? "Civil" : "Illégal"}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -62,19 +62,6 @@ export default function CharacterDetail({
             </p>
           )}
 
-          {(c.tags || []).length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {(c.tags || []).map((t: string) => (
-                <span
-                  key={t}
-                  className="text-[11px] px-2 py-0.5 rounded-full bg-elevated border border-border-mid text-text-muted"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
-
           {rels.length > 0 && (
             <div>
               <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] mb-2">
@@ -82,9 +69,9 @@ export default function CharacterDetail({
               </p>
               <div className="flex flex-col gap-1.5">
                 {rels.map((r) => {
-                  const tc = r.target;
-                  if (!tc) return null;
-                  const full = allCharacters.find((ch) => ch.id === tc.id);
+                  const full = allCharacters.find(
+                    (ch) => ch.id === r.linked.id,
+                  );
                   return (
                     <button
                       key={r.id}
@@ -94,20 +81,27 @@ export default function CharacterDetail({
                       className="flex items-center justify-between px-3 py-2 bg-elevated rounded-lg border border-transparent hover:border-border-mid transition-all text-left w-full"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-bg border border-border-accent text-accent-light font-display tracking-wide">
-                          {r.relation_type}
-                        </span>
+                        {r.type_relation && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-bg border border-border-accent text-accent-light font-display tracking-wide">
+                            {r.type_relation}
+                          </span>
+                        )}
                         <div>
                           <p className="text-[13px] font-medium text-text-primary">
-                            {tc.name}
+                            {r.linked.nom}
                           </p>
                           <p className="text-[10px] text-text-faint">
-                            {tc.player?.pseudo} — {tc.version_id}
+                            {r.linked.player_pseudo &&
+                              `@${r.linked.player_pseudo}`}
+                            {r.linked.player_pseudo && r.linked.metier && " — "}
+                            {r.linked.metier}
                           </p>
                         </div>
                       </div>
                       <Avatar size="sm">
-                        <AvatarFallback>{tc.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>
+                          {r.linked.nom.charAt(0)}
+                        </AvatarFallback>
                       </Avatar>
                     </button>
                   );

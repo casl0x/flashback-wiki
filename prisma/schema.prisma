@@ -1,0 +1,77 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model Version {
+  id          String   @id // ex: "V1", "V2"
+  label       String
+  description String?
+  color       String   @default("#8880a8")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  characters Character[]
+
+  @@map("versions")
+}
+
+model Player {
+  id         String   @id @default(uuid())
+  pseudo     String
+  stream     Boolean  @default(false)
+  lienChaine String?  @map("lien_chaine")
+  reseaux    Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  characters Character[]
+
+  @@map("players")
+}
+
+model Character {
+  id          String   @id @default(uuid())
+  nom         String
+  role        Role?
+  description String?
+  metier      String?
+  lienReddif  String?  @map("lien_reddif")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  playerId  String?  @map("player_id")
+  player    Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
+
+  versionId String?  @map("version_id")
+  version   Version? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+
+  // Relations symétriques
+  relationsA Relation[] @relation("PersonnageA")
+  relationsB Relation[] @relation("PersonnageB")
+
+  @@map("characters")
+}
+
+model Relation {
+  id           String   @id @default(uuid())
+  typeRelation String?  @map("type_relation")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  personnageAId String    @map("personnage_a")
+  personnageA   Character @relation("PersonnageA", fields: [personnageAId], references: [id], onDelete: Cascade)
+
+  personnageBId String    @map("personnage_b")
+  personnageB   Character @relation("PersonnageB", fields: [personnageBId], references: [id], onDelete: Cascade)
+
+  @@unique([personnageAId, personnageBId])
+  @@map("relations")
+}
+
+enum Role {
+  civil
+  illegal
+}

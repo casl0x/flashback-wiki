@@ -1,70 +1,67 @@
 export const dynamic = "force-dynamic";
 
-import { isAdmin } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request))
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  const { id, label, description } = await request.json();
+  const { id, label, description, color } = await request.json();
+
   if (!id || !label)
     return NextResponse.json({ error: "ID et label requis" }, { status: 400 });
 
   try {
-    const sql = getDb();
-    const [version] = await sql`
-      INSERT INTO versions (id, label, description)
-      VALUES (${id}, ${label}, ${description || null})
-      RETURNING *
-    `;
+    const version = await prisma.version.create({
+      data: {
+        id,
+        label,
+        description: description ?? null,
+        color: color ?? "#8880a8",
+      },
+    });
     return NextResponse.json(version, { status: 201 });
   } catch (err: unknown) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Erreur inconnue" },
-      { status: 500 }
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!isAdmin(request))
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  const { id, label, description } = await request.json();
+  const { id, label, description, color } = await request.json();
+
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
   try {
-    const sql = getDb();
-    const [version] = await sql`
-      UPDATE versions
-      SET
-        label       = COALESCE(${label ?? null}, label),
-        description = ${description ?? null}
-      WHERE id = ${id}
-      RETURNING *
-    `;
+    const version = await prisma.version.update({
+      where: { id },
+      data: {
+        ...(label && { label }),
+        description: description ?? null,
+        ...(color && { color }),
+      },
+    });
     return NextResponse.json(version);
   } catch (err: unknown) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Erreur inconnue" },
-      { status: 500 }
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAdmin(request))
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   const { id } = await request.json();
 
+  if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
+
   try {
-    const sql = getDb();
-    await sql`DELETE FROM versions WHERE id = ${id}`;
+    await prisma.version.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Erreur inconnue" },
-      { status: 500 }
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 },
     );
   }
 }
