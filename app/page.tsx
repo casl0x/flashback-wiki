@@ -7,6 +7,7 @@ import HeaderBlock from "@/components/wiki/HeaderBlock";
 import NavBar from "@/components/wiki/NavBar";
 import Sidebar from "@/components/wiki/Sidebar";
 import { Character, Player, Version } from "@/lib/db";
+import { BookOpen, Filter, PlayCircle, Search, User } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 
 function WikiContent({
@@ -42,35 +43,63 @@ function WikiContent({
   if (isExplicationView) {
     return (
       <div className="flex-1 p-5">
-        <div className="rounded-xl border border-border bg-card p-6 space-y-3">
-          <p className="leading-7">
-            Bienvenue sur le wiki de tous les personnages de Flashback WL! Ici
-            tu peux retrouver les fiches de tous les personnages, leurs
-            relations, et les versions dans lesquelles ils apparaissent.
-          </p>
-          <div>
-            <p className=" leading-7 pb-1">
-              Voici comment utiliser ce site pour explorer les fiches des
-              personnages et leurs relations :
-            </p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Recherche par nom, joueur ou métier.</li>
-              <li>Filtrage par version dans la barre latérale.</li>
-              <li>
-                Ouverture d’une fiche détaillée en cliquant sur un personnage.
-              </li>
-            </ul>
+        <div className="rounded-xl border border-border bg-card p-8 space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
+              <BookOpen className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-lg font-medium">Wiki Flashback WL</p>
+              <p className="text-sm text-muted-foreground">
+                Fiches personnages · Relations · Versions
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="leading-7 pb-1">
-              Petit plus pour certains personnages :
+
+          {/* Intro */}
+          <p className="text-sm text-muted-foreground leading-7 border-l-2 border-border pl-4">
+            Bienvenue sur le wiki de tous les personnages de Flashback WL !
+            Retrouve les fiches de tous les personnages, leurs relations, et les
+            versions dans lesquelles ils apparaissent.
+          </p>
+
+          {/* How to use */}
+          <div className="border-t border-border pt-5 space-y-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Comment explorer
             </p>
-            <ul className="list-disc pl-5">
-              <li>
-                Tu peux retrouver les playlistes de rediffusion, pour voir ou
-                revoir leurs aventures.
-              </li>
-            </ul>
+            {[
+              { icon: Search, label: "Recherche par nom, joueur ou métier" },
+              {
+                icon: Filter,
+                label: "Filtrage par version dans la barre latérale",
+              },
+              {
+                icon: User,
+                label:
+                  "Ouvre une fiche détaillée en cliquant sur un personnage",
+              },
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-md bg-muted border border-border flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-sm leading-relaxed pt-1">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Bonus */}
+          <div className="bg-muted rounded-lg border border-border p-4 flex items-start gap-3">
+            <PlayCircle className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Pour certains personnages, retrouve aussi les{" "}
+              <span className="text-foreground font-medium">
+                playlistes de rediffusion
+              </span>{" "}
+              pour voir ou revoir leurs aventures.
+            </p>
           </div>
         </div>
       </div>
