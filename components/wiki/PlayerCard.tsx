@@ -1,7 +1,7 @@
 "use client";
 
 import { Character } from "@/lib/db";
-import { Avatar, AvatarFallback } from "../ui/avatar";
+
 import { Badge } from "../ui/badge";
 
 type PartialPlayer = { id: string; pseudo: string };
@@ -15,15 +15,11 @@ type Props = {
 export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
   if (!pl) return null;
   const playerName = pl.pseudo.trim() || "Joueur";
-  const playerInitial = playerName.charAt(0) || "?";
 
   return (
     <div className="bg-elevated rounded-xl p-4 border border-border">
       {/* Header joueur */}
       <div className="flex items-center gap-2.5 mb-3">
-        <Avatar>
-          <AvatarFallback>{playerInitial}</AvatarFallback>
-        </Avatar>
         <div>
           <p className="font-display font-bold text-[15px] text-text-primary tracking-wide">
             {playerName}

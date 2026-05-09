@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import PlayerCard from "@/components/wiki/PlayerCard";
 import { Character } from "@/lib/db";
-import { Avatar, AvatarFallback } from "../ui/avatar";
 
 type Props = {
   character: Character;
@@ -98,11 +97,6 @@ export default function CharacterDetail({
                           </p>
                         </div>
                       </div>
-                      <Avatar size="sm">
-                        <AvatarFallback>
-                          {r.linked.nom.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
                     </button>
                   );
                 })}

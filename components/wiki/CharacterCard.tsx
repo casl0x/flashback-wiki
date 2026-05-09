@@ -1,6 +1,5 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Character } from "@/lib/db";
 import { statusBadgeClass, statusBorderClass } from "@/lib/utils";
 import { Badge } from "../ui/badge";
@@ -32,14 +31,6 @@ export default function CharacterCard({ character, onClick }: Props) {
     >
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
-          <Avatar className="rounded-[8px] size-9">
-            <AvatarFallback
-              className="rounded-[8px] text-[13px] font-bold border"
-              style={{ background: bg, color: fg, borderColor: bd }}
-            >
-              {character.nom.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
           <div className="min-w-0 flex-1">
             <CardTitle className="truncate text-[13px] font-semibold text-(--text-primary)">
               {character.nom}
