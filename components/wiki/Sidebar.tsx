@@ -3,6 +3,7 @@
 import { cn } from "@/lib/cn";
 import { Version } from "@/lib/db";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 
 type Props = {
   versions: Version[];
@@ -25,6 +26,17 @@ export default function Sidebar({
 
   return (
     <aside className="w-50 min-w-50 bg-card border-r border-border p-3 flex flex-col gap-2">
+      <Button
+        variant="outline"
+        className={cn(
+          "text-[10px] mb-2",
+          selected === "explain" ? "bg-active border-border-accent" : ""
+        )}
+        onClick={() => onSelect("explain")}
+      >
+        Explication du site
+      </Button>
+
       <div className="text-[9px] font-semibold text-text-faint uppercase tracking-[1px] px-2 py-1.5">
         Versions
       </div>

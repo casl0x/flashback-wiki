@@ -4,7 +4,6 @@ import CharacterDetail from "@/components/wiki/CharacterDetail";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
 import EmptyState from "@/components/wiki/EmptyState";
 import HeaderBlock from "@/components/wiki/HeaderBlock";
-import IntroBlock from "@/components/wiki/IntroBlock";
 import NavBar from "@/components/wiki/NavBar";
 import Sidebar from "@/components/wiki/Sidebar";
 import { Character, Player, Version } from "@/lib/db";
@@ -37,6 +36,47 @@ function WikiContent({
   const activeChar =
     selChar && filtered.some((c) => c.id === selChar.id) ? selChar : null;
 
+  const isExplicationView =
+    query.trim().toLowerCase() === "explain" || selVer === "explain";
+
+  if (isExplicationView) {
+    return (
+      <div className="flex-1 p-5">
+        <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+          <p className="leading-7">
+            Bienvenue sur le wiki de tous les personnages de Flashback WL! Ici
+            tu peux retrouver les fiches de tous les personnages, leurs
+            relations, et les versions dans lesquelles ils apparaissent.
+          </p>
+          <div>
+            <p className=" leading-7 pb-1">
+              Voici comment utiliser ce site pour explorer les fiches des
+              personnages et leurs relations :
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Recherche par nom, joueur ou métier.</li>
+              <li>Filtrage par version dans la barre latérale.</li>
+              <li>
+                Ouverture d’une fiche détaillée en cliquant sur un personnage.
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="leading-7 pb-1">
+              Petit plus pour certains personnages :
+            </p>
+            <ul className="list-disc pl-5">
+              <li>
+                Tu peux retrouver les playlistes de rediffusion, pour voir ou
+                revoir leurs aventures.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (activeChar) {
     return (
       <CharacterDetail
@@ -63,8 +103,6 @@ function WikiContent({
         filteredCount={filtered.length}
         upl={upl}
       />
-
-      <IntroBlock />
 
       <div className="flex items-center gap-2 my-4">
         <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />

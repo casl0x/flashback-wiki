@@ -205,7 +205,7 @@ export function PlayersTab() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-[13px] font-semibold text-text-primary">
-                    @{p.pseudo}
+                    {p.pseudo}
                   </span>
                   <div className="flex items-center gap-2 mt-1">
                     {/* Lien chaîne */}
