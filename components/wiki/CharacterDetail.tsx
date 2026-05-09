@@ -1,9 +1,9 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import PlayerCard from "@/components/wiki/PlayerCard";
 import { Character } from "@/lib/db";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 
 type Props = {
   character: Character;
