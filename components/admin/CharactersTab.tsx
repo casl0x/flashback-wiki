@@ -89,6 +89,14 @@ export function CharactersTab({ players, versions }: Props) {
   const [newRelType, setNewRelType] = useState("");
   const [relLoading, setRelLoading] = useState(false);
 
+  const [search, setSearch] = useState("");
+
+  const filtered = chars.filter((c) =>
+    [c.nom, c.metier, c.player?.pseudo]
+      .filter(Boolean)
+      .some((s) => s!.toLowerCase().includes(search.toLowerCase())),
+  );
+
   const isEdit = !!selected;
   const activeId = selected?.id ?? createdId;
   type DisplayRelation = {
@@ -508,12 +516,20 @@ export function CharactersTab({ players, versions }: Props) {
             Personnages
           </h2>
           <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
-            {chars.length}
+            {filtered.length}
           </span>
         </div>
-        <Button size="sm" onClick={openAdd}>
-          + Ajouter
-        </Button>
+        <div className="flex items-center gap-2">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher…"
+            className="h-7 text-[11px] w-36 bg-elevated border-border-mid"
+          />
+          <Button size="sm" onClick={openAdd}>
+            + Ajouter
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">

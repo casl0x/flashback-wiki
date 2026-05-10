@@ -33,10 +33,15 @@ export function PlayerCombobox({ players, value, onValueChange }: Props) {
     setCreating(true);
     try {
       const pseudo = search.trim();
-      // Minimal local creation: generate an id from the pseudo.
-      const newPlayer: Player = { id: `new:${pseudo}`, pseudo } as Player;
-      // Simulate async operation if needed
-      await Promise.resolve();
+      const res = await fetch("/api/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pseudo, lienChaine: null, reseaux: {} }),
+      });
+
+      if (!res.ok) throw new Error("Échec de la création");
+
+      const newPlayer: Player = await res.json();
       onValueChange(newPlayer.id, newPlayer);
       setSearch("");
     } finally {

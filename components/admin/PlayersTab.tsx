@@ -87,6 +87,14 @@ export function PlayersTab() {
   });
   const [loading, setLoading] = useState(false);
 
+  // Après le useState([]) des players, ajoute :
+  const [search, setSearch] = useState("");
+
+  // Remplace `players` par `filtered` dans le .map() :
+  const filtered = players.filter((p) =>
+    p.pseudo.toLowerCase().includes(search.toLowerCase()),
+  );
+
   async function load() {
     const res = await fetch("/api/data");
     const data = await res.json();
@@ -175,16 +183,24 @@ export function PlayersTab() {
             Joueurs
           </h2>
           <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
-            {players.length}
+            {filtered.length}
           </span>
         </div>
-        <Button
-          size="sm"
-          onClick={openAdd}
-          className="h-7 text-[11px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
-        >
-          + Ajouter
-        </Button>
+        <div className="flex items-center gap-2">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher…"
+            className="h-7 text-[11px] w-36 bg-elevated border-border-mid"
+          />
+          <Button
+            size="sm"
+            onClick={openAdd}
+            className="h-7 text-[11px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
+          >
+            + Ajouter
+          </Button>
+        </div>
       </div>
 
       {/* Liste */}
