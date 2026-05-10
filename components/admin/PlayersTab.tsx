@@ -205,7 +205,7 @@ export function PlayersTab() {
 
       {/* Liste */}
       <div className="flex flex-col gap-2">
-        {players.map((p) => {
+        {filtered.map((p) => {
           const reseauxEntries = Object.entries(p.reseaux ?? {}) as [
             ReseauKey,
             string,

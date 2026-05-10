@@ -533,7 +533,7 @@ export function CharactersTab({ players, versions }: Props) {
       </div>
 
       <div className="flex flex-col gap-4">
-        {chars.map((c) => (
+        {filtered.map((c) => (
           <Card key={c.id}>
             <CardContent className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold border shrink-0 bg-elevated border-border text-text-secondary">
