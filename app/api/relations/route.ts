@@ -8,7 +8,8 @@ function sortedPair(a: string, b: string): [string, string] {
 }
 
 export async function POST(request: NextRequest) {
-  const { personnage_a, personnage_b, type_relation } = await request.json();
+  const { personnage_a, personnage_b, type_relation, type_relation_inverse } =
+    await request.json();
 
   if (!personnage_a || !personnage_b)
     return NextResponse.json(
@@ -23,17 +24,26 @@ export async function POST(request: NextRequest) {
     );
 
   const [a, b] = sortedPair(personnage_a, personnage_b);
+  const isSwapped = a !== personnage_a;
+
+  const typeA = isSwapped
+    ? (type_relation_inverse ?? null)
+    : (type_relation ?? null);
+  const typeB = isSwapped
+    ? (type_relation ?? null)
+    : (type_relation_inverse ?? null);
 
   try {
     const relation = await prisma.relation.upsert({
       where: {
         personnageAId_personnageBId: { personnageAId: a, personnageBId: b },
       },
-      update: { typeRelation: type_relation ?? null },
+      update: { typeRelation: typeA, typeRelationInverse: typeB },
       create: {
         personnageAId: a,
         personnageBId: b,
-        typeRelation: type_relation ?? null,
+        typeRelation: typeA,
+        typeRelationInverse: typeB,
       },
     });
     return NextResponse.json(relation, { status: 201 });

@@ -33,7 +33,6 @@ export default function CharacterDetail({
 
       <div className="flex flex-col gap-3">
         {/* Fiche personnage */}
-        {/* Fiche personnage */}
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-3.5 mb-4 pb-3.5 border-b border-border">
             <div className="flex-1 min-w-0">
@@ -41,15 +40,10 @@ export default function CharacterDetail({
                 {c.nom}
               </h2>
               {c.metier && (
-                <p className="text-[13px] text-text-secondary mb-1.5">
-                  {c.metier}
-                </p>
+                <p className="text-[13px] text-text-muted mb-1.5">{c.metier}</p>
               )}
               {c.groupe && (
-                <p className="text-[12px] text-text-muted mb-1.5">
-                  <i className="ti ti-users-group mr-1" aria-hidden="true" />
-                  {c.groupe}
-                </p>
+                <p className="text-[13px] text-text-muted mb-1.5">{c.groupe}</p>
               )}
 
               <div className="flex items-center gap-1.5 flex-wrap pt-4">
