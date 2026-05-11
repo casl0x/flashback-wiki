@@ -31,6 +31,7 @@ export type Character = {
   nom: string;
   role: "civil" | "illegal" | null;
   metier: string | null;
+  groupe: string | null;
   description: string | null;
   lienReddif: string | null;
   playerId: string | null;

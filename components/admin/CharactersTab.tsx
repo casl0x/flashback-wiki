@@ -30,6 +30,7 @@ type Props = { players: Player[]; versions: Version[] };
 type CharForm = {
   nom: string;
   metier: string;
+  groupe: string;
   description: string;
   playerId: string;
   versionId: string;
@@ -40,6 +41,7 @@ type CharForm = {
 type PendingRelation = {
   personnage_b: string;
   type_relation: string | null;
+  type_relation_inverse: string | null;
   linked: Character | undefined;
 };
 
@@ -51,6 +53,7 @@ const ROLES = [
 const EMPTY_FORM: CharForm = {
   nom: "",
   metier: "",
+  groupe: "",
   description: "",
   playerId: "",
   versionId: "",
@@ -62,6 +65,7 @@ function charToForm(c: Character): CharForm {
   return {
     nom: c.nom,
     metier: c.metier ?? "",
+    groupe: c.groupe ?? "",
     description: c.description ?? "",
     playerId: c.playerId ?? "",
     versionId: c.versionId ?? "",
@@ -87,6 +91,7 @@ export function CharactersTab({ players, versions }: Props) {
 
   const [newRelPerso, setNewRelPerso] = useState("");
   const [newRelType, setNewRelType] = useState("");
+  const [newRelTypeInverse, setNewRelTypeInverse] = useState(""); // ← nouveau
   const [relLoading, setRelLoading] = useState(false);
 
   const [search, setSearch] = useState("");
@@ -168,6 +173,7 @@ export function CharactersTab({ players, versions }: Props) {
     setForm(EMPTY_FORM);
     setNewRelPerso("");
     setNewRelType("");
+    setNewRelTypeInverse("");
     setModal("form");
   }
 
@@ -179,6 +185,7 @@ export function CharactersTab({ players, versions }: Props) {
     setForm(charToForm(c));
     setNewRelPerso("");
     setNewRelType("");
+    setNewRelTypeInverse("");
     setModal("form");
   }
 
@@ -193,6 +200,9 @@ export function CharactersTab({ players, versions }: Props) {
     setCreatedId(null);
     setActiveRelations([]);
     setPendingRelations([]);
+    setNewRelPerso("");
+    setNewRelType("");
+    setNewRelTypeInverse("");
   }
 
   async function submit() {
@@ -200,6 +210,7 @@ export function CharactersTab({ players, versions }: Props) {
     const body = {
       nom: form.nom,
       metier: form.metier || null,
+      groupe: form.groupe || null,
       description: form.description || null,
       player_id: form.playerId || null,
       version_id: form.versionId || null,
@@ -226,6 +237,7 @@ export function CharactersTab({ players, versions }: Props) {
               personnage_a: newChar.id,
               personnage_b: r.personnage_b,
               type_relation: r.type_relation,
+              type_relation_inverse: r.type_relation_inverse, // ← nouveau
             }),
           }),
         ),
@@ -270,11 +282,13 @@ export function CharactersTab({ players, versions }: Props) {
         {
           personnage_b: newRelPerso,
           type_relation: newRelType || null,
+          type_relation_inverse: newRelTypeInverse || null, // ← nouveau
           linked,
         },
       ]);
       setNewRelPerso("");
       setNewRelType("");
+      setNewRelTypeInverse("");
       return;
     }
 
@@ -287,11 +301,13 @@ export function CharactersTab({ players, versions }: Props) {
         personnage_a: activeId,
         personnage_b: newRelPerso,
         type_relation: newRelType || null,
+        type_relation_inverse: newRelTypeInverse || null, // ← nouveau
       }),
     });
     await load(activeId);
     setNewRelPerso("");
     setNewRelType("");
+    setNewRelTypeInverse("");
     setRelLoading(false);
   }
 
@@ -330,6 +346,17 @@ export function CharactersTab({ players, versions }: Props) {
           value={form.metier}
           onChange={set("metier")}
           placeholder="Mécanicien, Avocat…"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-text-muted">
+          Groupe
+        </label>
+        <Input
+          value={form.groupe}
+          onChange={set("groupe")}
+          placeholder="Los Santos MC, Mafia…"
         />
       </div>
 
@@ -470,30 +497,51 @@ export function CharactersTab({ players, versions }: Props) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] uppercase tracking-widest text-text-muted">
-              Personnage
-            </label>
-            <CharacterCombobox
-              key={`rel-${activeId ?? "new"}`}
-              characters={chars}
-              value={newRelPerso}
-              onValueChange={(v) => setNewRelPerso(v)}
-              excludeId={activeId ?? undefined}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] uppercase tracking-widest text-text-muted">
-              Type (optionnel)
-            </label>
-            <Input
-              value={newRelType}
-              onChange={(e) => setNewRelType(e.target.value)}
-              placeholder="Frère, Associé…"
-              className="h-9 text-[12px]"
-            />
-          </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[9px] uppercase tracking-widest text-text-muted">
+            Personnage
+          </label>
+          <CharacterCombobox
+            key={`rel-${activeId ?? "new"}`}
+            characters={chars}
+            value={newRelPerso}
+            onValueChange={(v) => setNewRelPerso(v)}
+            excludeId={activeId ?? undefined}
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary">
+          <span className="shrink-0 font-medium text-text-primary">
+            {form.nom || "Ce personnage"}
+          </span>
+          <span className="shrink-0">est</span>
+          <Input
+            value={newRelType}
+            onChange={(e) => setNewRelType(e.target.value)}
+            placeholder="frère…"
+            className="h-7 text-[12px] w-24 px-2"
+          />
+          <span className="shrink-0">de</span>
+          <span className="shrink-0 font-medium text-text-primary">
+            {chars.find((c) => c.id === newRelPerso)?.nom || "___"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary">
+          <span className="shrink-0 font-medium text-text-primary">
+            {chars.find((c) => c.id === newRelPerso)?.nom || "L'autre"}
+          </span>
+          <span className="shrink-0">est</span>
+          <Input
+            value={newRelTypeInverse}
+            onChange={(e) => setNewRelTypeInverse(e.target.value)}
+            placeholder="sœur…"
+            className="h-7 text-[12px] w-24 px-2"
+          />
+          <span className="shrink-0">de</span>
+          <span className="shrink-0 font-medium text-text-primary">
+            {form.nom || "ce personnage"}
+          </span>
         </div>
         <Button
           size="sm"
