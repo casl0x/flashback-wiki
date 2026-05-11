@@ -45,6 +45,12 @@ export default function CharacterDetail({
                   {c.metier}
                 </p>
               )}
+              {c.groupe && (
+                <p className="text-[12px] text-text-muted mb-1.5">
+                  <i className="ti ti-users-group mr-1" aria-hidden="true" />
+                  {c.groupe}
+                </p>
+              )}
 
               <div className="flex items-center gap-1.5 flex-wrap pt-4">
                 {c.version && (
@@ -105,8 +111,12 @@ export default function CharacterDetail({
                           <p className="text-[10px] text-text-faint">
                             {r.linked.player_pseudo &&
                               `@${r.linked.player_pseudo}`}
-                            {r.linked.player_pseudo && r.linked.metier && " — "}
+                            {r.linked.player_pseudo &&
+                              (r.linked.metier || r.linked.groupe) &&
+                              " — "}
                             {r.linked.metier}
+                            {r.linked.metier && r.linked.groupe && " · "}
+                            {r.linked.groupe}
                           </p>
                         </div>
                       </div>
