@@ -517,7 +517,7 @@ export function CharactersTab({ players, versions }: Props) {
           <span className="shrink-0">est</span>
           <Input
             value={newRelType}
-            onChange={(e) => setNewRelType(e.target.value)}
+            onChange={(e) => setNewRelTypeInverse(e.target.value)}
             placeholder="frère…"
             className="h-7 text-[12px] w-24 px-2"
           />
@@ -534,7 +534,7 @@ export function CharactersTab({ players, versions }: Props) {
           <span className="shrink-0">est</span>
           <Input
             value={newRelTypeInverse}
-            onChange={(e) => setNewRelTypeInverse(e.target.value)}
+            onChange={(e) => setNewRelType(e.target.value)}
             placeholder="sœur…"
             className="h-7 text-[12px] w-24 px-2"
           />
