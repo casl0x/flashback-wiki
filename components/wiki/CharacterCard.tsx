@@ -35,7 +35,7 @@ export default function CharacterCard({ character, onClick }: Props) {
             <CardTitle className="truncate text-[13px] font-semibold text-(--text-primary)">
               {character.nom}
             </CardTitle>
-            <CardDescription className="truncate text-[11px] text-(--text-secondary)">
+            <CardDescription className="truncate text-[11px] text-(--text-secondary) flex flex-col gap-1">
               {character.metier && <span>Métier : {character.metier}</span>}
               {character.groupe && <span>Groupe : {character.groupe}</span>}
             </CardDescription>
