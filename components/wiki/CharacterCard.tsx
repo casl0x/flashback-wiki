@@ -36,8 +36,8 @@ export default function CharacterCard({ character, onClick }: Props) {
               {character.nom}
             </CardTitle>
             <CardDescription className="truncate text-[11px] text-(--text-secondary) flex flex-col gap-1">
-              {character.metier && <span>Métier : {character.metier}</span>}
-              {character.groupe && <span>Groupe : {character.groupe}</span>}
+              {character.metier && <p>Métier : {character.metier}</p>}
+              {character.groupe && <p>Groupe : {character.groupe}</p>}
             </CardDescription>
           </div>
           {character.versionId && (
