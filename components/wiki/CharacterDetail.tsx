@@ -40,10 +40,14 @@ export default function CharacterDetail({
                 {c.nom}
               </h2>
               {c.metier && (
-                <p className="text-[13px] text-text-muted mb-1.5">{c.metier}</p>
+                <p className="text-[13px] text-text-muted mb-1.5">
+                  Métier : {c.metier}
+                </p>
               )}
               {c.groupe && (
-                <p className="text-[13px] text-text-muted mb-1.5">{c.groupe}</p>
+                <p className="text-[13px] text-text-muted mb-1.5">
+                  Groupe : {c.groupe}
+                </p>
               )}
 
               <div className="flex items-center gap-1.5 flex-wrap pt-4">
@@ -108,9 +112,13 @@ export default function CharacterDetail({
                             {r.linked.player_pseudo &&
                               (r.linked.metier || r.linked.groupe) &&
                               " — "}
-                            {r.linked.metier}
+                            {r.linked.metier && (
+                              <span>Métier : {r.linked.metier}</span>
+                            )}
                             {r.linked.metier && r.linked.groupe && " · "}
-                            {r.linked.groupe}
+                            {r.linked.groupe && (
+                              <span>Groupe : {r.linked.groupe}</span>
+                            )}
                           </p>
                         </div>
                       </div>

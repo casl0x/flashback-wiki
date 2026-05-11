@@ -36,7 +36,8 @@ export default function CharacterCard({ character, onClick }: Props) {
               {character.nom}
             </CardTitle>
             <CardDescription className="truncate text-[11px] text-(--text-secondary)">
-              Métier : {character.metier} - Groupe : {character.groupe}
+              {character.metier && <span>Métier : {character.metier}</span>}
+              {character.groupe && <span>Groupe : {character.groupe}</span>}
             </CardDescription>
           </div>
           {character.versionId && (
