@@ -2,44 +2,51 @@
 
 import { cn } from "@/lib/cn";
 import { Version } from "@/lib/db";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
 
 type Props = {
   versions: Version[];
-  selected: string;
   counts: Record<string, number>;
   totalChars: number;
   totalPlayers: number;
   totalRels: number;
-  onSelect: (v: string) => void;
 };
 
 export default function Sidebar({
   versions,
-  selected,
   counts,
   totalChars,
-  onSelect,
+  totalPlayers,
+  totalRels,
 }: Props) {
+  const pathname = usePathname();
   const allVersions = [{ id: "all", label: "Tout voir" }, ...versions];
 
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
+
   return (
-    <aside className="w-50 min-w-50 bg-card border-r border-border p-3 flex flex-col gap-2">
-      <Button variant="outline" onClick={() => onSelect("explain")}>
+    <aside className="w-50 min-w-50 border-r border-border bg-card p-3 flex flex-col gap-2">
+      <Link
+        href="/"
+        className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
+      >
         Explication du site
-      </Button>
+      </Link>
 
       <div className="text-[9px] font-semibold text-text-faint uppercase tracking-[1px] px-2 py-1.5">
         Versions
       </div>
 
       {allVersions.map((v) => {
-        const isOn = selected === v.id;
+        const href = v.id === "all" ? "/personnages" : `/versions/${v.id}`;
+        const isOn = v.id === "all" ? isActive("/personnages") : isActive(href);
         return (
-          <button
+          <Link
             key={v.id}
-            onClick={() => onSelect(v.id)}
+            href={href}
             className={cn(
               "flex items-center justify-between px-2.5 py-1.5 rounded-lg w-full text-left transition-all",
               isOn ? "bg-active border-border-accent" : "hover:bg-elevated",
@@ -61,7 +68,7 @@ export default function Sidebar({
               </div>
             </div>
             <Badge>{v.id === "all" ? totalChars : counts[v.id] || 0}</Badge>
-          </button>
+          </Link>
         );
       })}
     </aside>
