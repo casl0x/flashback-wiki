@@ -42,6 +42,7 @@ model Character {
   metier      String?
   groupe     String?
   lienReddif  String?  @map("lien_reddif")
+  imageUrl    String?  @map("image_url")
   createdAt   DateTime @default(now()) @map("created_at")
 
   playerId  String?  @map("player_id")

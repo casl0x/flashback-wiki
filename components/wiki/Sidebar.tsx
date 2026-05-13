@@ -14,13 +14,7 @@ type Props = {
   totalRels: number;
 };
 
-export default function Sidebar({
-  versions,
-  counts,
-  totalChars,
-  totalPlayers,
-  totalRels,
-}: Props) {
+export default function Sidebar({ versions, counts, totalChars }: Props) {
   const pathname = usePathname();
   const allVersions = [{ id: "all", label: "Tout voir" }, ...versions];
 

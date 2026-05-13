@@ -12,6 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Character, Player, Version } from "@/lib/db";
 import { statusBadgeClass } from "@/lib/utils";
+import { CldUploadWidget } from "next-cloudinary";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   Select,
@@ -36,6 +38,7 @@ type CharForm = {
   versionId: string;
   role: string;
   lienReddif: string;
+  imageUrl?: string;
 };
 
 type PendingRelation = {
@@ -59,6 +62,7 @@ const EMPTY_FORM: CharForm = {
   versionId: "",
   role: "civil",
   lienReddif: "",
+  imageUrl: "",
 };
 
 function charToForm(c: Character): CharForm {
@@ -71,6 +75,7 @@ function charToForm(c: Character): CharForm {
     versionId: c.versionId ?? "",
     role: c.role ?? "civil",
     lienReddif: c.lienReddif ?? "",
+    imageUrl: c.imageUrl ?? "",
   };
 }
 
@@ -216,7 +221,10 @@ export function CharactersTab({ players, versions }: Props) {
       version_id: form.versionId || null,
       role: form.role || null,
       lien_reddif: form.lienReddif || null,
+      image_url: form.imageUrl || null,
     };
+    console.log("🔍 form.imageUrl →", form.imageUrl);
+    console.log("🔍 body →", body);
     const headers = { "Content-Type": "application/json" };
 
     if (!isEdit) {
@@ -436,6 +444,60 @@ export function CharactersTab({ players, versions }: Props) {
           onChange={set("description")}
           placeholder="Courte biographie…"
         />
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] uppercase tracking-widest text-text-muted">
+          Image
+        </label>
+        <div className="flex items-center gap-2">
+          {form.imageUrl ? (
+            <Image
+              src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_40,h_40,c_fill,g_face/${form.imageUrl}`}
+              width={40}
+              height={40}
+              className="w-10 h-10 rounded-lg object-cover border border-border shrink-0"
+              alt="aperçu"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-lg border border-border border-dashed bg-elevated flex items-center justify-center shrink-0">
+              <span className="text-[16px] text-text-muted">🖼</span>
+            </div>
+          )}
+          <CldUploadWidget
+            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
+            onSuccess={(result) => {
+              const info = result?.info;
+              const publicId =
+                typeof info === "object" && info && "public_id" in info
+                  ? (info.public_id as string | undefined)
+                  : "";
+
+              setForm((f) => ({
+                ...f,
+                imageUrl: publicId ?? "",
+              }));
+            }}
+          >
+            {({ open }) => (
+              <button
+                type="button"
+                onClick={() => open()}
+                className="text-[11px] border border-border-mid text-text-secondary px-3 py-1.5 rounded-md hover:bg-elevated transition-colors cursor-pointer"
+              >
+                {form.imageUrl ? "Changer" : "Uploader"}
+              </button>
+            )}
+          </CldUploadWidget>
+          {form.imageUrl && (
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+              className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-1">

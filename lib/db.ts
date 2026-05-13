@@ -34,6 +34,7 @@ export type Character = {
   groupe: string | null;
   description: string | null;
   lienReddif: string | null;
+  imageUrl: string | null;
   playerId: string | null;
   versionId: string | null;
   createdAt: string;

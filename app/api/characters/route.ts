@@ -4,8 +4,16 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const { nom, role, description, player_id, version_id, metier, lien_reddif } =
-    await request.json();
+  const {
+    nom,
+    role,
+    description,
+    player_id,
+    version_id,
+    metier,
+    lien_reddif,
+    image_url,
+  } = await request.json();
 
   if (!nom)
     return NextResponse.json({ error: "Le nom est requis" }, { status: 400 });
@@ -20,6 +28,7 @@ export async function POST(request: NextRequest) {
         versionId: version_id ?? null,
         metier: metier ?? null,
         lienReddif: lien_reddif ?? null,
+        imageUrl: image_url ?? null,
       },
     });
     return NextResponse.json(char, { status: 201 });
@@ -41,6 +50,7 @@ export async function PATCH(request: NextRequest) {
     version_id,
     metier,
     lien_reddif,
+    image_url,
   } = await request.json();
 
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
@@ -56,6 +66,7 @@ export async function PATCH(request: NextRequest) {
         ...(version_id !== undefined && { versionId: version_id ?? null }),
         metier: metier ?? null,
         lienReddif: lien_reddif ?? null,
+        imageUrl: image_url ?? null,
       },
     });
     return NextResponse.json(char);

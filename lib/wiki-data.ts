@@ -115,6 +115,7 @@ export async function getWikiData(): Promise<WikiData> {
         player,
         version,
         relations,
+        imageUrl: character.imageUrl,
       } as Character;
     },
   );

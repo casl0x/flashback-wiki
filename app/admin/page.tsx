@@ -18,6 +18,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("characters");
   const [players, setPlayers] = useState<Player[]>([]);
   const [versions, setVersions] = useState<Version[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch("/api/data")
@@ -25,10 +26,9 @@ export default function AdminPage() {
       .then((d) => {
         setPlayers(d.players ?? []);
         setVersions(d.versions ?? []);
+        setLoaded(true);
       });
   }, []);
-
-  if (typeof window === "undefined") return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,11 +64,17 @@ export default function AdminPage() {
         </div>
 
         {/* Content */}
-        {tab === "characters" && (
-          <CharactersTab players={players} versions={versions} />
+        {loaded ? (
+          <>
+            {tab === "characters" && (
+              <CharactersTab players={players} versions={versions} />
+            )}
+            {tab === "players" && <PlayersTab />}
+            {tab === "versions" && <VersionsTab />}
+          </>
+        ) : (
+          <div className="text-center text-text-muted py-8">Chargement…</div>
         )}
-        {tab === "players" && <PlayersTab />}
-        {tab === "versions" && <VersionsTab />}
       </div>
     </div>
   );

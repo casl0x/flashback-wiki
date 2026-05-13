@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { usePathname } from "next/navigation";
 
 type Props = {
   totalChars: number;
@@ -18,11 +17,6 @@ export default function NavBar({
   query,
   onQueryChange,
 }: Props) {
-  const pathname = usePathname();
-
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
-
   return (
     <nav className="sticky top-0 z-10 border-b border-border bg-card/95 px-5 py-3 backdrop-blur-sm">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

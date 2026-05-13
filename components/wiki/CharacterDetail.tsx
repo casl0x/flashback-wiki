@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import PlayerCard from "@/components/wiki/PlayerCard";
 import { Character } from "@/lib/db";
+import Image from "next/image";
 
 type Props = {
   character: Character;
@@ -33,9 +34,20 @@ export default function CharacterDetail({
 
       <div className="flex flex-col gap-3">
         {/* Fiche personnage */}
-        {/* Fiche personnage */}
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-3.5 mb-4 pb-3.5 border-b border-border">
+            <div className=" rounded-xl shrink-0 overflow-hidden border border-border bg-elevated flex items-center justify-center">
+              {c.imageUrl && (
+                <Image
+                  src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_220,h_150,c_fill,g_face/${c.imageUrl}`}
+                  width={220}
+                  height={150}
+                  className="w-full h-full object-cover"
+                  alt={c.nom}
+                  unoptimized
+                />
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-display font-bold text-[20px] text-text-primary tracking-wide">
                 {c.nom}
