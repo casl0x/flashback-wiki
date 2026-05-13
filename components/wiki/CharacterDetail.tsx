@@ -53,14 +53,13 @@ export default function CharacterDetail({
                 {c.nom}
               </h2>
               {c.metier && (
-                <p className="text-[13px] text-text-secondary mb-1.5">
-                  {c.metier}
+                <p className="text-[13px] text-text-muted mb-1.5">
+                  Métier : {c.metier}
                 </p>
               )}
               {c.groupe && (
-                <p className="text-[12px] text-text-muted mb-1.5">
-                  <i className="ti ti-users-group mr-1" aria-hidden="true" />
-                  {c.groupe}
+                <p className="text-[13px] text-text-muted mb-1.5">
+                  Groupe : {c.groupe}
                 </p>
               )}
 
@@ -126,9 +125,13 @@ export default function CharacterDetail({
                             {r.linked.player_pseudo &&
                               (r.linked.metier || r.linked.groupe) &&
                               " — "}
-                            {r.linked.metier}
+                            {r.linked.metier && (
+                              <span>Métier : {r.linked.metier}</span>
+                            )}
                             {r.linked.metier && r.linked.groupe && " · "}
-                            {r.linked.groupe}
+                            {r.linked.groupe && (
+                              <span>Groupe : {r.linked.groupe}</span>
+                            )}
                           </p>
                         </div>
                       </div>

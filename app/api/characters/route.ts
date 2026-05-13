@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     player_id,
     version_id,
     metier,
+    groupe,
     lien_reddif,
     image_url,
   } = await request.json();
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
         playerId: player_id ?? null,
         versionId: version_id ?? null,
         metier: metier ?? null,
+        groupe: groupe ?? null,
         lienReddif: lien_reddif ?? null,
         imageUrl: image_url ?? null,
       },
@@ -49,6 +51,7 @@ export async function PATCH(request: NextRequest) {
     player_id,
     version_id,
     metier,
+    groupe,
     lien_reddif,
     image_url,
   } = await request.json();
@@ -65,6 +68,7 @@ export async function PATCH(request: NextRequest) {
         ...(player_id !== undefined && { playerId: player_id ?? null }),
         ...(version_id !== undefined && { versionId: version_id ?? null }),
         metier: metier ?? null,
+        groupe: groupe ?? null,
         lienReddif: lien_reddif ?? null,
         imageUrl: image_url ?? null,
       },
