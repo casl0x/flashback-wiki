@@ -27,6 +27,7 @@ model Player {
   stream     Boolean  @default(false)
   lienChaine String?  @map("lien_chaine")
   reseaux    Json     @default("{}")
+  badges     String[] @default([]) 
   createdAt  DateTime @default(now()) @map("created_at")
 
   characters Character[]

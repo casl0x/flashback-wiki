@@ -13,6 +13,7 @@ export type Player = {
   stream: boolean;
   lienChaine: string | null;
   reseaux: Record<string, string>;
+  badges: string[];
   createdAt: string;
 };
 
@@ -41,7 +42,7 @@ export type Character = {
   // Relations incluses par /api/data
   player?: Pick<
     Player,
-    "id" | "pseudo" | "stream" | "lienChaine" | "reseaux"
+    "id" | "pseudo" | "stream" | "lienChaine" | "reseaux" | "badges"
   > | null;
   version?: Pick<Version, "id" | "label" | "color"> | null;
   relations?: LinkedRelation[];

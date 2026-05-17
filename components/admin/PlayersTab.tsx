@@ -10,15 +10,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
 
-// Type aligné sur le schéma Prisma
+import { useEffect, useState } from "react";
+import { BadgeKey, BADGES_CONFIG, PlayerBadges } from "./PlayerBadges";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type Player = {
   id: string;
   pseudo: string;
   stream: boolean;
   lienChaine: string | null;
-  reseaux: Record<string, string>; // { tiktok: "https://...", youtube: "https://..." }
+  reseaux: Record<string, string>;
+  badges: string[];
   createdAt: string;
 };
 
@@ -71,10 +75,13 @@ type PlayerForm = {
   pseudo: string;
   lienChaine: string;
   reseaux: Partial<Record<ReseauKey, string>>;
+  badges: BadgeKey[];
 };
 
 const inputCls =
   "h-8 text-[12px] bg-[var(--elevated)] border-[var(--border-mid)] text-[var(--text-primary)] focus:border-[var(--accent)] focus:ring-0 placeholder:text-[var(--text-muted)]";
+
+// ─── Composant principal ──────────────────────────────────────────────────────
 
 export function PlayersTab() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -84,13 +91,11 @@ export function PlayersTab() {
     pseudo: "",
     lienChaine: "",
     reseaux: {},
+    badges: [],
   });
   const [loading, setLoading] = useState(false);
-
-  // Après le useState([]) des players, ajoute :
   const [search, setSearch] = useState("");
 
-  // Remplace `players` par `filtered` dans le .map() :
   const filtered = players.filter((p) =>
     p.pseudo.toLowerCase().includes(search.toLowerCase()),
   );
@@ -107,7 +112,7 @@ export function PlayersTab() {
   }, []);
 
   function openAdd() {
-    setForm({ pseudo: "", lienChaine: "", reseaux: {} });
+    setForm({ pseudo: "", lienChaine: "", reseaux: {}, badges: [] });
     setModal("add");
   }
 
@@ -117,6 +122,7 @@ export function PlayersTab() {
       pseudo: p.pseudo,
       lienChaine: p.lienChaine ?? "",
       reseaux: (p.reseaux ?? {}) as Partial<Record<ReseauKey, string>>,
+      badges: (p.badges ?? []) as BadgeKey[],
     });
     setModal("edit");
   }
@@ -141,12 +147,22 @@ export function PlayersTab() {
     }));
   }
 
+  function toggleBadge(key: BadgeKey) {
+    setForm((f) => ({
+      ...f,
+      badges: f.badges.includes(key)
+        ? f.badges.filter((b) => b !== key)
+        : [...f.badges, key],
+    }));
+  }
+
   async function submit() {
     setLoading(true);
     const body = {
       pseudo: form.pseudo,
       lienChaine: form.lienChaine || null,
       reseaux: form.reseaux,
+      badges: form.badges,
     };
     if (modal === "add") {
       await fetch("/api/players", {
@@ -220,11 +236,13 @@ export function PlayersTab() {
                   {p.pseudo.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[13px] font-semibold text-text-primary">
-                    {p.pseudo}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[13px] font-semibold text-text-primary">
+                      {p.pseudo}
+                    </span>
+                    <PlayerBadges badges={p.badges ?? []} size="sm" />
+                  </div>
                   <div className="flex items-center gap-2 mt-1">
-                    {/* Lien chaîne */}
                     {p.lienChaine && (
                       <a
                         href={p.lienChaine}
@@ -235,7 +253,6 @@ export function PlayersTab() {
                         {p.lienChaine.replace(/^https?:\/\//, "")}
                       </a>
                     )}
-                    {/* Icônes réseaux */}
                     {reseauxEntries.length > 0 && (
                       <div className="flex items-center gap-1">
                         {reseauxEntries.map(([key, url]) => {
@@ -343,10 +360,53 @@ export function PlayersTab() {
                     className={`${inputCls} flex-1`}
                     value={form.reseaux[r.key] ?? ""}
                     onChange={(e) => setReseau(r.key, e.target.value)}
-                    placeholder={`https://...`}
+                    placeholder="https://..."
                   />
                 </div>
               ))}
+            </div>
+
+            {/* Badges */}
+            {/* Badges */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                Badges
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {BADGES_CONFIG.map((cfg) => {
+                  const active = form.badges.includes(cfg.key);
+                  const Icon = cfg.icon; // ← récupère l'icône
+                  return (
+                    <button
+                      key={cfg.key}
+                      type="button"
+                      onClick={() => toggleBadge(cfg.key as BadgeKey)}
+                      style={
+                        active
+                          ? {
+                              borderColor: cfg.color,
+                              backgroundColor: cfg.bg,
+                              color: cfg.color,
+                            }
+                          : {}
+                      }
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-medium transition-all cursor-pointer ${
+                        active
+                          ? ""
+                          : "border-(--border) bg-(--elevated) text-(--text-muted) hover:border-(--border-mid)"
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" /> {/* ← icône Lucide */}
+                      <span>{cfg.label}</span>
+                      {active && (
+                        <span className="ml-auto text-[10px] opacity-60">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

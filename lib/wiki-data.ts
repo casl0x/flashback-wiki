@@ -98,6 +98,7 @@ export async function getWikiData(): Promise<WikiData> {
             stream: character.player.stream,
             lienChaine: character.player.lienChaine,
             reseaux: normalizeReseaux(character.player.reseaux),
+            badges: character.player.badges, // ← ajout
           }
         : null;
 

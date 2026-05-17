@@ -4,8 +4,7 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  // Le composant envoie lienChaine (camelCase) directement
-  const { pseudo, lienChaine, reseaux } = await request.json();
+  const { pseudo, lienChaine, reseaux, badges } = await request.json();
 
   if (!pseudo)
     return NextResponse.json({ error: "Pseudo requis" }, { status: 400 });
@@ -16,6 +15,7 @@ export async function POST(request: NextRequest) {
         pseudo,
         lienChaine: lienChaine ?? null,
         reseaux: reseaux ?? {},
+        badges: badges ?? [],
       },
     });
     return NextResponse.json(player, { status: 201 });
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const { id, pseudo, lienChaine, reseaux } = await request.json();
+  const { id, pseudo, lienChaine, reseaux, badges } = await request.json();
 
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
@@ -39,6 +39,7 @@ export async function PATCH(request: NextRequest) {
         ...(pseudo && { pseudo }),
         lienChaine: lienChaine ?? null,
         ...(reseaux !== undefined && { reseaux }),
+        ...(badges !== undefined && { badges }),
       },
     });
     return NextResponse.json(player);
