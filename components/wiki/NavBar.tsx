@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Menu, X } from "lucide-react";
 
 type Props = {
   totalChars: number;
@@ -8,6 +9,8 @@ type Props = {
   totalVersions: number;
   query?: string;
   onQueryChange?: (q: string) => void;
+  onMenuToggle?: () => void;
+  menuOpen?: boolean;
 };
 
 export default function NavBar({
@@ -16,37 +19,49 @@ export default function NavBar({
   totalVersions,
   query,
   onQueryChange,
+  onMenuToggle,
+  menuOpen,
 }: Props) {
   return (
-    <nav className="sticky top-0 z-10 border-b border-border bg-card/95 px-5 py-3 backdrop-blur-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent font-bold text-white">
+    <nav className="sticky top-0 z-20 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+      <div className="flex items-center gap-3">
+        {/* Burger — mobile only */}
+        <button
+          onClick={onMenuToggle}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-text-secondary transition-colors hover:bg-muted lg:hidden"
+          aria-label="Menu"
+        >
+          {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        </button>
+
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent font-bold text-white">
             ⚡
           </div>
-          <div className="mr-2">
-            <div className="font-display text-[17px] font-bold text-text-primary">
+          <div>
+            <div className="font-display text-[16px] font-bold leading-tight text-text-primary">
               FLASH<span className="text-accent-light">BACK</span>
             </div>
-            <div className="text-[11px] text-text-faint">— Wiki WL</div>
+            <div className="text-[10px] text-text-faint">— Wiki WL</div>
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col gap-3 lg:max-w-2xl lg:flex-row lg:items-center lg:justify-end">
+        {/* Search + badges */}
+        <div className="flex flex-1 items-center justify-end gap-2">
           {query !== undefined && onQueryChange && (
-            <div className="w-full lg:max-w-md">
-              <input
-                type="text"
-                placeholder="Rechercher un personnage..."
-                value={query}
-                onChange={(e) => onQueryChange(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border-mid bg-elevated px-3 py-1.5 text-xs outline-none placeholder:text-text-faint"
-                suppressHydrationWarning
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Rechercher…"
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              className="h-8 w-full max-w-45 rounded-lg border border-border-mid bg-elevated px-3 text-xs outline-none placeholder:text-text-faint sm:max-w-xs lg:max-w-md"
+              suppressHydrationWarning
+            />
           )}
 
-          <div className="flex items-center gap-2">
+          {/* Badges — masqués sur petit mobile */}
+          <div className="hidden items-center gap-1.5 sm:flex">
             {[
               [totalChars, "persos"],
               [totalPlayers, "joueurs"],

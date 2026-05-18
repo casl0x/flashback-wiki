@@ -12,25 +12,34 @@ type Props = {
   totalChars: number;
   totalPlayers: number;
   totalRels: number;
+  open?: boolean;
+  onClose?: () => void;
 };
 
-export default function Sidebar({ versions, counts, totalChars }: Props) {
+export default function Sidebar({
+  versions,
+  counts,
+  totalChars,
+  open,
+  onClose,
+}: Props) {
   const pathname = usePathname();
   const allVersions = [{ id: "all", label: "Tout voir" }, ...versions];
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 
-  return (
-    <aside className="w-50 min-w-50 border-r border-border bg-card p-3 flex flex-col gap-2">
+  const content = (
+    <div className="flex flex-col gap-2 p-3">
       <Link
         href="/"
+        onClick={onClose}
         className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
       >
         Explication du site
       </Link>
 
-      <div className="text-[9px] font-semibold text-text-faint uppercase tracking-[1px] px-2 py-1.5">
+      <div className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[1px] text-text-faint">
         Versions
       </div>
 
@@ -41,13 +50,14 @@ export default function Sidebar({ versions, counts, totalChars }: Props) {
           <Link
             key={v.id}
             href={href}
+            onClick={onClose}
             className={cn(
-              "flex items-center justify-between px-2.5 py-1.5 rounded-lg w-full text-left transition-all",
+              "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition-all",
               isOn ? "bg-active border-border-accent" : "hover:bg-elevated",
             )}
           >
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold font-display">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold font-display">
                 {v.id === "all" ? <i className="ti ti-layout-grid" /> : v.id}
               </div>
               <div
@@ -65,6 +75,27 @@ export default function Sidebar({ versions, counts, totalChars }: Props) {
           </Link>
         );
       })}
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar — toujours visible à partir de lg */}
+      <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card">
+        {content}
+      </aside>
+
+      {/* Mobile drawer overlay */}
+      {open && (
+        <div className="fixed inset-0 z-30 lg:hidden">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+          {/* Drawer */}
+          <aside className="absolute left-0 top-0 h-full w-64 overflow-y-auto border-r border-border bg-card shadow-xl">
+            {content}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

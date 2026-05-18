@@ -20,19 +20,19 @@ function WikiContent({
 }) {
   const filtered = chars.filter((c) => {
     const q = query.toLowerCase();
-    const ms =
+    return (
       !q ||
       c.nom.toLowerCase().includes(q) ||
       c.player?.pseudo?.toLowerCase().includes(q) ||
-      c.metier?.toLowerCase().includes(q);
-    return ms;
+      c.metier?.toLowerCase().includes(q)
+    );
   });
 
   const upl = [...new Set(filtered.map((c) => c.player?.id).filter(Boolean))]
     .length;
 
   return (
-    <div className="flex-1 p-5">
+    <div className="flex-1 p-4 lg:p-5">
       <HeaderBlock
         verLabel="Tous les personnages"
         filteredCount={filtered.length}
@@ -62,14 +62,11 @@ export default function CharactersPage() {
     versions: Version[];
     players: Player[];
     characters: Character[];
-  }>({
-    versions: [],
-    players: [],
-    characters: [],
-  });
+  }>({ versions: [], players: [], characters: [] });
   const [selVer, setSelVer] = useState("all");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function loadData() {
     const response = await fetch(`/api/data?t=${Date.now()}`, {
@@ -94,8 +91,7 @@ export default function CharactersPage() {
   });
 
   const totalRels = data.characters.reduce(
-    (accumulator, character) =>
-      accumulator + (character.relations?.length || 0),
+    (acc, c) => acc + (c.relations?.length || 0),
     0,
   );
 
@@ -107,6 +103,8 @@ export default function CharactersPage() {
         totalVersions={data.versions.length}
         query={query}
         onQueryChange={setQuery}
+        onMenuToggle={() => setMenuOpen((o) => !o)}
+        menuOpen={menuOpen}
       />
       <div className="flex flex-1">
         <Sidebar
@@ -115,6 +113,8 @@ export default function CharactersPage() {
           totalChars={data.characters.length}
           totalPlayers={data.players.length}
           totalRels={totalRels}
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
         />
         {loading ? (
           <div className="flex flex-1 items-center justify-center text-sm text-text-faint">
