@@ -1,5 +1,6 @@
 "use client";
 
+import LogoutButton from "@/components/admin/LogoutButton";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -116,6 +117,8 @@ export default function AdminLayout({
               </Link>
             );
           })}
+
+          <LogoutButton />
         </nav>
 
         {/* Footer */}
