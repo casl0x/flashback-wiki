@@ -36,7 +36,7 @@ export default function Sidebar({
         onClick={onClose}
         className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
       >
-        Explication du site
+        Accueil
       </Link>
 
       <div className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[1px] text-text-faint">

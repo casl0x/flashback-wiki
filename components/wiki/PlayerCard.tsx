@@ -12,25 +12,6 @@ type PartialPlayer = Pick<
   "id" | "pseudo" | "stream" | "lienChaine" | "reseaux" | "badges"
 >;
 
-const RESEAU_ICONS: Record<string, string> = {
-  twitch: "ti-brand-twitch",
-  youtube: "ti-brand-youtube",
-  twitter: "ti-brand-twitter",
-  x: "ti-brand-x",
-  tiktok: "ti-brand-tiktok",
-  instagram: "ti-brand-instagram",
-  discord: "ti-brand-discord",
-};
-
-const RESEAU_COLORS: Record<string, string> = {
-  youtube: "#ff0000",
-  twitter: "#1da1f2",
-  instagram: "#e11401",
-  tiktok: "#010101",
-  discord: "#5865f2",
-  spotify: "#1db954",
-};
-
 type Props = {
   player: PartialPlayer | null | undefined;
   others: Character[];
