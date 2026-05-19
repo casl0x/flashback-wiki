@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import PlayerCard from "@/components/wiki/PlayerCard";
 import { Character } from "@/lib/db";
 import Image from "next/image";
+import CharacterCard from "./CharacterCard";
 
 type Props = {
   character: Character;
@@ -73,11 +74,11 @@ export default function CharacterDetail({
                       background: `${c.version.color ?? "var(--accent)"}18`,
                     }}
                   >
-                    {c.version.id} — {c.version.label}
+                    {c.version.id}
                   </Badge>
                 )}
                 {c.role && (
-                  <Badge variant="ghost">
+                  <Badge variant="outline" className="capitalize">
                     {c.role === "civil" ? "Civil" : "Illégal"}
                   </Badge>
                 )}
@@ -90,76 +91,42 @@ export default function CharacterDetail({
               {c.description}
             </p>
           )}
+          {(c.lienReddif || c.player?.reseaux?.youtube) && (
+            <div className="pb-4">
+              <a
+                href={c.lienReddif ?? c.player?.reseaux?.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[12px] text-accent-light hover:underline mb-3"
+              >
+                <i className="ti ti-brand-youtube" aria-hidden="true" />
+                Voir les rediffusions sur YouTube
+              </a>
+            </div>
+          )}
 
           {rels.length > 0 && (
             <div>
               <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] mb-2">
                 Relations
               </p>
-              <div className="flex flex-col gap-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {rels.map((r) => {
                   const full = allCharacters.find(
                     (ch) => ch.id === r.linked.id,
                   );
+                  if (!full) return null;
                   return (
-                    <button
+                    <CharacterCard
                       key={r.id}
-                      onClick={() => {
-                        if (full) onNavigate(full);
-                      }}
-                      className="flex items-center justify-between px-3 py-2 bg-elevated rounded-lg border border-transparent hover:border-border-mid transition-all text-left w-full"
-                    >
-                      <div className="flex items-center gap-2">
-                        {r.type_relation && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-bg border border-border-accent text-accent-light font-display tracking-wide shrink-0">
-                            {r.type_relation}
-                          </span>
-                        )}
-                        <div>
-                          <p className="text-[13px] font-medium text-text-primary">
-                            {r.linked.nom}
-                          </p>
-                          <p className="text-[10px] text-text-faint">
-                            {r.linked.player_pseudo &&
-                              `@${r.linked.player_pseudo}`}
-                            {r.linked.player_pseudo &&
-                              (r.linked.metier || r.linked.groupe) &&
-                              " — "}
-                            {r.linked.metier && (
-                              <span>Métier : {r.linked.metier}</span>
-                            )}
-                            {r.linked.metier && r.linked.groupe && " · "}
-                            {r.linked.groupe && (
-                              <span>Groupe : {r.linked.groupe}</span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <i
-                        className="ti ti-chevron-right text-text-muted text-[12px] shrink-0"
-                        aria-hidden="true"
-                      />
-                    </button>
+                      character={full}
+                      onClick={() => onNavigate(full)}
+                      hidePlayer
+                      relationTag={r.type_relation ?? undefined}
+                    />
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          {c.lienReddif && (
-            <div className="pt-4">
-              <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] ">
-                Playlist Reddif
-              </p>
-              <a
-                href={c.lienReddif}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-[12px] text-accent-light hover:underline mb-3"
-              >
-                <i className="ti ti-brand-youtube" aria-hidden="true" />
-                Voir la reddif
-              </a>
             </div>
           )}
         </div>

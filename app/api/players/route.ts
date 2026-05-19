@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const { pseudo, lienChaine, reseaux, badges } = await request.json();
+  const { pseudo, stream, lienChaine, reseaux, badges } = await request.json();
 
   if (!pseudo)
     return NextResponse.json({ error: "Pseudo requis" }, { status: 400 });
@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
     const player = await prisma.player.create({
       data: {
         pseudo,
+        stream: stream ?? false,
         lienChaine: lienChaine ?? null,
         reseaux: reseaux ?? {},
         badges: badges ?? [],
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const { id, pseudo, lienChaine, reseaux, badges } = await request.json();
+  const { id, pseudo, stream, lienChaine, reseaux, badges } =
+    await request.json();
 
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
@@ -37,6 +39,7 @@ export async function PATCH(request: NextRequest) {
       where: { id },
       data: {
         ...(pseudo && { pseudo }),
+        stream: stream ?? false,
         lienChaine: lienChaine ?? null,
         ...(reseaux !== undefined && { reseaux }),
         ...(badges !== undefined && { badges }),

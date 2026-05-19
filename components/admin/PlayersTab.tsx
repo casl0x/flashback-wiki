@@ -26,7 +26,7 @@ type Player = {
   createdAt: string;
 };
 
-const RESEAUX_OPTIONS = [
+export const RESEAUX_OPTIONS = [
   {
     key: "tiktok",
     label: "TikTok",
@@ -73,6 +73,7 @@ type ReseauKey = (typeof RESEAUX_OPTIONS)[number]["key"];
 
 type PlayerForm = {
   pseudo: string;
+  stream: boolean;
   lienChaine: string;
   reseaux: Partial<Record<ReseauKey, string>>;
   badges: BadgeKey[];
@@ -89,6 +90,7 @@ export function PlayersTab() {
   const [selected, setSelected] = useState<Player | null>(null);
   const [form, setForm] = useState<PlayerForm>({
     pseudo: "",
+    stream: false,
     lienChaine: "",
     reseaux: {},
     badges: [],
@@ -112,7 +114,13 @@ export function PlayersTab() {
   }, []);
 
   function openAdd() {
-    setForm({ pseudo: "", lienChaine: "", reseaux: {}, badges: [] });
+    setForm({
+      pseudo: "",
+      stream: false,
+      lienChaine: "",
+      reseaux: {},
+      badges: [],
+    });
     setModal("add");
   }
 
@@ -120,6 +128,7 @@ export function PlayersTab() {
     setSelected(p);
     setForm({
       pseudo: p.pseudo,
+      stream: p.stream ?? false,
       lienChaine: p.lienChaine ?? "",
       reseaux: (p.reseaux ?? {}) as Partial<Record<ReseauKey, string>>,
       badges: (p.badges ?? []) as BadgeKey[],
@@ -148,18 +157,24 @@ export function PlayersTab() {
   }
 
   function toggleBadge(key: BadgeKey) {
-    setForm((f) => ({
-      ...f,
-      badges: f.badges.includes(key)
+    setForm((f) => {
+      const newBadges = f.badges.includes(key)
         ? f.badges.filter((b) => b !== key)
-        : [...f.badges, key],
-    }));
+        : [...f.badges, key];
+
+      return {
+        ...f,
+        badges: newBadges,
+        stream: newBadges.includes("streamer"),
+      };
+    });
   }
 
   async function submit() {
     setLoading(true);
     const body = {
       pseudo: form.pseudo,
+      stream: form.stream,
       lienChaine: form.lienChaine || null,
       reseaux: form.reseaux,
       badges: form.badges,
@@ -242,6 +257,7 @@ export function PlayersTab() {
                     </span>
                     <PlayerBadges badges={p.badges ?? []} size="sm" />
                   </div>
+
                   <div className="flex items-center gap-2 mt-1">
                     {p.lienChaine && (
                       <a

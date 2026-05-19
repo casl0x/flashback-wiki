@@ -2,9 +2,10 @@
 
 import { Character } from "@/lib/db";
 import { Player } from "@prisma/client";
-import { ExternalLink, Radio } from "lucide-react";
 import { PlayerBadges } from "../admin/PlayerBadges";
-import { Badge } from "../ui/badge";
+import { RESEAUX_OPTIONS } from "../admin/PlayersTab";
+import CharacterCard from "./CharacterCard";
+import SocialRow from "./SocialRow";
 
 type PartialPlayer = Pick<
   Player,
@@ -21,6 +22,15 @@ const RESEAU_ICONS: Record<string, string> = {
   discord: "ti-brand-discord",
 };
 
+const RESEAU_COLORS: Record<string, string> = {
+  youtube: "#ff0000",
+  twitter: "#1da1f2",
+  instagram: "#e11401",
+  tiktok: "#010101",
+  discord: "#5865f2",
+  spotify: "#1db954",
+};
+
 type Props = {
   player: PartialPlayer | null | undefined;
   others: Character[];
@@ -30,7 +40,11 @@ type Props = {
 export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
   if (!pl) return null;
   const playerName = pl.pseudo.trim() || "Joueur";
-  const reseaux = Object.entries(pl.reseaux ?? {});
+  const reseauxMap =
+    pl.reseaux && typeof pl.reseaux === "object" && !Array.isArray(pl.reseaux)
+      ? (pl.reseaux as Record<string, string>)
+      : {};
+  const reseaux = Object.entries(reseauxMap);
   const totalChars = others.length + 1;
   const hasSocials = pl.lienChaine || reseaux.length > 0;
 
@@ -42,9 +56,6 @@ export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[12px] font-bold bg-elevated border border-border text-text-secondary">
             {playerName.slice(0, 2).toUpperCase()}
           </div>
-          {pl.stream && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-card" />
-          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -68,53 +79,38 @@ export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
           <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] mb-2">
             Liens
           </p>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex gap-2 border-b">
             {pl.lienChaine && (
-              <a
+              <SocialRow
                 href={pl.lienChaine}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-3 py-2 bg-elevated rounded-lg border border-transparent hover:border-border-mid transition-all"
-              >
-                <div className="flex items-center gap-2">
-                  {pl.stream ? (
-                    <Radio className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                  ) : (
-                    <i className="ti ti-brand-twitch text-accent-light text-[13px] shrink-0" />
-                  )}
-                  <span
-                    className={`text-[12px] font-medium ${pl.stream ? "text-green-400" : "text-accent-light"}`}
+                icon={
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="#9146ff"
+                    aria-hidden="true"
                   >
-                    {pl.stream ? "En live maintenant" : "Chaîne de streaming"}
-                  </span>
-                  {pl.stream && (
-                    <span className="text-[9px] font-bold text-green-400 bg-green-400/10 border border-green-400/25 px-1.5 py-0.5 rounded-full animate-pulse">
-                      LIVE
-                    </span>
-                  )}
-                </div>
-                <ExternalLink className="w-3 h-3 text-text-muted shrink-0" />
-              </a>
+                    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
+                  </svg>
+                }
+                iconBg="#9146ff18"
+                label="Chaîne Twitch"
+              />
             )}
-            {reseaux.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 px-1">
-                {reseaux.map(([nom, lien]) => {
-                  const icon = RESEAU_ICONS[nom.toLowerCase()] ?? "ti-link";
-                  return (
-                    <a
-                      key={nom}
-                      href={lien}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-elevated border border-border text-text-secondary hover:text-accent-light hover:border-border-accent transition-colors"
-                    >
-                      <i className={`ti ${icon}`} aria-hidden="true" />
-                      {nom}
-                    </a>
-                  );
-                })}
-              </div>
-            )}
+            {RESEAUX_OPTIONS.map((opt) => {
+              const lien = reseauxMap[opt.key];
+              if (!lien) return null;
+              return (
+                <SocialRow
+                  key={opt.key}
+                  href={lien}
+                  icon={<span style={{ color: opt.color }}>{opt.icon}</span>}
+                  iconBg={`${opt.color}18`}
+                  label={opt.label}
+                />
+              );
+            })}
           </div>
         </div>
       )}
@@ -125,54 +121,14 @@ export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
           <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] mb-2">
             Autres personnages
           </p>
-          <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {others.map((o) => (
-              <button
+              <CharacterCard
                 key={o.id}
+                character={o}
                 onClick={() => onNavigate(o)}
-                className="flex items-center justify-between px-3 py-2 bg-elevated rounded-lg border border-transparent hover:border-border-mid transition-all text-left w-full"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold border bg-card border-border text-text-muted shrink-0">
-                    {o.nom.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium text-text-primary truncate">
-                      {o.nom}
-                    </p>
-                    {o.metier && (
-                      <p className="text-[10px] text-text-faint truncate">
-                        {o.metier}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                  {o.version ? (
-                    <Badge
-                      variant="outline"
-                      style={{
-                        color: o.version.color ?? "var(--accent)",
-                        borderColor: `${o.version.color ?? "var(--accent)"}40`,
-                        background: `${o.version.color ?? "var(--accent)"}18`,
-                      }}
-                    >
-                      {o.version.id}
-                    </Badge>
-                  ) : o.versionId ? (
-                    <Badge variant="outline">{o.versionId}</Badge>
-                  ) : null}
-                  {o.role && (
-                    <Badge variant="ghost">
-                      {o.role === "civil" ? "Civil" : "Illégal"}
-                    </Badge>
-                  )}
-                  <i
-                    className="ti ti-chevron-right text-text-muted text-[12px]"
-                    aria-hidden="true"
-                  />
-                </div>
-              </button>
+                hidePlayer
+              />
             ))}
           </div>
         </div>
