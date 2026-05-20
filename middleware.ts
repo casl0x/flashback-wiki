@@ -1,24 +1,40 @@
-import type { NextRequest } from "next/server";
+import {
+  clerkClient,
+  clerkMiddleware,
+  createRouteMatcher,
+} from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
-  const cookie = req.cookies.get("admin_auth");
+const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
-  if (req.nextUrl.pathname.startsWith("/admin")) {
-    // Laisser passer la page login
-    if (req.nextUrl.pathname === "/admin/login") {
-      return NextResponse.next();
+export default clerkMiddleware(async (auth, req) => {
+  if (isAdminRoute(req)) {
+    const { userId } = await auth();
+
+    if (!userId) {
+      const signInUrl = new URL("/sign-in", req.url);
+      signInUrl.searchParams.set("redirect_url", req.url);
+      return NextResponse.redirect(signInUrl);
     }
 
-    // Vérifier le cookie
-    if (cookie?.value !== process.env.ADMIN_SECRET) {
-      return NextResponse.redirect(new URL("/admin/login", req.url));
+    // Vérifie directement si l'user est membre de l'org admin
+    const client = await clerkClient();
+    const memberships = await client.users.getOrganizationMembershipList({
+      userId,
+    });
+    const isAdmin = memberships.data.some(
+      (m) => m.organization.id === process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID,
+    );
+
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/", req.url));
     }
   }
-
-  return NextResponse.next();
-}
+});
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
 };

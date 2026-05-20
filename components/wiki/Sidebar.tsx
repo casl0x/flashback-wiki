@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { Version } from "@/lib/db";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AdminButton from "../admin/AdminButton";
 import { Badge } from "../ui/badge";
 
 type Props = {
@@ -75,6 +76,12 @@ export default function Sidebar({
           </Link>
         );
       })}
+
+      {/* Séparateur */}
+      <div className="my-1 border-t border-border" />
+
+      {/* Bouton admin/connexion */}
+      <AdminButton />
     </div>
   );
 
