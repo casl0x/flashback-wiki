@@ -9,14 +9,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async rewrites() {
-    return [
-      {
-        source: "/__clerk/:path*",
-        destination: "https://npm.clerk.dev/:path*",
-      },
-    ];
-  },
 };
 
 export default nextConfig;
