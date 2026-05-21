@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/__clerk/:path*",
-        destination: "https://npm.clerk.dev/:path*",
+        destination: "https://clerk.flashback-wiki.vercel.app/__clerk/:path*",
       },
     ];
   },
