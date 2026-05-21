@@ -3,8 +3,6 @@ import WikiLayout from "@/components/wiki/WikiLayout";
 import { getWikiData } from "@/lib/wiki-data";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
 type Props = {
   params: Promise<{ id: string }>;
 };

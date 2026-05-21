@@ -4,8 +4,6 @@ import { getWikiData } from "@/lib/wiki-data";
 import { ArrowRight, Layers3 } from "lucide-react";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
-
 export default async function VersionsPage() {
   const { versions, counts, characters, players } = await getWikiData();
 
