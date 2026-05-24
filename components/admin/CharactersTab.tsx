@@ -66,6 +66,8 @@ const EMPTY_FORM: CharForm = {
   imageUrl: "",
 };
 
+const PAGE_SIZE = 20;
+
 function charToForm(c: Character): CharForm {
   return {
     nom: c.nom,
@@ -98,19 +100,30 @@ export function CharactersTab({ players, versions }: Props) {
 
   const [newRelPerso, setNewRelPerso] = useState("");
   const [newRelType, setNewRelType] = useState("");
-  const [newRelTypeInverse, setNewRelTypeInverse] = useState(""); // ← nouveau
+  const [newRelTypeInverse, setNewRelTypeInverse] = useState("");
   const [relLoading, setRelLoading] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [filterVersion, setFilterVersion] = useState("all");
+  const [filterRole, setFilterRole] = useState("all");
+  const [page, setPage] = useState(1);
 
-  const filtered = chars.filter((c) =>
-    [c.nom, c.metier, c.player?.pseudo]
+  const filtered = chars.filter((c) => {
+    const matchSearch = [c.nom, c.metier, c.player?.pseudo]
       .filter(Boolean)
-      .some((s) => s!.toLowerCase().includes(search.toLowerCase())),
-  );
+      .some((s) => s!.toLowerCase().includes(search.toLowerCase()));
+    const matchVersion =
+      filterVersion === "all" || c.versionId === filterVersion;
+    const matchRole = filterRole === "all" || c.role === filterRole;
+    return matchSearch && matchVersion && matchRole;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const isEdit = !!selected;
   const activeId = selected?.id ?? createdId;
+
   type DisplayRelation = {
     id: string;
     linked:
@@ -119,7 +132,6 @@ export function CharactersTab({ players, versions }: Props) {
     type_relation: string | null;
   };
 
-  // Relations à afficher : soit les vraies (edit/après création), soit les pending (avant création)
   const displayRelations: DisplayRelation[] = activeId
     ? activeRelations.map((r) => ({
         id: r.id,
@@ -226,8 +238,6 @@ export function CharactersTab({ players, versions }: Props) {
       lien_reddif: form.lienReddif || null,
       image_url: form.imageUrl || null,
     };
-    console.log("🔍 form.imageUrl →", form.imageUrl);
-    console.log("🔍 body →", body);
     const headers = { "Content-Type": "application/json" };
 
     if (!isEdit) {
@@ -237,8 +247,6 @@ export function CharactersTab({ players, versions }: Props) {
         body: JSON.stringify(body),
       });
       const newChar = await res.json();
-
-      // Envoyer les relations en attente
       await Promise.all(
         pendingRelations.map((r) =>
           fetch("/api/relations", {
@@ -248,12 +256,11 @@ export function CharactersTab({ players, versions }: Props) {
               personnage_a: newChar.id,
               personnage_b: r.personnage_b,
               type_relation: r.type_relation,
-              type_relation_inverse: r.type_relation_inverse, // ← nouveau
+              type_relation_inverse: r.type_relation_inverse,
             }),
           }),
         ),
       );
-
       setPendingRelations([]);
       setCreatedId(newChar.id);
       await load(newChar.id);
@@ -284,16 +291,14 @@ export function CharactersTab({ players, versions }: Props) {
 
   async function addRelation() {
     if (!newRelPerso) return;
-
     if (!activeId) {
-      // Personnage pas encore créé : stocker en local
       const linked = chars.find((c) => c.id === newRelPerso);
       setPendingRelations((prev) => [
         ...prev,
         {
           personnage_b: newRelPerso,
           type_relation: newRelType || null,
-          type_relation_inverse: newRelTypeInverse || null, // ← nouveau
+          type_relation_inverse: newRelTypeInverse || null,
           linked,
         },
       ]);
@@ -302,8 +307,6 @@ export function CharactersTab({ players, versions }: Props) {
       setNewRelTypeInverse("");
       return;
     }
-
-    // Personnage déjà en base : appel API direct
     setRelLoading(true);
     await fetch("/api/relations", {
       method: "POST",
@@ -312,7 +315,7 @@ export function CharactersTab({ players, versions }: Props) {
         personnage_a: activeId,
         personnage_b: newRelPerso,
         type_relation: newRelType || null,
-        type_relation_inverse: newRelTypeInverse || null, // ← nouveau
+        type_relation_inverse: newRelTypeInverse || null,
       }),
     });
     await load(activeId);
@@ -348,7 +351,6 @@ export function CharactersTab({ players, versions }: Props) {
           placeholder="Tony Mercer"
         />
       </div>
-
       <div className="flex flex-col gap-1">
         <label className="text-[10px] uppercase tracking-widest text-text-muted">
           Métier
@@ -359,7 +361,6 @@ export function CharactersTab({ players, versions }: Props) {
           placeholder="Mécanicien, Avocat…"
         />
       </div>
-
       <div className="flex flex-col gap-1">
         <label className="text-[10px] uppercase tracking-widest text-text-muted">
           Groupe
@@ -370,7 +371,6 @@ export function CharactersTab({ players, versions }: Props) {
           placeholder="Los Santos MC, Mafia…"
         />
       </div>
-
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-[10px] uppercase tracking-widest text-text-muted">
@@ -395,7 +395,6 @@ export function CharactersTab({ players, versions }: Props) {
             </SelectContent>
           </Select>
         </div>
-
         <div className="flex flex-col gap-1">
           <label className="text-[10px] uppercase tracking-widest text-text-muted">
             Joueur
@@ -411,7 +410,6 @@ export function CharactersTab({ players, versions }: Props) {
           />
         </div>
       </div>
-
       <div className="flex flex-col gap-1">
         <label className="text-[10px] uppercase tracking-widest text-text-muted">
           Version
@@ -436,7 +434,6 @@ export function CharactersTab({ players, versions }: Props) {
           </SelectContent>
         </Select>
       </div>
-
       <div className="flex flex-col gap-1">
         <label className="text-[10px] uppercase tracking-widest text-text-muted">
           Description
@@ -474,11 +471,7 @@ export function CharactersTab({ players, versions }: Props) {
                 typeof info === "object" && info && "public_id" in info
                   ? (info.public_id as string | undefined)
                   : "";
-
-              setForm((f) => ({
-                ...f,
-                imageUrl: publicId ?? "",
-              }));
+              setForm((f) => ({ ...f, imageUrl: publicId ?? "" }));
             }}
           >
             {({ open }) => (
@@ -502,7 +495,6 @@ export function CharactersTab({ players, versions }: Props) {
           )}
         </div>
       </div>
-
       <div className="flex flex-col gap-1">
         <label className="text-[10px] uppercase tracking-widest text-text-muted">
           Lien Reddif
@@ -513,8 +505,6 @@ export function CharactersTab({ players, versions }: Props) {
           placeholder="https://youtube.com/..."
         />
       </div>
-
-      {/* Relations — toujours visibles */}
       <div className="border-t border-border pt-3 flex flex-col gap-2">
         <p className="text-[10px] uppercase tracking-widest text-text-muted">
           Relations ({displayRelations.length})
@@ -524,17 +514,12 @@ export function CharactersTab({ players, versions }: Props) {
             </span>
           )}
         </p>
-
         {displayRelations.length > 0 && (
           <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
             {displayRelations.map((r) => (
               <div
                 key={r.id}
-                className={`flex items-center justify-between px-2.5 py-1.5 rounded-md border ${
-                  r.id.startsWith("pending-")
-                    ? "bg-elevated/50 border-border border-dashed"
-                    : "bg-elevated border-border"
-                }`}
+                className={`flex items-center justify-between px-2.5 py-1.5 rounded-md border ${r.id.startsWith("pending-") ? "bg-elevated/50 border-border border-dashed" : "bg-elevated border-border"}`}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[12px] font-medium text-text-primary truncate">
@@ -561,7 +546,6 @@ export function CharactersTab({ players, versions }: Props) {
             ))}
           </div>
         )}
-
         <div className="flex flex-col gap-1">
           <label className="text-[9px] uppercase tracking-widest text-text-muted">
             Personnage
@@ -574,7 +558,6 @@ export function CharactersTab({ players, versions }: Props) {
             excludeId={activeId ?? undefined}
           />
         </div>
-
         <div className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary">
           <span className="shrink-0 font-medium text-text-primary">
             {form.nom || "Ce personnage"}
@@ -591,7 +574,6 @@ export function CharactersTab({ players, versions }: Props) {
             {chars.find((c) => c.id === newRelPerso)?.nom || "___"}
           </span>
         </div>
-
         <div className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary">
           <span className="shrink-0 font-medium text-text-primary">
             {chars.find((c) => c.id === newRelPerso)?.nom || "L'autre"}
@@ -623,30 +605,76 @@ export function CharactersTab({ players, versions }: Props) {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-[15px] font-bold tracking-wide text-text-primary">
-            Personnages
-          </h2>
-          <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
-            {filtered.length}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Barre de recherche + filtres */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher…"
             className="h-7 text-[11px] w-36 bg-elevated border-border-mid"
           />
+          {/* Filtre version */}
+          <Select
+            value={filterVersion}
+            onValueChange={(value) => setFilterVersion(value ?? "all")}
+          >
+            <SelectTrigger className="h-7 text-[11px] w-28 bg-elevated border-border-mid">
+              <SelectValue placeholder="Version" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes</SelectItem>
+              {versions.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.id} — {v.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Filtre rôle */}
+          <Select
+            value={filterRole}
+            onValueChange={(value) => setFilterRole(value ?? "all")}
+          >
+            <SelectTrigger className="h-7 text-[11px] w-24 bg-elevated border-border-mid">
+              <SelectValue placeholder="Rôle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              {ROLES.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Reset filtres */}
+          {(filterVersion !== "all" || filterRole !== "all" || search) && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setFilterVersion("all");
+                setFilterRole("all");
+              }}
+              className="text-[10px] text-text-muted hover:text-text-secondary px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
+            {filtered.length}
+          </span>
           <Button size="sm" onClick={openAdd}>
             + Ajouter
           </Button>
         </div>
       </div>
 
+      {/* Liste */}
       <div className="flex flex-col gap-4">
-        {filtered.map((c) => (
+        {paginated.map((c) => (
           <Card key={c.id}>
             <CardContent className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold border shrink-0 bg-elevated border-border text-text-secondary">
@@ -712,6 +740,59 @@ export function CharactersTab({ players, versions }: Props) {
         ))}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+          <span className="text-[11px] text-text-muted">
+            Page {page} sur {totalPages} · {filtered.length} personnages
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="text-[11px] text-text-secondary px-2.5 py-1 rounded border border-border hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              ← Précédent
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(
+                (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1,
+              )
+              .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "..." ? (
+                  <span
+                    key={`dots-${i}`}
+                    className="text-[11px] text-text-muted px-1"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p as number)}
+                    className={`text-[11px] px-2.5 py-1 rounded border transition-colors cursor-pointer ${page === p ? "bg-active border-border-accent text-accent-light" : "border-border text-text-secondary hover:bg-elevated"}`}
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="text-[11px] text-text-secondary px-2.5 py-1 rounded border border-border hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Suivant →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal form */}
       <Dialog open={modal === "form"} onOpenChange={(o) => !o && closeModal()}>
         <DialogContent className="bg-card border-border-mid max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -719,9 +800,7 @@ export function CharactersTab({ players, versions }: Props) {
               {isEdit ? "Modifier le personnage" : "Nouveau personnage"}
             </DialogTitle>
           </DialogHeader>
-
           {sharedForm}
-
           <DialogFooter className="flex gap-2 sm:flex-row pt-1">
             <Button
               variant="outline"
@@ -749,6 +828,7 @@ export function CharactersTab({ players, versions }: Props) {
         </DialogContent>
       </Dialog>
 
+      {/* Modal delete */}
       <Dialog
         open={modal === "delete" && !!selected}
         onOpenChange={(o) => !o && closeModal()}
