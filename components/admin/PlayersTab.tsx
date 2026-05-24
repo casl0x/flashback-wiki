@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BadgeKey, BADGES_CONFIG, PlayerBadges } from "./PlayerBadges";
 
@@ -85,6 +86,7 @@ const inputCls =
 // ─── Composant principal ──────────────────────────────────────────────────────
 
 export function PlayersTab() {
+  const router = useRouter();
   const [players, setPlayers] = useState<Player[]>([]);
   const [modal, setModal] = useState<"add" | "edit" | "delete" | null>(null);
   const [selected, setSelected] = useState<Player | null>(null);
@@ -106,12 +108,13 @@ export function PlayersTab() {
     const res = await fetch("/api/data");
     const data = await res.json();
     setPlayers(data.players ?? []);
+    router.refresh();
   }
 
   useEffect(() => {
     const t = setTimeout(() => load(), 0);
     return () => clearTimeout(t);
-  }, []);
+  });
 
   function openAdd() {
     setForm({

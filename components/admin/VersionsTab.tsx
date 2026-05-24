@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Version } from "@/lib/db";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type VersionForm = {
@@ -25,6 +26,7 @@ const cls =
   "h-8 text-[12px] bg-[var(--elevated)] border-[var(--border-mid)] text-[var(--text-primary)] focus:border-[var(--accent)] focus:ring-0 placeholder:text-[var(--text-muted)]";
 
 export function VersionsTab() {
+  const router = useRouter();
   const [versions, setVersions] = useState<Version[]>([]);
   const [modal, setModal] = useState<"add" | "edit" | "delete" | null>(null);
   const [selected, setSelected] = useState<Version | null>(null);
@@ -40,12 +42,13 @@ export function VersionsTab() {
     const res = await fetch("/api/data");
     const data = await res.json();
     setVersions(data.versions ?? []);
+    router.refresh();
   }
   useEffect(() => {
     (async () => {
       await load();
     })();
-  }, []);
+  });
 
   function set(field: keyof VersionForm) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -115,14 +118,14 @@ export function VersionsTab() {
           <h2 className="text-[15px] font-bold tracking-wide text-text-primary">
             Versions
           </h2>
-          <span className="text-[11px] text-[var(--text-muted)] bg-[var(--elevated)] border border-[var(--border)] px-2 py-0.5 rounded-full">
+          <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
             {versions.length}
           </span>
         </div>
         <Button
           size="sm"
           onClick={openAdd}
-          className="h-7 text-[11px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-0 cursor-pointer"
+          className="h-7 text-[11px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
         >
           + Ajouter
         </Button>
@@ -133,7 +136,7 @@ export function VersionsTab() {
         {versions.map((v) => (
           <Card
             key={v.id}
-            className="bg-[var(--card)] border-[var(--border)] hover:border-[var(--border-mid)] transition-colors"
+            className="bg-card border-border hover:border-border-mid transition-colors"
             style={{
               borderTopWidth: 2,
               borderTopColor: v.color ?? "var(--accent)",
@@ -155,25 +158,25 @@ export function VersionsTab() {
                 <div className="flex gap-1">
                   <button
                     onClick={() => openEdit(v)}
-                    className="text-[10px] text-[var(--text-muted)] hover:text-[var(--accent-light)] px-1.5 py-0.5 rounded hover:bg-[var(--elevated)] cursor-pointer"
+                    className="text-[10px] text-text-muted hover:text-accent-light px-1.5 py-0.5 rounded hover:bg-elevated cursor-pointer"
                   >
                     Éditer
                   </button>
                   <button
                     onClick={() => openDelete(v)}
-                    className="text-[10px] text-[var(--text-muted)] hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] cursor-pointer"
+                    className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] cursor-pointer"
                   >
                     Suppr.
                   </button>
                 </div>
               </div>
-              <CardTitle className="text-[13px] font-semibold text-[var(--text-primary)] mt-1">
+              <CardTitle className="text-[13px] font-semibold text-text-primary mt-1">
                 {v.label}
               </CardTitle>
             </CardHeader>
             {v.description && (
               <CardContent className="px-4 pb-3 pt-0">
-                <p className="text-[11px] text-[var(--text-muted)] line-clamp-2">
+                <p className="text-[11px] text-text-muted line-clamp-2">
                   {v.description}
                 </p>
               </CardContent>
@@ -187,16 +190,16 @@ export function VersionsTab() {
         open={modal === "add" || modal === "edit"}
         onOpenChange={(o) => !o && closeModal()}
       >
-        <DialogContent className="bg-[var(--card)] border-[var(--border-mid)] max-w-md">
+        <DialogContent className="bg-card border-border-mid max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[14px] tracking-wide text-[var(--text-primary)]">
+            <DialogTitle className="text-[14px] tracking-wide text-text-primary">
               {modal === "edit" ? "Modifier la version" : "Nouvelle version"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
+              <label className="text-[10px] uppercase tracking-widest text-text-muted">
                 ID (ex: V7)
               </label>
               <Input
@@ -208,7 +211,7 @@ export function VersionsTab() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
+              <label className="text-[10px] uppercase tracking-widest text-text-muted">
                 Label
               </label>
               <Input
@@ -219,7 +222,7 @@ export function VersionsTab() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
+              <label className="text-[10px] uppercase tracking-widest text-text-muted">
                 Description
               </label>
               <textarea
@@ -230,7 +233,7 @@ export function VersionsTab() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
+              <label className="text-[10px] uppercase tracking-widest text-text-muted">
                 Couleur
               </label>
               <div className="flex items-center gap-2">
@@ -238,7 +241,7 @@ export function VersionsTab() {
                   type="color"
                   value={form.color}
                   onChange={set("color")}
-                  className="w-8 h-8 rounded cursor-pointer border border-[var(--border-mid)] bg-transparent"
+                  className="w-8 h-8 rounded cursor-pointer border border-border-mid bg-transparent"
                 />
                 <Input
                   className={`${cls} flex-1`}
@@ -247,7 +250,7 @@ export function VersionsTab() {
                   placeholder="#a78bfa"
                 />
                 <div
-                  className="w-8 h-8 rounded-lg border flex-shrink-0"
+                  className="w-8 h-8 rounded-lg border shrink-0"
                   style={{
                     background: `${form.color}18`,
                     borderColor: `${form.color}40`,
@@ -262,7 +265,7 @@ export function VersionsTab() {
               variant="outline"
               size="sm"
               onClick={closeModal}
-              className="flex-1 text-[12px] border-[var(--border-mid)] text-[var(--text-secondary)] cursor-pointer"
+              className="flex-1 text-[12px] border-border-mid text-text-secondary cursor-pointer"
             >
               Annuler
             </Button>
@@ -270,7 +273,7 @@ export function VersionsTab() {
               size="sm"
               onClick={submit}
               disabled={loading}
-              className="flex-1 text-[12px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-0 cursor-pointer"
+              className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
             >
               {loading ? "…" : modal === "edit" ? "Enregistrer" : "Créer"}
             </Button>
@@ -283,13 +286,13 @@ export function VersionsTab() {
         open={modal === "delete" && !!selected}
         onOpenChange={(o) => !o && closeModal()}
       >
-        <DialogContent className="bg-[var(--card)] border-[var(--border-mid)] max-w-sm">
+        <DialogContent className="bg-card border-border-mid max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-[14px] tracking-wide text-[var(--text-primary)]">
+            <DialogTitle className="text-[14px] tracking-wide text-text-primary">
               Confirmation
             </DialogTitle>
           </DialogHeader>
-          <p className="text-[13px] text-[var(--text-secondary)]">
+          <p className="text-[13px] text-text-secondary">
             Supprimer la version &quot;{selected?.label}&quot; ?
           </p>
           <DialogFooter className="flex gap-2 sm:flex-row">
@@ -297,7 +300,7 @@ export function VersionsTab() {
               variant="outline"
               size="sm"
               onClick={closeModal}
-              className="flex-1 border-[var(--border-mid)] text-[var(--text-secondary)] cursor-pointer"
+              className="flex-1 border-border-mid text-text-secondary cursor-pointer"
             >
               Annuler
             </Button>

@@ -14,6 +14,7 @@ import { Character, Player, Version } from "@/lib/db";
 import { statusBadgeClass } from "@/lib/utils";
 import { CldUploadWidget } from "next-cloudinary";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Select,
@@ -80,6 +81,7 @@ function charToForm(c: Character): CharForm {
 }
 
 export function CharactersTab({ players, versions }: Props) {
+  const router = useRouter();
   const [chars, setChars] = useState<Character[]>([]);
   const [modal, setModal] = useState<"form" | "delete" | null>(null);
   const [selected, setSelected] = useState<Character | null>(null);
@@ -141,6 +143,7 @@ export function CharactersTab({ players, versions }: Props) {
         characters.find((c) => c.id === refreshActiveId)?.relations ?? [],
       );
     }
+    router.refresh();
   }
 
   useEffect(() => {
