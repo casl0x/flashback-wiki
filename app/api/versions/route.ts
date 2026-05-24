@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import { invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -19,7 +18,6 @@ export async function POST(request: NextRequest) {
         color: color ?? "#8880a8",
       },
     });
-    await invalidateWikiCache();
     return NextResponse.json(version, { status: 201 });
   } catch (err: unknown) {
     return NextResponse.json(
@@ -59,7 +57,6 @@ export async function DELETE(request: NextRequest) {
 
   try {
     await prisma.version.delete({ where: { id } });
-    await invalidateWikiCache();
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     return NextResponse.json(
