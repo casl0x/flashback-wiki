@@ -46,6 +46,9 @@ export type Character = {
   > | null;
   version?: Pick<Version, "id" | "label" | "color"> | null;
   relations?: LinkedRelation[];
+
+  locationX?: number | null;
+  locationY?: number | null;
 };
 
 export type LinkedRelation = {

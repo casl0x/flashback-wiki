@@ -56,6 +56,9 @@ model Character {
   relationsA Relation[] @relation("PersonnageA")
   relationsB Relation[] @relation("PersonnageB")
 
+  locationX Float? @map("location_x")
+  locationY Float? @map("location_y")
+
   @@map("characters")
 }
 

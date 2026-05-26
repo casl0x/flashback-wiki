@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Character, Player, Version } from "@/lib/db";
 import { statusBadgeClass } from "@/lib/utils";
 import { CldUploadWidget } from "next-cloudinary";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
@@ -27,8 +28,20 @@ import {
 import { CharacterCombobox } from "./CharacterCombobox";
 import { PlayerCombobox } from "./PlayerCombobox";
 
-type Props = { players: Player[]; versions: Version[] };
+const AdminLocationPicker = dynamic(
+  () => import("@/components/admin/AdminLocationPicker"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-100 bg-elevated rounded-lg animate-pulse" />
+    ),
+  },
+);
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type Props = { players: Player[]; versions: Version[] };
+type ModalTab = "infos" | "localisation";
 type CharForm = {
   nom: string;
   metier: string;
@@ -40,7 +53,6 @@ type CharForm = {
   lienReddif: string;
   imageUrl?: string;
 };
-
 type PendingRelation = {
   personnage_b: string;
   type_relation: string | null;
@@ -48,11 +60,12 @@ type PendingRelation = {
   linked: Character | undefined;
 };
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
 const ROLES = [
   { label: "Civil", value: "civil" },
   { label: "Illégal", value: "illegal" },
 ];
-
 const EMPTY_FORM: CharForm = {
   nom: "",
   metier: "",
@@ -64,24 +77,71 @@ const EMPTY_FORM: CharForm = {
   lienReddif: "",
   imageUrl: "",
 };
+const charToForm = (c: Character): CharForm => ({
+  nom: c.nom,
+  metier: c.metier ?? "",
+  groupe: c.groupe ?? "",
+  description: c.description ?? "",
+  playerId: c.playerId ?? "",
+  versionId: c.versionId ?? "",
+  role: c.role ?? "civil",
+  lienReddif: c.lienReddif ?? "",
+  imageUrl: c.imageUrl ?? "",
+});
 
-function charToForm(c: Character): CharForm {
-  return {
-    nom: c.nom,
-    metier: c.metier ?? "",
-    groupe: c.groupe ?? "",
-    description: c.description ?? "",
-    playerId: c.playerId ?? "",
-    versionId: c.versionId ?? "",
-    role: c.role ?? "civil",
-    lienReddif: c.lienReddif ?? "",
-    imageUrl: c.imageUrl ?? "",
-  };
+// ─── Small helpers ────────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-[10px] uppercase tracking-widest text-text-muted">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
 }
+
+function SimpleSelect({
+  value,
+  onValueChange,
+  placeholder,
+  label,
+  children,
+}: {
+  value: string;
+  onValueChange: (v: string) => void;
+  placeholder: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => onValueChange(v ?? "")}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>{label}</SelectLabel>
+          {children}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function CharactersTab({ players, versions }: Props) {
   const [chars, setChars] = useState<Character[]>([]);
   const [modal, setModal] = useState<"form" | "delete" | null>(null);
+  const [modalTab, setModalTab] = useState<ModalTab>("infos");
   const [selected, setSelected] = useState<Character | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [activeRelations, setActiveRelations] = useState<
@@ -93,82 +153,75 @@ export function CharactersTab({ players, versions }: Props) {
   const [form, setForm] = useState<CharForm>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [localPlayers, setLocalPlayers] = useState<Player[]>(players);
-
   const [newRelPerso, setNewRelPerso] = useState("");
   const [newRelType, setNewRelType] = useState("");
-  const [newRelTypeInverse, setNewRelTypeInverse] = useState(""); // ← nouveau
+  const [newRelTypeInverse, setNewRelTypeInverse] = useState("");
   const [relLoading, setRelLoading] = useState(false);
-
   const [search, setSearch] = useState("");
 
+  const isEdit = !!selected;
+  const activeId = selected?.id ?? createdId;
+  const activeChar =
+    selected ?? (createdId ? chars.find((c) => c.id === createdId) : null);
   const filtered = chars.filter((c) =>
     [c.nom, c.metier, c.player?.pseudo]
       .filter(Boolean)
       .some((s) => s!.toLowerCase().includes(search.toLowerCase())),
   );
 
-  const isEdit = !!selected;
-  const activeId = selected?.id ?? createdId;
-  type DisplayRelation = {
+  type DR = {
     id: string;
-    linked:
-      | NonNullable<Character["relations"]>[number]["linked"]
-      | PendingRelation["linked"];
+    linked: Character | undefined;
     type_relation: string | null;
   };
-
-  // Relations à afficher : soit les vraies (edit/après création), soit les pending (avant création)
-  const displayRelations: DisplayRelation[] = activeId
+  const displayRelations: DR[] = activeId
     ? activeRelations.map((r) => ({
         id: r.id,
-        linked: r.linked,
+        linked: r.linked as unknown as DR["linked"],
         type_relation: r.type_relation,
       }))
     : pendingRelations.map((r, i) => ({
         id: `pending-${i}`,
-        linked: r.linked,
+        linked: r.linked as unknown as DR["linked"],
         type_relation: r.type_relation,
       }));
 
-  async function load(refreshActiveId?: string) {
-    const res = await fetch("/api/data");
-    const data = await res.json();
+  // ─── Data ──────────────────────────────────────────────────────────────────
+
+  async function load(refreshId?: string) {
+    const data = await fetch("/api/data").then((r) => r.json());
     const characters: Character[] = data.characters ?? [];
     setChars(characters);
     setLocalPlayers(data.players ?? []);
-    if (refreshActiveId) {
+    if (refreshId)
       setActiveRelations(
-        characters.find((c) => c.id === refreshActiveId)?.relations ?? [],
+        characters.find((c) => c.id === refreshId)?.relations ?? [],
       );
-    }
   }
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/data");
-        const data = await res.json();
-        if (mounted) {
-          setChars(data.characters ?? []);
-          setLocalPlayers(data.players ?? []);
+    let ok = true;
+    fetch("/api/data")
+      .then((r) => r.json())
+      .then((d) => {
+        if (ok) {
+          setChars(d.characters ?? []);
+          setLocalPlayers(d.players ?? []);
         }
-      } catch (error) {
-        console.error(error);
-      }
-    })();
+      })
+      .catch(console.error);
     return () => {
-      mounted = false;
+      ok = false;
     };
   }, []);
 
-  function set(field: keyof CharForm) {
-    return (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-      >,
-    ) => setForm((f) => ({ ...f, [field]: e.target.value }));
-  }
+  // ─── Modal helpers ─────────────────────────────────────────────────────────
+
+  const resetRel = () => {
+    setNewRelPerso("");
+    setNewRelType("");
+    setNewRelTypeInverse("");
+  };
 
   function openAdd() {
     setSelected(null);
@@ -176,103 +229,91 @@ export function CharactersTab({ players, versions }: Props) {
     setActiveRelations([]);
     setPendingRelations([]);
     setForm(EMPTY_FORM);
-    setNewRelPerso("");
-    setNewRelType("");
-    setNewRelTypeInverse("");
+    resetRel();
+    setModalTab("infos");
     setModal("form");
   }
-
   function openEdit(c: Character) {
     setSelected(c);
     setCreatedId(null);
     setActiveRelations(c.relations ?? []);
     setPendingRelations([]);
     setForm(charToForm(c));
-    setNewRelPerso("");
-    setNewRelType("");
-    setNewRelTypeInverse("");
+    resetRel();
+    setModalTab("infos");
     setModal("form");
   }
-
   function openDelete(c: Character) {
     setSelected(c);
     setModal("delete");
   }
-
   function closeModal() {
     setModal(null);
     setSelected(null);
     setCreatedId(null);
     setActiveRelations([]);
     setPendingRelations([]);
-    setNewRelPerso("");
-    setNewRelType("");
-    setNewRelTypeInverse("");
+    resetRel();
+    setModalTab("infos");
   }
+
+  // ─── Actions ───────────────────────────────────────────────────────────────
+
+  const apiHeaders = { "Content-Type": "application/json" };
+  const bodyFromForm = () => ({
+    nom: form.nom,
+    metier: form.metier || null,
+    groupe: form.groupe || null,
+    description: form.description || null,
+    player_id: form.playerId || null,
+    version_id: form.versionId || null,
+    role: form.role || null,
+    lien_reddif: form.lienReddif || null,
+    image_url: form.imageUrl || null,
+  });
 
   async function submit() {
     setLoading(true);
-    const body = {
-      nom: form.nom,
-      metier: form.metier || null,
-      groupe: form.groupe || null,
-      description: form.description || null,
-      player_id: form.playerId || null,
-      version_id: form.versionId || null,
-      role: form.role || null,
-      lien_reddif: form.lienReddif || null,
-      image_url: form.imageUrl || null,
-    };
-    console.log("🔍 form.imageUrl →", form.imageUrl);
-    console.log("🔍 body →", body);
-    const headers = { "Content-Type": "application/json" };
-
     if (!isEdit) {
-      const res = await fetch("/api/characters", {
+      const newChar = await fetch("/api/characters", {
         method: "POST",
-        headers,
-        body: JSON.stringify(body),
-      });
-      const newChar = await res.json();
-
-      // Envoyer les relations en attente
+        headers: apiHeaders,
+        body: JSON.stringify(bodyFromForm()),
+      }).then((r) => r.json());
       await Promise.all(
         pendingRelations.map((r) =>
           fetch("/api/relations", {
             method: "POST",
-            headers,
+            headers: apiHeaders,
             body: JSON.stringify({
               personnage_a: newChar.id,
               personnage_b: r.personnage_b,
               type_relation: r.type_relation,
-              type_relation_inverse: r.type_relation_inverse, // ← nouveau
+              type_relation_inverse: r.type_relation_inverse,
             }),
           }),
         ),
       );
-
       setPendingRelations([]);
       setCreatedId(newChar.id);
       await load(newChar.id);
-      setLoading(false);
-      return;
+    } else {
+      await fetch("/api/characters", {
+        method: "PATCH",
+        headers: apiHeaders,
+        body: JSON.stringify({ id: selected.id, ...bodyFromForm() }),
+      });
+      await load();
+      closeModal();
     }
-
-    await fetch("/api/characters", {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify({ id: selected.id, ...body }),
-    });
-    await load();
     setLoading(false);
-    closeModal();
   }
 
   async function confirmDelete() {
     if (!selected) return;
     await fetch("/api/characters", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: apiHeaders,
       body: JSON.stringify({ id: selected.id }),
     });
     await load();
@@ -281,174 +322,146 @@ export function CharactersTab({ players, versions }: Props) {
 
   async function addRelation() {
     if (!newRelPerso) return;
-
     if (!activeId) {
-      // Personnage pas encore créé : stocker en local
-      const linked = chars.find((c) => c.id === newRelPerso);
-      setPendingRelations((prev) => [
-        ...prev,
+      setPendingRelations((p) => [
+        ...p,
         {
           personnage_b: newRelPerso,
           type_relation: newRelType || null,
-          type_relation_inverse: newRelTypeInverse || null, // ← nouveau
-          linked,
+          type_relation_inverse: newRelTypeInverse || null,
+          linked: chars.find((c) => c.id === newRelPerso),
         },
       ]);
-      setNewRelPerso("");
-      setNewRelType("");
-      setNewRelTypeInverse("");
+      resetRel();
       return;
     }
-
-    // Personnage déjà en base : appel API direct
     setRelLoading(true);
     await fetch("/api/relations", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: apiHeaders,
       body: JSON.stringify({
         personnage_a: activeId,
         personnage_b: newRelPerso,
         type_relation: newRelType || null,
-        type_relation_inverse: newRelTypeInverse || null, // ← nouveau
+        type_relation_inverse: newRelTypeInverse || null,
       }),
     });
     await load(activeId);
-    setNewRelPerso("");
-    setNewRelType("");
-    setNewRelTypeInverse("");
+    resetRel();
     setRelLoading(false);
   }
 
   async function deleteRelation(id: string) {
     if (id.startsWith("pending-")) {
-      const idx = parseInt(id.replace("pending-", ""));
-      setPendingRelations((prev) => prev.filter((_, i) => i !== idx));
+      setPendingRelations((p) =>
+        p.filter((_, i) => i !== parseInt(id.replace("pending-", ""))),
+      );
       return;
     }
     await fetch("/api/relations", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: apiHeaders,
       body: JSON.stringify({ id }),
     });
     await load(activeId ?? undefined);
   }
 
-  const sharedForm = (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
-          Nom
-        </label>
-        <Input
-          value={form.nom}
-          onChange={set("nom")}
-          placeholder="Tony Mercer"
-        />
-      </div>
+  async function patchLocation(x: number | null, y: number | null) {
+    await fetch(`/api/characters/${activeId}/location`, {
+      method: "PATCH",
+      headers: apiHeaders,
+      body: JSON.stringify({ x, y }),
+    });
+    await load(activeId ?? undefined);
+  }
 
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
-          Métier
-        </label>
+  const f =
+    (field: keyof CharForm) =>
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >,
+    ) =>
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  // ─── Tab content ───────────────────────────────────────────────────────────
+
+  const otherPerso = chars.find((c) => c.id === newRelPerso);
+
+  const infosTab = (
+    <div className="flex flex-col gap-3">
+      <Field label="Nom">
+        <Input value={form.nom} onChange={f("nom")} placeholder="Tony Mercer" />
+      </Field>
+      <Field label="Métier">
         <Input
           value={form.metier}
-          onChange={set("metier")}
+          onChange={f("metier")}
           placeholder="Mécanicien, Avocat…"
         />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
-          Groupe
-        </label>
+      </Field>
+      <Field label="Groupe">
         <Input
           value={form.groupe}
-          onChange={set("groupe")}
+          onChange={f("groupe")}
           placeholder="Los Santos MC, Mafia…"
         />
-      </div>
+      </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] uppercase tracking-widest text-text-muted">
-            Rôle
-          </label>
-          <Select
+        <Field label="Rôle">
+          <SimpleSelect
             value={form.role}
-            onValueChange={(v) => setForm((f) => ({ ...f, role: v ?? "" }))}
+            onValueChange={(v) => setForm((p) => ({ ...p, role: v }))}
+            placeholder="Rôle"
+            label="Rôle"
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Rôle" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Rôle</SelectLabel>
-                {ROLES.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] uppercase tracking-widest text-text-muted">
-            Joueur
-          </label>
+            {ROLES.map((r) => (
+              <SelectItem key={r.value} value={r.value}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SimpleSelect>
+        </Field>
+        <Field label="Joueur">
           <PlayerCombobox
             key={`${modal}-${selected?.id ?? createdId ?? "new"}`}
             players={localPlayers}
             value={form.playerId}
-            onValueChange={(v, newPlayer) => {
-              setForm((f) => ({ ...f, playerId: v }));
-              if (newPlayer) setLocalPlayers((p) => [...p, newPlayer]);
+            onValueChange={(v, np) => {
+              setForm((p) => ({ ...p, playerId: v }));
+              if (np) setLocalPlayers((p) => [...p, np]);
             }}
           />
-        </div>
+        </Field>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
-          Version
-        </label>
-        <Select
+      <Field label="Version">
+        <SimpleSelect
           value={form.versionId}
-          onValueChange={(v) => setForm((f) => ({ ...f, versionId: v ?? "" }))}
+          onValueChange={(v) => setForm((p) => ({ ...p, versionId: v }))}
+          placeholder="Aucune"
+          label="Version"
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Aucune" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Version</SelectLabel>
-              <SelectItem value="">Aucune</SelectItem>
-              {versions.map((v) => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.id} — {v.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
+          <SelectItem value="">Aucune</SelectItem>
+          {versions.map((v) => (
+            <SelectItem key={v.id} value={v.id}>
+              {v.id} — {v.label}
+            </SelectItem>
+          ))}
+        </SimpleSelect>
+      </Field>
 
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
-          Description
-        </label>
+      <Field label="Description">
         <textarea
           className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
           value={form.description}
-          onChange={set("description")}
+          onChange={f("description")}
           placeholder="Courte biographie…"
         />
-      </div>
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
-          Image
-        </label>
+      </Field>
+
+      <Field label="Image">
         <div className="flex items-center gap-2">
           {form.imageUrl ? (
             <Image
@@ -469,13 +482,9 @@ export function CharactersTab({ players, versions }: Props) {
               const info = result?.info;
               const publicId =
                 typeof info === "object" && info && "public_id" in info
-                  ? (info.public_id as string | undefined)
+                  ? (info.public_id as string)
                   : "";
-
-              setForm((f) => ({
-                ...f,
-                imageUrl: publicId ?? "",
-              }));
+              setForm((p) => ({ ...p, imageUrl: publicId }));
             }}
           >
             {({ open }) => (
@@ -491,32 +500,29 @@ export function CharactersTab({ players, versions }: Props) {
           {form.imageUrl && (
             <button
               type="button"
-              onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+              onClick={() => setForm((p) => ({ ...p, imageUrl: "" }))}
               className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded transition-colors cursor-pointer"
             >
               ✕
             </button>
           )}
         </div>
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
-          Lien Reddif
-        </label>
+      <Field label="Lien Reddif">
         <Input
           value={form.lienReddif}
-          onChange={set("lienReddif")}
+          onChange={f("lienReddif")}
           placeholder="https://youtube.com/..."
         />
-      </div>
+      </Field>
 
-      {/* Relations — toujours visibles */}
+      {/* Relations */}
       <div className="border-t border-border pt-3 flex flex-col gap-2">
         <p className="text-[10px] uppercase tracking-widest text-text-muted">
           Relations ({displayRelations.length})
           {!activeId && pendingRelations.length > 0 && (
-            <span className="ml-2 text-[9px] text-text-muted normal-case tracking-normal">
+            <span className="ml-2 text-[9px] normal-case tracking-normal">
               — seront enregistrées à la création
             </span>
           )}
@@ -527,11 +533,7 @@ export function CharactersTab({ players, versions }: Props) {
             {displayRelations.map((r) => (
               <div
                 key={r.id}
-                className={`flex items-center justify-between px-2.5 py-1.5 rounded-md border ${
-                  r.id.startsWith("pending-")
-                    ? "bg-elevated/50 border-border border-dashed"
-                    : "bg-elevated border-border"
-                }`}
+                className={`flex items-center justify-between px-2.5 py-1.5 rounded-md border ${r.id.startsWith("pending-") ? "bg-elevated/50 border-dashed border-border" : "bg-elevated border-border"}`}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[12px] font-medium text-text-primary truncate">
@@ -559,52 +561,49 @@ export function CharactersTab({ players, versions }: Props) {
           </div>
         )}
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[9px] uppercase tracking-widest text-text-muted">
-            Personnage
-          </label>
+        <Field label="Personnage">
           <CharacterCombobox
             key={`rel-${activeId ?? "new"}`}
             characters={chars}
             value={newRelPerso}
-            onValueChange={(v) => setNewRelPerso(v)}
+            onValueChange={setNewRelPerso}
             excludeId={activeId ?? undefined}
           />
-        </div>
+        </Field>
 
-        <div className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary">
-          <span className="shrink-0 font-medium text-text-primary">
-            {form.nom || "Ce personnage"}
-          </span>
-          <span className="shrink-0">est</span>
-          <Input
-            value={newRelTypeInverse}
-            onChange={(e) => setNewRelTypeInverse(e.target.value)}
-            placeholder="frère…"
-            className="h-7 text-[12px] w-24 px-2"
-          />
-          <span className="shrink-0">de</span>
-          <span className="shrink-0 font-medium text-text-primary">
-            {chars.find((c) => c.id === newRelPerso)?.nom || "___"}
-          </span>
-        </div>
+        {(["inverse", "direct"] as const).map((dir) => {
+          const isInverse = dir === "inverse";
+          return (
+            <div
+              key={dir}
+              className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary"
+            >
+              <span className="shrink-0 font-medium text-text-primary">
+                {isInverse
+                  ? form.nom || "Ce personnage"
+                  : otherPerso?.nom || "L'autre"}
+              </span>
+              <span className="shrink-0">est</span>
+              <Input
+                value={isInverse ? newRelTypeInverse : newRelType}
+                onChange={(e) =>
+                  isInverse
+                    ? setNewRelTypeInverse(e.target.value)
+                    : setNewRelType(e.target.value)
+                }
+                placeholder={isInverse ? "frère…" : "sœur…"}
+                className="h-7 text-[12px] w-24 px-2"
+              />
+              <span className="shrink-0">de</span>
+              <span className="shrink-0 font-medium text-text-primary">
+                {isInverse
+                  ? otherPerso?.nom || "___"
+                  : form.nom || "ce personnage"}
+              </span>
+            </div>
+          );
+        })}
 
-        <div className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary">
-          <span className="shrink-0 font-medium text-text-primary">
-            {chars.find((c) => c.id === newRelPerso)?.nom || "L'autre"}
-          </span>
-          <span className="shrink-0">est</span>
-          <Input
-            value={newRelType}
-            onChange={(e) => setNewRelType(e.target.value)}
-            placeholder="sœur…"
-            className="h-7 text-[12px] w-24 px-2"
-          />
-          <span className="shrink-0">de</span>
-          <span className="shrink-0 font-medium text-text-primary">
-            {form.nom || "ce personnage"}
-          </span>
-        </div>
         <Button
           size="sm"
           variant="outline"
@@ -617,6 +616,37 @@ export function CharactersTab({ players, versions }: Props) {
       </div>
     </div>
   );
+
+  const localisationTab = !activeId ? (
+    <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+      <span className="text-2xl">📍</span>
+      <p className="text-[13px] text-text-secondary">
+        Créez d&apos;abord le personnage pour pouvoir lui assigner une
+        localisation.
+      </p>
+      <Button
+        size="sm"
+        onClick={submit}
+        disabled={loading || !form.nom}
+        className="mt-2 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
+      >
+        {loading ? "…" : "Créer le personnage"}
+      </Button>
+    </div>
+  ) : (
+    <AdminLocationPicker
+      key={activeId ?? "new"}
+      characterId={activeId}
+      characterName={activeChar?.nom ?? form.nom}
+      initialX={activeChar?.locationX ?? null}
+      initialY={activeChar?.locationY ?? null}
+      imageUrl={activeChar?.imageUrl ?? form.imageUrl}
+      onSave={(x, y) => patchLocation(x, y)}
+      onClear={() => patchLocation(null, null)}
+    />
+  );
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -673,6 +703,15 @@ export function CharactersTab({ players, versions }: Props) {
                       {c.version.id}
                     </span>
                   )}
+                  {"locationX" in c &&
+                    (c as { locationX?: number | null }).locationX != null && (
+                      <span
+                        className="text-[9px] text-text-muted"
+                        title="Localisé sur la carte"
+                      >
+                        📍
+                      </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   {c.metier && (
@@ -716,9 +755,18 @@ export function CharactersTab({ players, versions }: Props) {
               {isEdit ? "Modifier le personnage" : "Nouveau personnage"}
             </DialogTitle>
           </DialogHeader>
-
-          {sharedForm}
-
+          <div className="flex gap-1 border-b border-border mb-1">
+            {(["infos", "localisation"] as ModalTab[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setModalTab(tab)}
+                className={`text-[11px] px-3 py-1.5 rounded-t transition-colors cursor-pointer ${modalTab === tab ? "text-text-primary border-b-2 border-accent -mb-px" : "text-text-muted hover:text-text-secondary"}`}
+              >
+                {tab === "infos" ? "Infos" : "📍 Localisation"}
+              </button>
+            ))}
+          </div>
+          {modalTab === "infos" ? infosTab : localisationTab}
           <DialogFooter className="flex gap-2 sm:flex-row pt-1">
             <Button
               variant="outline"
@@ -728,20 +776,31 @@ export function CharactersTab({ players, versions }: Props) {
             >
               Annuler
             </Button>
-            <Button
-              size="sm"
-              onClick={createdId ? closeModal : submit}
-              disabled={loading || !form.nom}
-              className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
-            >
-              {loading
-                ? "…"
-                : createdId
-                  ? "Terminer"
-                  : isEdit
-                    ? "Enregistrer"
-                    : "Créer"}
-            </Button>
+            {modalTab === "infos" && (
+              <Button
+                size="sm"
+                onClick={createdId ? closeModal : submit}
+                disabled={loading || !form.nom}
+                className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
+              >
+                {loading
+                  ? "…"
+                  : createdId
+                    ? "Terminer"
+                    : isEdit
+                      ? "Enregistrer"
+                      : "Créer"}
+              </Button>
+            )}
+            {modalTab === "localisation" && activeId && (
+              <Button
+                size="sm"
+                onClick={closeModal}
+                className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
+              >
+                Terminer
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
