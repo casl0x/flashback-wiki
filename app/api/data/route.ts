@@ -7,12 +7,7 @@ export async function GET() {
   try {
     const data = await getWikiData();
 
-    return NextResponse.json(data, {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        Pragma: "no-cache",
-      },
-    });
+    return NextResponse.json(data);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
