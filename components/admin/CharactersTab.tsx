@@ -77,6 +77,7 @@ const EMPTY_FORM: CharForm = {
   lienReddif: "",
   imageUrl: "",
 };
+const PAGE_SIZE = 20;
 const charToForm = (c: Character): CharForm => ({
   nom: c.nom,
   metier: c.metier ?? "",
@@ -157,17 +158,37 @@ export function CharactersTab({ players, versions }: Props) {
   const [newRelType, setNewRelType] = useState("");
   const [newRelTypeInverse, setNewRelTypeInverse] = useState("");
   const [relLoading, setRelLoading] = useState(false);
+
+  // Filtres + pagination
   const [search, setSearch] = useState("");
+  const [filterVersion, setFilterVersion] = useState("all");
+  const [filterRole, setFilterRole] = useState("all");
+  const [page, setPage] = useState(1);
 
   const isEdit = !!selected;
   const activeId = selected?.id ?? createdId;
   const activeChar =
     selected ?? (createdId ? chars.find((c) => c.id === createdId) : null);
-  const filtered = chars.filter((c) =>
-    [c.nom, c.metier, c.player?.pseudo]
+
+  const filtered = chars.filter((c) => {
+    const matchSearch = [c.nom, c.metier, c.player?.pseudo]
       .filter(Boolean)
-      .some((s) => s!.toLowerCase().includes(search.toLowerCase())),
+      .some((s) => s!.toLowerCase().includes(search.toLowerCase()));
+    const matchVersion =
+      filterVersion === "all" || c.versionId === filterVersion;
+    const matchRole = filterRole === "all" || c.role === filterRole;
+    return matchSearch && matchVersion && matchRole;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
   );
+
+  const hasActiveFilters =
+    search !== "" || filterVersion !== "all" || filterRole !== "all";
 
   type DR = {
     id: string;
@@ -407,7 +428,6 @@ export function CharactersTab({ players, versions }: Props) {
           placeholder="Los Santos MC, Mafia…"
         />
       </Field>
-
       <div className="grid grid-cols-2 gap-3">
         <Field label="Rôle">
           <SimpleSelect
@@ -435,7 +455,6 @@ export function CharactersTab({ players, versions }: Props) {
           />
         </Field>
       </div>
-
       <Field label="Version">
         <SimpleSelect
           value={form.versionId}
@@ -451,7 +470,6 @@ export function CharactersTab({ players, versions }: Props) {
           ))}
         </SimpleSelect>
       </Field>
-
       <Field label="Description">
         <textarea
           className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
@@ -460,7 +478,6 @@ export function CharactersTab({ players, versions }: Props) {
           placeholder="Courte biographie…"
         />
       </Field>
-
       <Field label="Image">
         <div className="flex items-center gap-2">
           {form.imageUrl ? (
@@ -508,7 +525,6 @@ export function CharactersTab({ players, versions }: Props) {
           )}
         </div>
       </Field>
-
       <Field label="Lien Reddif">
         <Input
           value={form.lienReddif}
@@ -527,7 +543,6 @@ export function CharactersTab({ players, versions }: Props) {
             </span>
           )}
         </p>
-
         {displayRelations.length > 0 && (
           <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
             {displayRelations.map((r) => (
@@ -560,7 +575,6 @@ export function CharactersTab({ players, versions }: Props) {
             ))}
           </div>
         )}
-
         <Field label="Personnage">
           <CharacterCombobox
             key={`rel-${activeId ?? "new"}`}
@@ -570,7 +584,6 @@ export function CharactersTab({ players, versions }: Props) {
             excludeId={activeId ?? undefined}
           />
         </Field>
-
         {(["inverse", "direct"] as const).map((dir) => {
           const isInverse = dir === "inverse";
           return (
@@ -603,7 +616,6 @@ export function CharactersTab({ players, versions }: Props) {
             </div>
           );
         })}
-
         <Button
           size="sm"
           variant="outline"
@@ -650,30 +662,83 @@ export function CharactersTab({ players, versions }: Props) {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-[15px] font-bold tracking-wide text-text-primary">
-            Personnages
-          </h2>
-          <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
-            {filtered.length}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Barre filtres */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 flex-1 flex-wrap">
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             placeholder="Rechercher…"
             className="h-7 text-[11px] w-36 bg-elevated border-border-mid"
           />
+          <Select
+            value={filterVersion}
+            onValueChange={(v) => {
+              setFilterVersion(v ?? "all");
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-7 text-[11px] w-28 bg-elevated border-border-mid">
+              <SelectValue placeholder="Version" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes</SelectItem>
+              {versions.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.id} — {v.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={filterRole}
+            onValueChange={(v) => {
+              setFilterRole(v ?? "all");
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-7 text-[11px] w-24 bg-elevated border-border-mid">
+              <SelectValue placeholder="Rôle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              {ROLES.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setFilterVersion("all");
+                setFilterRole("all");
+                setPage(1);
+              }}
+              className="text-[10px] text-text-muted hover:text-text-secondary px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
+            {filtered.length}
+          </span>
           <Button size="sm" onClick={openAdd}>
             + Ajouter
           </Button>
         </div>
       </div>
 
+      {/* Liste */}
       <div className="flex flex-col gap-4">
-        {filtered.map((c) => (
+        {paginated.map((c) => (
           <Card key={c.id}>
             <CardContent className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold border shrink-0 bg-elevated border-border text-text-secondary">
@@ -748,6 +813,60 @@ export function CharactersTab({ players, versions }: Props) {
         ))}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+          <span className="text-[11px] text-text-muted">
+            Page {currentPage} sur {totalPages} · {filtered.length} personnages
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="text-[11px] text-text-secondary px-2.5 py-1 rounded border border-border hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              ← Précédent
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(
+                (p) =>
+                  p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1,
+              )
+              .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "..." ? (
+                  <span
+                    key={`dots-${i}`}
+                    className="text-[11px] text-text-muted px-1"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p as number)}
+                    className={`text-[11px] px-2.5 py-1 rounded border transition-colors cursor-pointer ${currentPage === p ? "bg-active border-border-accent text-accent-light" : "border-border text-text-secondary hover:bg-elevated"}`}
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="text-[11px] text-text-secondary px-2.5 py-1 rounded border border-border hover:bg-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Suivant →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal form */}
       <Dialog open={modal === "form"} onOpenChange={(o) => !o && closeModal()}>
         <DialogContent className="bg-card border-border-mid max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -805,6 +924,7 @@ export function CharactersTab({ players, versions }: Props) {
         </DialogContent>
       </Dialog>
 
+      {/* Modal delete */}
       <Dialog
         open={modal === "delete" && !!selected}
         onOpenChange={(o) => !o && closeModal()}
