@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Character, Player, Version } from "@/lib/db";
 import { statusBadgeClass } from "@/lib/utils";
+import { MapPin } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -631,7 +632,7 @@ export function CharactersTab({ players, versions }: Props) {
 
   const localisationTab = !activeId ? (
     <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
-      <span className="text-2xl">📍</span>
+      <MapPin className="text-accent" size={32} />
       <p className="text-[13px] text-text-secondary">
         Créez d&apos;abord le personnage pour pouvoir lui assigner une
         localisation.
@@ -770,12 +771,7 @@ export function CharactersTab({ players, versions }: Props) {
                   )}
                   {"locationX" in c &&
                     (c as { locationX?: number | null }).locationX != null && (
-                      <span
-                        className="text-[9px] text-text-muted"
-                        title="Localisé sur la carte"
-                      >
-                        📍
-                      </span>
+                      <MapPin size={14} />
                     )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -881,7 +877,7 @@ export function CharactersTab({ players, versions }: Props) {
                 onClick={() => setModalTab(tab)}
                 className={`text-[11px] px-3 py-1.5 rounded-t transition-colors cursor-pointer ${modalTab === tab ? "text-text-primary border-b-2 border-accent -mb-px" : "text-text-muted hover:text-text-secondary"}`}
               >
-                {tab === "infos" ? "Infos" : "📍 Localisation"}
+                {tab === "infos" ? "Infos" : <MapPin size={14} />}
               </button>
             ))}
           </div>

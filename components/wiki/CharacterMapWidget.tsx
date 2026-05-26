@@ -4,6 +4,7 @@ import type { MapMarker } from "@/components/wiki/GameMap";
 import dynamic from "next/dynamic";
 
 import type { GameMapProps } from "@/components/wiki/GameMap";
+import { MapPin } from "lucide-react";
 
 const GameMap = dynamic<GameMapProps>(
   () => import("@/components/wiki/GameMap"),
@@ -55,7 +56,9 @@ export default function CharacterMapWidget({
         highlightId={characterId}
       />
       <div className="px-2 py-1.5 bg-slate-800/60 border-t border-slate-700/50 flex items-center justify-between">
-        <span className="text-[10px] text-slate-400">📍 Localisation</span>
+        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+          <MapPin size={14} /> Localisation
+        </span>
       </div>
     </div>
   );
