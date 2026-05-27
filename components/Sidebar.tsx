@@ -4,8 +4,8 @@ import { cn } from "@/lib/cn";
 import { Version } from "@/lib/db";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import AdminButton from "../admin/AdminButton";
-import { Badge } from "../ui/badge";
+import AdminButton from "@/components/admin/AdminButton";
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
   versions: Version[];

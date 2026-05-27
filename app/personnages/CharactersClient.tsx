@@ -1,12 +1,15 @@
 "use client";
 
+import NavBar from "@/components/NavBar";
+import Pagination from "@/components/Pagination";
+import Sidebar from "@/components/Sidebar";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
 import EmptyState from "@/components/wiki/EmptyState";
 import HeaderBlock from "@/components/wiki/HeaderBlock";
-import NavBar from "@/components/wiki/NavBar";
-import Sidebar from "@/components/wiki/Sidebar";
 import { Character, Player, Version } from "@/lib/db";
 import { useState } from "react";
+
+const PER_PAGE = 20;
 
 type Props = {
   versions: Version[];
@@ -24,6 +27,7 @@ export default function CharactersClient({
   totalRels,
 }: Props) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const filtered = characters.filter((c) => {
@@ -36,6 +40,15 @@ export default function CharactersClient({
     );
   });
 
+  // Remettre à la page 1 quand la recherche change
+  function handleQueryChange(q: string) {
+    setQuery(q);
+    setPage(1);
+  }
+
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
   const upl = [...new Set(filtered.map((c) => c.player?.id).filter(Boolean))]
     .length;
 
@@ -46,7 +59,7 @@ export default function CharactersClient({
         totalPlayers={players.length}
         totalVersions={versions.length}
         query={query}
-        onQueryChange={setQuery}
+        onQueryChange={handleQueryChange}
         onMenuToggle={() => setMenuOpen((o) => !o)}
         menuOpen={menuOpen}
       />
@@ -73,7 +86,16 @@ export default function CharactersClient({
           {filtered.length === 0 ? (
             <EmptyState />
           ) : (
-            <CharactersGrid chars={filtered} />
+            <>
+              <CharactersGrid chars={paginated} />
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                totalItems={filtered.length}
+                perPage={PER_PAGE}
+              />
+            </>
           )}
         </div>
       </div>

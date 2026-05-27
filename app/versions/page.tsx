@@ -1,5 +1,5 @@
-import NavBar from "@/components/wiki/NavBar";
-import Sidebar from "@/components/wiki/Sidebar";
+import NavBar from "@/components/NavBar";
+import Sidebar from "@/components/Sidebar";
 import { getWikiData } from "@/lib/wiki-data";
 import { ArrowRight, Layers3 } from "lucide-react";
 import Link from "next/link";

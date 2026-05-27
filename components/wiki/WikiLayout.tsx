@@ -1,7 +1,7 @@
 "use client";
 
-import NavBar from "@/components/wiki/NavBar";
-import Sidebar from "@/components/wiki/Sidebar";
+import NavBar from "@/components/NavBar";
+import Sidebar from "@/components/Sidebar";
 import { Version } from "@/lib/db";
 import { useState } from "react";
 
