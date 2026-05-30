@@ -1,8 +1,6 @@
 "use client";
 
-import NavBar from "@/components/NavBar";
 import Pagination from "@/components/Pagination";
-import Sidebar from "@/components/Sidebar";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
 import EmptyState from "@/components/wiki/EmptyState";
 import HeaderBlock from "@/components/wiki/HeaderBlock";
@@ -54,25 +52,7 @@ export default function CharactersClient({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <NavBar
-        totalChars={characters.length}
-        totalPlayers={players.length}
-        totalVersions={versions.length}
-        query={query}
-        onQueryChange={handleQueryChange}
-        onMenuToggle={() => setMenuOpen((o) => !o)}
-        menuOpen={menuOpen}
-      />
       <div className="flex flex-1">
-        <Sidebar
-          versions={versions}
-          counts={counts}
-          totalChars={characters.length}
-          totalPlayers={players.length}
-          totalRels={totalRels}
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-        />
         <div className="flex-1 p-4 lg:p-5">
           <HeaderBlock
             verLabel="Tous les personnages"
