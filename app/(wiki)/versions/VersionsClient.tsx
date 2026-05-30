@@ -1,17 +1,50 @@
+"use client";
+
 import NavBar from "@/components/NavBar";
-import Sidebar from "@/components/Sidebar";
-import { getWikiData } from "@/lib/wiki-data";
 import { ArrowRight, Layers3 } from "lucide-react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 
-export default async function VersionsPage() {
-  const { versions, counts, characters, players } = await getWikiData();
+type Version = {
+  id: string;
+  label: string;
+  description?: string | null;
+  color?: string | null;
+};
 
-  const totalRels = characters.reduce(
-    (accumulator, character) =>
-      accumulator + (character.relations?.length || 0),
-    0,
-  );
+type Character = {
+  relations?: unknown[];
+};
+
+type Player = Record<string, unknown>;
+
+type Props = {
+  versions: Version[];
+  counts: Record<string, number>;
+  characters: Character[];
+  players: Player[];
+};
+
+export default function VersionsClient({
+  versions,
+  counts,
+  characters,
+  players,
+}: Props) {
+  const [query, setQuery] = useState("");
+
+  const filteredVersions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+
+    if (!q) return versions;
+
+    return versions.filter((version) =>
+      [version.id, version.label, version.description ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [query, versions]);
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-text-primary">
@@ -19,15 +52,10 @@ export default async function VersionsPage() {
         totalChars={characters.length}
         totalPlayers={players.length}
         totalVersions={versions.length}
+        query={query}
+        onQueryChange={setQuery}
       />
       <div className="flex flex-1">
-        <Sidebar
-          versions={versions}
-          counts={counts}
-          totalChars={characters.length}
-          totalPlayers={players.length}
-          totalRels={totalRels}
-        />
         <section className="flex-1 p-5">
           <div className="mx-auto max-w-6xl">
             <div className="mb-6 rounded-2xl border border-border bg-card px-4 py-3">
@@ -39,8 +67,15 @@ export default async function VersionsPage() {
               </h1>
             </div>
 
+            <div className="mb-4 text-sm text-text-secondary">
+              {filteredVersions.length} version
+              {filteredVersions.length > 1 ? "s" : ""} trouvée
+              {filteredVersions.length > 1 ? "s" : ""}
+              {query.trim() ? ` pour “${query.trim()}”` : ""}
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {versions.map((version) => {
+              {filteredVersions.map((version) => {
                 const count = counts[version.id] || 0;
 
                 return (

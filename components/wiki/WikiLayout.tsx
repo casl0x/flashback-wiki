@@ -4,6 +4,7 @@ import NavBar from "@/components/NavBar";
 import Sidebar from "@/components/Sidebar";
 import { Version } from "@/lib/db";
 import { useState } from "react";
+import { SearchProvider } from "./SearchContext";
 
 type Props = {
   totalChars: number;
@@ -29,28 +30,33 @@ export default function WikiLayout({
   children,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
   return (
-    <main className="flex min-h-screen flex-col bg-background text-text-primary">
-      <NavBar
-        totalChars={totalChars}
-        totalPlayers={totalPlayers}
-        totalVersions={totalVersions}
-        onMenuToggle={() => setMenuOpen((o) => !o)}
-        menuOpen={menuOpen}
-      />
-      <div className="flex flex-1">
-        <Sidebar
-          versions={versions}
-          counts={counts}
+    <SearchProvider value={{ query, setQuery }}>
+      <main className="flex min-h-screen flex-col bg-background text-text-primary">
+        <NavBar
           totalChars={totalChars}
           totalPlayers={totalPlayers}
-          totalRels={totalRels}
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
+          totalVersions={totalVersions}
+          query={query}
+          onQueryChange={setQuery}
+          onMenuToggle={() => setMenuOpen((o) => !o)}
+          menuOpen={menuOpen}
         />
-        <div className="flex-1 min-w-0">{children}</div>
-      </div>
-    </main>
+        <div className="flex flex-1">
+          <Sidebar
+            versions={versions}
+            counts={counts}
+            totalChars={totalChars}
+            totalPlayers={totalPlayers}
+            totalRels={totalRels}
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+          />
+          <div className="flex-1 min-w-0">{children}</div>
+        </div>
+      </main>
+    </SearchProvider>
   );
 }

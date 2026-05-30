@@ -1,8 +1,6 @@
 "use client";
 
-import NavBar from "@/components/NavBar";
 import Pagination from "@/components/Pagination";
-import Sidebar from "@/components/Sidebar";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
 import type { Character as DbCharacter, Version as DbVersion } from "@/lib/db";
 import { useState } from "react";
@@ -40,19 +38,7 @@ export default function VersionClient({
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-text-primary">
-      <NavBar
-        totalChars={characters.length}
-        totalPlayers={players.length}
-        totalVersions={versions.length}
-      />
       <div className="flex flex-1">
-        <Sidebar
-          versions={versions}
-          counts={counts}
-          totalChars={characters.length}
-          totalPlayers={players.length}
-          totalRels={totalRels}
-        />
         <section className="flex-1 p-5">
           <div className="space-y-5">
             <div className="rounded-2xl border border-border bg-card p-5">

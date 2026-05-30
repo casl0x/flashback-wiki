@@ -8,11 +8,11 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Flashback WL — Wiki",
-  description: "Répertoire des personnages du serveur RP Flashback WL",
+  title: "Flashback WL",
+  description: "Flashback WL",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
