@@ -8,8 +8,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Flashback WL",
-  description: "Flashback WL",
+  title: "Flashback WL - Wiki",
+  description:
+    "Flashback WL - Wiki communautaire non officiel sur les personnages, versions et joueurs de Flashback WL.",
 };
 
 export default async function RootLayout({
