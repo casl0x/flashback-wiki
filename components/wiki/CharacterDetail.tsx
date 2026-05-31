@@ -30,14 +30,15 @@ export default function CharacterDetail({
     (x) => x.playerId === c.playerId && x.id !== c.id,
   );
 
-  // Cast temporaire en attendant que locationX/Y soit dans le type Character
   const loc = c as Character & {
     locationX?: number | null;
     locationY?: number | null;
   };
 
+  const hasLocation = loc.locationX != null && loc.locationY != null;
+
   return (
-    <div className="flex-1 p-5 overflow-y-auto">
+    <div className="flex-1 p-3 sm:p-5 overflow-y-auto">
       <button
         onClick={onBack}
         className="inline-flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text-primary mb-3.5 transition-colors bg-transparent border-none cursor-pointer"
@@ -47,35 +48,39 @@ export default function CharacterDetail({
 
       <div className="flex flex-col gap-3">
         {/* Fiche personnage */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3.5 mb-4 pb-3.5 border-b border-border">
-            <div className="rounded-xl shrink-0 overflow-hidden border border-border bg-elevated flex items-center justify-center">
+        <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
+          {/* Header : image + infos — empilé sur mobile, côte-à-côte sur sm+ */}
+          <div className="flex flex-col sm:flex-row sm:items-start gap-3.5 mb-4 pb-3.5 border-b border-border">
+            {/* Image */}
+            <div className="rounded-xl shrink-0 overflow-hidden border border-border bg-elevated flex items-center justify-center self-center sm:self-auto">
               {c.imageUrl && (
                 <Image
-                  src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_220,h_150,c_fill,g_face/${c.imageUrl}`}
-                  width={220}
-                  height={150}
+                  src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_320,h_175,c_fill,g_face/${c.imageUrl}`}
+                  width={320}
+                  height={175}
                   className="w-full h-full object-cover"
                   alt={c.nom}
                   unoptimized
                 />
               )}
             </div>
+
+            {/* Infos texte */}
             <div className="flex-1 min-w-0">
-              <h2 className="font-display font-bold text-[20px] text-text-primary tracking-wide">
+              <h2 className="font-display font-bold text-[18px] sm:text-[20px] text-text-primary tracking-wide">
                 {c.nom}
               </h2>
               {c.metier && (
-                <p className="text-[13px] text-text-muted mb-1.5">
+                <p className="text-[13px] text-text-muted mb-1">
                   Métier : {c.metier}
                 </p>
               )}
               {c.groupe && (
-                <p className="text-[13px] text-text-muted mb-1.5">
+                <p className="text-[13px] text-text-muted mb-1">
                   Groupe : {c.groupe}
                 </p>
               )}
-              <div className="flex items-center gap-1.5 flex-wrap pt-4">
+              <div className="flex items-center gap-1.5 flex-wrap pt-3">
                 {c.version && (
                   <Badge
                     variant="outline"
@@ -95,23 +100,39 @@ export default function CharacterDetail({
                 )}
               </div>
             </div>
-
-            {/* Mini carte dans le header — à droite */}
-            {loc.locationX != null && loc.locationY != null && (
-              <div className="shrink-0 w-70">
-                <CharacterMapWidget
-                  characterId={c.id}
-                  name={c.nom}
-                  x={loc.locationX}
-                  y={loc.locationY}
-                  imageUrl={c.imageUrl}
-                  role={c.role}
-                  versionColor={c.version?.color ?? null}
-                  height={110}
-                />
-              </div>
-            )}
           </div>
+
+          {/* Mini carte — pleine largeur sous le header sur mobile */}
+          {hasLocation && (
+            <div className="mb-4 sm:hidden">
+              <CharacterMapWidget
+                characterId={c.id}
+                name={c.nom}
+                x={loc.locationX!}
+                y={loc.locationY!}
+                imageUrl={c.imageUrl}
+                role={c.role}
+                versionColor={c.version?.color ?? null}
+                height={130}
+              />
+            </div>
+          )}
+
+          {/* Mini carte desktop — repositionnée dans le header via layout flex */}
+          {hasLocation && (
+            <div className="hidden sm:block -mt-14.25 ml-auto mb-4 w-64 xl:w-72">
+              <CharacterMapWidget
+                characterId={c.id}
+                name={c.nom}
+                x={loc.locationX!}
+                y={loc.locationY!}
+                imageUrl={c.imageUrl}
+                role={c.role}
+                versionColor={c.version?.color ?? null}
+                height={110}
+              />
+            </div>
+          )}
 
           {c.description && (
             <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
@@ -138,7 +159,8 @@ export default function CharacterDetail({
               <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] mb-2">
                 Relations
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {/* 1 col mobile → 2 col sm → 3 col md → 4 col lg */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                 {rels.map((r) => {
                   const full = allCharacters.find(
                     (ch) => ch.id === r.linked.id,

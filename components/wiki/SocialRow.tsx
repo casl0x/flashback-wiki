@@ -24,10 +24,10 @@ export default function SocialRow({
       >
         {icon}
       </span>
-      <span className="text-[13px] font-medium text-text-primary flex-1">
+      <span className="hidden sm:block text-[13px] font-medium text-text-primary flex-1">
         {label}
       </span>
-      <ExternalLink className="w-3 h-3 text-text-muted shrink-0" />
+      <ExternalLink className="hidden sm:block w-3 h-3 text-text-muted shrink-0" />
     </a>
   );
 }

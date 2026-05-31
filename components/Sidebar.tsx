@@ -1,11 +1,11 @@
 "use client";
 
+import AdminButton from "@/components/admin/AdminButton";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import { Version } from "@/lib/db";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import AdminButton from "@/components/admin/AdminButton";
-import { Badge } from "@/components/ui/badge";
 
 type Props = {
   versions: Version[];
@@ -58,9 +58,9 @@ export default function Sidebar({
             )}
           >
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold font-display">
+              {/* <div className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold font-display">
                 {v.id === "all" ? <i className="ti ti-layout-grid" /> : v.id}
-              </div>
+              </div> */}
               <div
                 className={cn(
                   "text-[13px]",
