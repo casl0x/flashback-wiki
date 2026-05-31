@@ -100,6 +100,21 @@ export default function CharacterDetail({
                 )}
               </div>
             </div>
+            {/* Mini carte desktop — repositionnée dans le header via layout flex */}
+            {hasLocation && (
+              <div className="hidden sm:block ml-auto w-64 xl:w-72">
+                <CharacterMapWidget
+                  characterId={c.id}
+                  name={c.nom}
+                  x={loc.locationX!}
+                  y={loc.locationY!}
+                  imageUrl={c.imageUrl}
+                  role={c.role}
+                  versionColor={c.version?.color ?? null}
+                  height={130}
+                />
+              </div>
+            )}
           </div>
 
           {/* Mini carte — pleine largeur sous le header sur mobile */}
@@ -114,22 +129,6 @@ export default function CharacterDetail({
                 role={c.role}
                 versionColor={c.version?.color ?? null}
                 height={130}
-              />
-            </div>
-          )}
-
-          {/* Mini carte desktop — repositionnée dans le header via layout flex */}
-          {hasLocation && (
-            <div className="hidden sm:block -mt-14.25 ml-auto mb-4 w-64 xl:w-72">
-              <CharacterMapWidget
-                characterId={c.id}
-                name={c.nom}
-                x={loc.locationX!}
-                y={loc.locationY!}
-                imageUrl={c.imageUrl}
-                role={c.role}
-                versionColor={c.version?.color ?? null}
-                height={110}
               />
             </div>
           )}

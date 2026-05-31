@@ -48,7 +48,7 @@ export default function CharacterMapWidget({
   };
 
   return (
-    <div className="rounded-xl overflow-hidden border border-slate-700/50">
+    <div className="rounded-xl overflow-hidden border border-slate-700/50 z-0">
       <GameMap
         markers={[marker]}
         height={height}
