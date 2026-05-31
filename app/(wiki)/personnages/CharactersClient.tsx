@@ -4,29 +4,26 @@ import Pagination from "@/components/Pagination";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
 import EmptyState from "@/components/wiki/EmptyState";
 import HeaderBlock from "@/components/wiki/HeaderBlock";
-import { Character, Player, Version } from "@/lib/db";
-import { useState } from "react";
+import { useSearch } from "@/components/wiki/SearchContext";
+import { Character } from "@/lib/db";
+import { useRef, useState } from "react";
 
 const PER_PAGE = 20;
 
 type Props = {
-  versions: Version[];
-  players: Player[];
   characters: Character[];
-  counts: Record<string, number>;
-  totalRels: number;
 };
 
-export default function CharactersClient({
-  versions,
-  players,
-  characters,
-  counts,
-  totalRels,
-}: Props) {
-  const [query, setQuery] = useState("");
+export default function CharactersClient({ characters }: Props) {
+  const ctx = useSearch();
+  const query = ctx?.query ?? "";
   const [page, setPage] = useState(1);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const prevQueryRef = useRef(query);
+
+  if (prevQueryRef.current !== query) {
+    prevQueryRef.current = query;
+    setPage(1);
+  }
 
   const filtered = characters.filter((c) => {
     const q = query.toLowerCase();
@@ -38,15 +35,8 @@ export default function CharactersClient({
     );
   });
 
-  // Remettre à la page 1 quand la recherche change
-  function handleQueryChange(q: string) {
-    setQuery(q);
-    setPage(1);
-  }
-
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-
   const upl = [...new Set(filtered.map((c) => c.player?.id).filter(Boolean))]
     .length;
 

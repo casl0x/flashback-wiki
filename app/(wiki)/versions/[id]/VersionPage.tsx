@@ -2,8 +2,9 @@
 
 import Pagination from "@/components/Pagination";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
+import { useSearch } from "@/components/wiki/SearchContext";
 import type { Character as DbCharacter, Version as DbVersion } from "@/lib/db";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const PER_PAGE = 20;
 
@@ -22,17 +23,28 @@ type Props = {
   totalRels: number;
 };
 
-export default function VersionClient({
-  version,
-  versions,
-  counts,
-  characters,
-  players,
-  totalRels,
-}: Props) {
+export default function VersionClient({ version, characters }: Props) {
   const [page, setPage] = useState(1);
+  const ctx = useSearch();
+  const query = ctx?.query ?? "";
+  const prevQueryRef = useRef(query);
 
-  const filtered = characters.filter((c) => c.versionId === version.id);
+  if (prevQueryRef.current !== query) {
+    prevQueryRef.current = query;
+    setPage(1);
+  }
+
+  const filtered = characters.filter((c) => {
+    if (c.versionId !== version.id) return false;
+    const q = query.toLowerCase();
+    return (
+      !q ||
+      c.nom.toLowerCase().includes(q) ||
+      c.player?.pseudo?.toLowerCase().includes(q) ||
+      c.metier?.toLowerCase().includes(q)
+    );
+  });
+
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 

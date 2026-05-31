@@ -1,6 +1,6 @@
-import VersionClient from "@/app/(wiki)/personnages/[id]/VersionPage";
 import { getWikiData } from "@/lib/wiki-data";
 import { notFound } from "next/navigation";
+import VersionClient from "./VersionPage";
 
 export default async function VersionPage({
   params,

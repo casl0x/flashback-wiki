@@ -3,8 +3,9 @@ import { getWikiData } from "@/lib/wiki-data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Flashback WL — Wiki",
-  description: "Répertoire des personnages du serveur RP Flashback WL",
+  title: "Flashback WL - Wiki",
+  description:
+    "Flashback WL - Wiki communautaire non officiel sur les personnages, versions et joueurs de Flashback WL.",
 };
 
 export default async function WikiRouteLayout({
