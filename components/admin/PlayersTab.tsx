@@ -196,6 +196,7 @@ export function PlayersTab() {
         body: JSON.stringify({ id: selected.id, ...body }),
       });
     }
+    await new Promise((r) => setTimeout(r, 300));
     const res = await fetch("/api/data", { cache: "no-store" });
     const data = await res.json();
     setPlayers(data.players ?? []);
@@ -209,6 +210,7 @@ export function PlayersTab() {
       method: "DELETE",
       body: JSON.stringify({ id: selected.id }),
     });
+    await new Promise((r) => setTimeout(r, 300));
     const res = await fetch("/api/data", { cache: "no-store" });
     const data = await res.json();
     setPlayers(data.players ?? []);

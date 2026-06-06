@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
