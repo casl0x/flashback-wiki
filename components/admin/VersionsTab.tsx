@@ -39,7 +39,7 @@ export function VersionsTab() {
   const [loading, setLoading] = useState(false);
 
   async function load() {
-    const res = await fetch("/api/data");
+    const res = await fetch("/api/data", { cache: "no-store" });
     const data = await res.json();
     setVersions(data.versions ?? []);
     router.refresh();

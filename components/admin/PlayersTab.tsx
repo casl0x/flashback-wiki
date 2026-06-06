@@ -105,7 +105,7 @@ export function PlayersTab() {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/data")
+    fetch("/api/data", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         if (!cancelled) {
@@ -196,7 +196,7 @@ export function PlayersTab() {
         body: JSON.stringify({ id: selected.id, ...body }),
       });
     }
-    const res = await fetch("/api/data");
+    const res = await fetch("/api/data", { cache: "no-store" });
     const data = await res.json();
     setPlayers(data.players ?? []);
     setLoading(false);
@@ -209,7 +209,7 @@ export function PlayersTab() {
       method: "DELETE",
       body: JSON.stringify({ id: selected.id }),
     });
-    const res = await fetch("/api/data");
+    const res = await fetch("/api/data", { cache: "no-store" });
     const data = await res.json();
     setPlayers(data.players ?? []);
     closeModal();

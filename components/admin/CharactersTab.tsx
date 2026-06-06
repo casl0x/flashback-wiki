@@ -211,7 +211,10 @@ export function CharactersTab({ players, versions }: Props) {
   // ─── Data ──────────────────────────────────────────────────────────────────
 
   async function load(refreshId?: string) {
-    const data = await fetch("/api/data").then((r) => r.json());
+    await new Promise((r) => setTimeout(r, 300));
+    const data = await fetch("/api/data", { cache: "no-store" }).then((r) =>
+      r.json(),
+    );
     const characters: Character[] = data.characters ?? [];
     setChars(characters);
     setLocalPlayers(data.players ?? []);
@@ -223,7 +226,7 @@ export function CharactersTab({ players, versions }: Props) {
 
   useEffect(() => {
     let ok = true;
-    fetch("/api/data")
+    fetch("/api/data", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (ok) {

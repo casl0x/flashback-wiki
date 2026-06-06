@@ -10,7 +10,7 @@ export default function CharactersPage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/api/data")
+    fetch("/api/data", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         setPlayers(d.players ?? []);
