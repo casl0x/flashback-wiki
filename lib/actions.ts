@@ -2,5 +2,5 @@
 import { revalidateTag } from "next/cache";
 
 export async function invalidateWikiCache() {
-  revalidateTag("wiki-data", "everything");
+  revalidateTag("wiki-data", "max");
 }
