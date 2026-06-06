@@ -75,6 +75,7 @@ export async function PATCH(request: NextRequest) {
         imageUrl: image_url ?? null,
       },
     });
+    await invalidateWikiCache();
     return NextResponse.json(char);
   } catch (err: unknown) {
     return NextResponse.json(
@@ -90,6 +91,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     await prisma.character.delete({ where: { id } });
+    await invalidateWikiCache();
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     return NextResponse.json(

@@ -29,20 +29,6 @@ const normalizeReseaux = (value: Prisma.JsonValue): Record<string, string> => {
 };
 
 export async function fetchWikiData(): Promise<WikiData> {
-  const normalizeReseaux = (
-    value: Prisma.JsonValue,
-  ): Record<string, string> => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return {};
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).filter((entry): entry is [string, string] => {
-        return typeof entry[1] === "string";
-      }),
-    );
-  };
-
   const emptyWikiData: WikiData = {
     versions: [],
     players: [],

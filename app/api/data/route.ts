@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { getWikiData } from "@/lib/wiki-data";
 import { NextResponse } from "next/server";
 
