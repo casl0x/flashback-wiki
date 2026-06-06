@@ -783,9 +783,18 @@ export function CharactersTab({ players, versions }: Props) {
                       {c.metier}
                     </span>
                   )}
-                  {c.metier && c.player && (
+                  {c.metier && c.groupe && (
                     <span className="text-text-muted">·</span>
                   )}
+                  {c.groupe && (
+                    <span className="text-[11px] text-text-secondary truncate">
+                      {c.groupe}
+                    </span>
+                  )}
+                  {c.groupe && c.player && (
+                    <span className="text-text-muted">·</span>
+                  )}
+
                   {c.player && (
                     <span className="text-[10px] text-text-muted">
                       @{c.player.pseudo}
