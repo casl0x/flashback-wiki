@@ -1,5 +1,6 @@
 import { Character, Player, Version, prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 type CharacterWithRelations = Prisma.CharacterGetPayload<{
   include: {
@@ -18,7 +19,16 @@ export type WikiData = {
   totalRelations: number;
 };
 
-export async function getWikiData(): Promise<WikiData> {
+const normalizeReseaux = (value: Prisma.JsonValue): Record<string, string> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+};
+
+export async function fetchWikiData(): Promise<WikiData> {
   const normalizeReseaux = (
     value: Prisma.JsonValue,
   ): Record<string, string> => {
@@ -155,3 +165,106 @@ export async function getWikiData(): Promise<WikiData> {
     return emptyWikiData;
   }
 }
+
+export const getCharacterById = unstable_cache(
+  async (id: string) => {
+    const character = await prisma.character.findUnique({
+      where: { id },
+      include: {
+        player: true,
+        version: true,
+        relationsA: { include: { personnageB: { include: { player: true } } } },
+        relationsB: { include: { personnageA: { include: { player: true } } } },
+      },
+    });
+
+    if (!character) return null;
+
+    // Normalisation identique à getWikiData
+    return {
+      ...character,
+      createdAt: character.createdAt.toISOString(),
+      player: character.player
+        ? {
+            id: character.player.id,
+            pseudo: character.player.pseudo,
+            stream: character.player.stream,
+            lienChaine: character.player.lienChaine,
+            reseaux: normalizeReseaux(character.player.reseaux),
+            badges: character.player.badges,
+          }
+        : null,
+      version: character.version
+        ? {
+            id: character.version.id,
+            label: character.version.label,
+            color: character.version.color,
+          }
+        : null,
+      relations: [
+        ...character.relationsA.map((r) => ({
+          id: r.id,
+          type_relation: r.typeRelation,
+          linked: {
+            id: r.personnageB.id,
+            nom: r.personnageB.nom,
+            role: r.personnageB.role,
+            metier: r.personnageB.metier,
+            groupe: r.personnageB.groupe,
+            player_pseudo: r.personnageB.player?.pseudo ?? null,
+          },
+        })),
+        ...character.relationsB.map((r) => ({
+          id: r.id,
+          type_relation: r.typeRelationInverse,
+          linked: {
+            id: r.personnageA.id,
+            nom: r.personnageA.nom,
+            role: r.personnageA.role,
+            metier: r.personnageA.metier,
+            groupe: r.personnageA.groupe,
+            player_pseudo: r.personnageA.player?.pseudo ?? null,
+          },
+        })),
+      ],
+    } as Character;
+  },
+  ["character-by-id"],
+  { revalidate: 300, tags: ["wiki-data"] },
+);
+
+export const getCharactersByPlayerId = unstable_cache(
+  async (playerId: string) => {
+    const chars = await prisma.character.findMany({
+      where: { playerId },
+      include: { player: true, version: true },
+      orderBy: { nom: "asc" },
+    });
+
+    return chars.map((c) => ({
+      ...c,
+      createdAt: c.createdAt.toISOString(),
+      player: c.player
+        ? {
+            id: c.player.id,
+            pseudo: c.player.pseudo,
+            stream: c.player.stream,
+            lienChaine: c.player.lienChaine,
+            reseaux: normalizeReseaux(c.player.reseaux),
+            badges: c.player.badges,
+          }
+        : null,
+      version: c.version
+        ? { id: c.version.id, label: c.version.label, color: c.version.color }
+        : null,
+      relations: [],
+    })) as Character[];
+  },
+  ["characters-by-player"],
+  { revalidate: 300, tags: ["wiki-data"] },
+);
+
+export const getWikiData = unstable_cache(fetchWikiData, ["wiki-data"], {
+  revalidate: 300,
+  tags: ["wiki-data"],
+});
