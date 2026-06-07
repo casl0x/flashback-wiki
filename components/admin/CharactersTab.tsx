@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { getAvatarStyle, getInitials } from "../wiki/CharacterCard";
 import { CharacterCombobox } from "./CharacterCombobox";
 import { PlayerCombobox } from "./PlayerCombobox";
 
@@ -742,83 +743,100 @@ export function CharactersTab({ players, versions }: Props) {
 
       {/* Liste */}
       <div className="flex flex-col gap-4">
-        {paginated.map((c) => (
-          <Card key={c.id}>
-            <CardContent className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold border shrink-0 bg-elevated border-border text-text-secondary">
-                {c.nom.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-text-primary truncate">
-                    {c.nom}
-                  </span>
-                  {c.role && (
-                    <span
-                      className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border ${statusBadgeClass(c.role)}`}
-                    >
-                      {ROLES.find((r) => r.value === c.role)?.label ?? c.role}
-                    </span>
+        {paginated.map((c) => {
+          const avatarStyle = getAvatarStyle(c.version?.color ?? "#7F77DD");
+          return (
+            <Card key={c.id}>
+              <CardContent className="flex items-center gap-3">
+                {/* Avatar */}
+                <div
+                  className="w-11 h-11 rounded-full border-2 shrink-0 overflow-hidden flex items-center justify-center text-[13px] font-medium"
+                  style={avatarStyle}
+                >
+                  {c.imageUrl ? (
+                    <Image
+                      src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_44,h_44,c_fill,g_face/${c.imageUrl}`}
+                      width={44}
+                      height={44}
+                      className="w-full h-full object-cover"
+                      alt={c.nom}
+                      unoptimized
+                    />
+                  ) : (
+                    getInitials(c.nom)
                   )}
-                  {c.version && (
-                    <span
-                      className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border"
-                      style={{
-                        color: c.version.color ?? "var(--accent)",
-                        borderColor: `${c.version.color ?? "var(--accent)"}40`,
-                        background: `${c.version.color ?? "var(--accent)"}18`,
-                      }}
-                    >
-                      {c.version.id}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold text-text-primary truncate">
+                      {c.nom}
                     </span>
-                  )}
-                  {"locationX" in c &&
-                    (c as { locationX?: number | null }).locationX != null && (
-                      <MapPin size={14} />
+                    {c.role && (
+                      <span
+                        className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border ${statusBadgeClass(c.role)}`}
+                      >
+                        {ROLES.find((r) => r.value === c.role)?.label ?? c.role}
+                      </span>
                     )}
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {c.metier && (
-                    <span className="text-[11px] text-text-secondary truncate">
-                      {c.metier}
-                    </span>
-                  )}
-                  {c.metier && c.groupe && (
-                    <span className="text-text-muted">·</span>
-                  )}
-                  {c.groupe && (
-                    <span className="text-[11px] text-text-secondary truncate">
-                      {c.groupe}
-                    </span>
-                  )}
-                  {c.groupe && c.player && (
-                    <span className="text-text-muted">·</span>
-                  )}
+                    {c.version && (
+                      <span
+                        className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border"
+                        style={{
+                          color: c.version.color ?? "var(--accent)",
+                          borderColor: `${c.version.color ?? "var(--accent)"}40`,
+                          background: `${c.version.color ?? "var(--accent)"}18`,
+                        }}
+                      >
+                        {c.version.id}
+                      </span>
+                    )}
+                    {"locationX" in c &&
+                      (c as { locationX?: number | null }).locationX !=
+                        null && <MapPin size={14} />}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {c.metier && (
+                      <span className="text-[11px] text-text-secondary truncate">
+                        {c.metier}
+                      </span>
+                    )}
+                    {c.metier && c.groupe && (
+                      <span className="text-text-muted">·</span>
+                    )}
+                    {c.groupe && (
+                      <span className="text-[11px] text-text-secondary truncate">
+                        {c.groupe}
+                      </span>
+                    )}
+                    {c.groupe && c.player && (
+                      <span className="text-text-muted">·</span>
+                    )}
 
-                  {c.player && (
-                    <span className="text-[10px] text-text-muted">
-                      @{c.player.pseudo}
-                    </span>
-                  )}
+                    {c.player && (
+                      <span className="text-[10px] text-text-muted">
+                        @{c.player.pseudo}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => openEdit(c)}
-                  className="text-[11px] text-text-muted hover:text-accent-light px-2 py-1 rounded hover:bg-elevated transition-colors cursor-pointer"
-                >
-                  Éditer
-                </button>
-                <button
-                  onClick={() => openDelete(c)}
-                  className="text-[11px] text-text-muted hover:text-[#f87171] px-2 py-1 rounded hover:bg-[#2e1010] transition-colors cursor-pointer"
-                >
-                  Suppr.
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => openEdit(c)}
+                    className="text-[11px] text-text-muted hover:text-accent-light px-2 py-1 rounded hover:bg-elevated transition-colors cursor-pointer"
+                  >
+                    Éditer
+                  </button>
+                  <button
+                    onClick={() => openDelete(c)}
+                    className="text-[11px] text-text-muted hover:text-[#f87171] px-2 py-1 rounded hover:bg-[#2e1010] transition-colors cursor-pointer"
+                  >
+          ))}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Pagination */}
