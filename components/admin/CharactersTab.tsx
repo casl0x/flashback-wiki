@@ -830,7 +830,7 @@ export function CharactersTab({ players, versions }: Props) {
                     onClick={() => openDelete(c)}
                     className="text-[11px] text-text-muted hover:text-[#f87171] px-2 py-1 rounded hover:bg-[#2e1010] transition-colors cursor-pointer"
                   >
-          ))}
+                    Supprimer
                   </button>
                 </div>
               </CardContent>
