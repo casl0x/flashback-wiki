@@ -4,7 +4,7 @@ import Pagination from "@/components/Pagination";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
 import { useSearch } from "@/components/wiki/SearchContext";
 import type { Character as DbCharacter, Version as DbVersion } from "@/lib/db";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PER_PAGE = 20;
 
@@ -29,10 +29,12 @@ export default function VersionClient({ version, characters }: Props) {
   const query = ctx?.query ?? "";
   const prevQueryRef = useRef(query);
 
-  if (prevQueryRef.current !== query) {
-    prevQueryRef.current = query;
-    setPage(1);
-  }
+  useEffect(() => {
+    if (prevQueryRef.current !== query) {
+      prevQueryRef.current = query;
+      setPage(1);
+    }
+  }, [query]);
 
   const filtered = characters.filter((c) => {
     if (c.versionId !== version.id) return false;
@@ -45,7 +47,7 @@ export default function VersionClient({ version, characters }: Props) {
     );
   });
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
