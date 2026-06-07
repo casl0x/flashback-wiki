@@ -12,7 +12,7 @@ type Props = {
   relationTag?: string;
 };
 
-function getInitials(name: string) {
+export function getInitials(name: string) {
   return name
     .split(" ")
     .map((n) => n[0])
@@ -21,7 +21,7 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function getAvatarStyle(color: string) {
+export function getAvatarStyle(color: string) {
   return {
     background: `${color}18`,
     color: `${color}CC`,

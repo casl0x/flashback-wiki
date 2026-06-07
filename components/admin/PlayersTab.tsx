@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
+import { getAvatarStyle, getInitials } from "../wiki/CharacterCard";
 import { BadgeKey, BADGES_CONFIG, PlayerBadges } from "./PlayerBadges";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,6 +26,7 @@ type Player = {
   reseaux: Record<string, string>;
   badges: string[];
   createdAt: string;
+  imageUrl?: string | null;
 };
 
 export const RESEAUX_OPTIONS = [
@@ -249,6 +252,7 @@ export function PlayersTab() {
       {/* Liste */}
       <div className="flex flex-col gap-2">
         {filtered.map((p) => {
+          const avatarStyle = getAvatarStyle(p.pseudo);
           const reseauxEntries = Object.entries(p.reseaux ?? {}) as [
             ReseauKey,
             string,
@@ -259,8 +263,23 @@ export function PlayersTab() {
               className="bg-card border-border hover:border-border-mid transition-colors"
             >
               <CardContent className="px-4 py-3 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-accent-bg border border-border-accent flex items-center justify-center text-[11px] font-bold text-accent-light shrink-0">
-                  {p.pseudo.slice(0, 2).toUpperCase()}
+                {/* Avatar */}
+                <div
+                  className="w-11 h-11 rounded-full border-2 shrink-0 overflow-hidden flex items-center justify-center text-[13px] font-medium"
+                  style={avatarStyle}
+                >
+                  {p.imageUrl ? (
+                    <Image
+                      src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_44,h_44,c_fill,g_face/${p.imageUrl}`}
+                      width={44}
+                      height={44}
+                      className="w-full h-full object-cover"
+                      alt={p.pseudo}
+                      unoptimized
+                    />
+                  ) : (
+                    getInitials(p.pseudo)
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
