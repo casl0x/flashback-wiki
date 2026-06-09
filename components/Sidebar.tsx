@@ -31,7 +31,7 @@ export default function Sidebar({
     pathname === href || pathname.startsWith(`${href}/`);
 
   const content = (
-    <div className="flex flex-col gap-2 p-3 z-100">
+    <div className="flex flex-col gap-2 p-3 z-100 sticky top-15">
       <Link
         href="/"
         onClick={onClose}
