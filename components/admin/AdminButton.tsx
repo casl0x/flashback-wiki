@@ -30,15 +30,15 @@ export default function AdminButton() {
 
   return (
     <div className="flex flex-col gap-2">
+      <Button onClick={() => router.push("/profil")} variant={"secondary"}>
+        Mon Profil
+      </Button>
       {isAdmin && (
         <Button onClick={() => router.push("/admin")} variant={"secondary"}>
           <i className="ti ti-settings mr-2" />
           Administration
         </Button>
       )}
-      <Button onClick={() => router.push("/profil")} variant={"default"}>
-        Mon Profil
-      </Button>
       <Button onClick={() => signOut()} variant={"outline"}>
         Se déconnecter
       </Button>
