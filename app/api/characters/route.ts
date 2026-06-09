@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { invalidateWikiCache } from "@/lib/actions";
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
         imageUrl: image_url ?? null,
       },
     });
+    await logChange("add_global", char.nom, metier ?? undefined);
     await invalidateWikiCache();
     return NextResponse.json(char, { status: 201 });
   } catch (err: unknown) {
@@ -75,6 +77,7 @@ export async function PATCH(request: NextRequest) {
         imageUrl: image_url ?? null,
       },
     });
+    await logChange("edit_info", char.nom);
     await invalidateWikiCache();
     return NextResponse.json(char);
   } catch (err: unknown) {
@@ -90,7 +93,12 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
   try {
+    const existing = await prisma.character.findUnique({
+      where: { id },
+      select: { nom: true },
+    });
     await prisma.character.delete({ where: { id } });
+    await logChange("edit_info", existing?.nom ?? id, "Personnage supprimé");
     await invalidateWikiCache();
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {

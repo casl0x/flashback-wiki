@@ -109,3 +109,13 @@ model Suggestion {
   status      String   @default("pending") // pending | accepted | rejected
   createdAt   DateTime @default(now())
 }
+
+model ChangelogEntry {
+  id        String   @id @default(uuid())
+  type      String   // "add_global" | "add_relation" | "add_lieu" | "edit_info" | "edit_relation" | "edit_lieu" | "version"
+  label     String   // nom du perso ou de la version
+  detail    String?  // info supplémentaire optionnelle
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("changelog_entries")
+}

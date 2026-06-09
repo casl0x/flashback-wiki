@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,6 +19,7 @@ export async function POST(request: NextRequest) {
         color: color ?? "#8880a8",
       },
     });
+    await logChange("version", `${version.id} — ${version.label}`);
     return NextResponse.json(version, { status: 201 });
   } catch (err: unknown) {
     return NextResponse.json(

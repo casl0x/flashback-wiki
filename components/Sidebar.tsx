@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { Version } from "@/lib/db";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "./ui/button";
 
 type Props = {
   versions: Version[];
@@ -39,6 +40,11 @@ export default function Sidebar({
       >
         Accueil
       </Link>
+      <Button variant="link" className="w-full" size="sm">
+        <Link href="/changelog" onClick={onClose}>
+          Mise à jours
+        </Link>
+      </Button>
 
       <div className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[1px] text-text-faint">
         Versions

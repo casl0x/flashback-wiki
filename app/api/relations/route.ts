@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -46,6 +47,11 @@ export async function POST(request: NextRequest) {
         typeRelationInverse: typeB,
       },
     });
+    const charA = await prisma.character.findUnique({
+      where: { id: a },
+      select: { nom: true },
+    });
+    await logChange("add_relation", charA?.nom ?? a, typeA ?? undefined);
     return NextResponse.json(relation, { status: 201 });
   } catch (err: unknown) {
     return NextResponse.json(

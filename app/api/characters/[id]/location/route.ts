@@ -1,4 +1,5 @@
 import { invalidateWikiCache } from "@/lib/actions";
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -17,6 +18,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       data: { locationX, locationY },
       select: { id: true, locationX: true, locationY: true },
     });
+    const type = locationX != null ? "add_lieu" : "edit_lieu";
+    await logChange(type, character.id);
     await invalidateWikiCache();
     return NextResponse.json(character);
   } catch (err: unknown) {
