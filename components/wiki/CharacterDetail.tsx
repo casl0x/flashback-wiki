@@ -2,9 +2,11 @@
 
 import { Badge } from "@/components/ui/badge";
 import PlayerCard from "@/components/wiki/PlayerCard";
+
 import { Character } from "@/lib/db";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { SuggestEditButton } from "../user/SuggestEditButton";
 import CharacterCard from "./CharacterCard";
 
 const CharacterMapWidget = dynamic(
@@ -49,7 +51,7 @@ export default function CharacterDetail({
       <div className="flex flex-col gap-3">
         {/* Fiche personnage */}
         <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
-          {/* Header : image + infos — empilé sur mobile, côte-à-côte sur sm+ */}
+          {/* Header : image + infos */}
           <div className="flex flex-col sm:flex-row sm:items-start gap-3.5 mb-4 pb-3.5 border-b border-border">
             {/* Image */}
             <div className="rounded-xl shrink-0 overflow-hidden border border-border bg-elevated flex items-center justify-center self-center sm:self-auto">
@@ -80,6 +82,7 @@ export default function CharacterDetail({
                   Groupe : {c.groupe}
                 </p>
               )}
+              {/* Badges version + role */}
               <div className="flex items-center gap-1.5 flex-wrap pt-3">
                 {c.version && (
                   <Badge
@@ -99,8 +102,14 @@ export default function CharacterDetail({
                   </Badge>
                 )}
               </div>
+
+              {/* Bouton suggestion — sous les badges, discret */}
+              <div className="mt-3">
+                <SuggestEditButton character={c} />
+              </div>
             </div>
-            {/* Mini carte desktop — repositionnée dans le header via layout flex */}
+
+            {/* Mini carte desktop */}
             {hasLocation && (
               <div className="hidden sm:block ml-auto w-64 xl:w-72">
                 <CharacterMapWidget
@@ -117,7 +126,7 @@ export default function CharacterDetail({
             )}
           </div>
 
-          {/* Mini carte — pleine largeur sous le header sur mobile */}
+          {/* Mini carte mobile */}
           {hasLocation && (
             <div className="mb-4 sm:hidden">
               <CharacterMapWidget
@@ -158,7 +167,6 @@ export default function CharacterDetail({
               <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] mb-2">
                 Relations
               </p>
-              {/* 1 col mobile → 2 col sm → 3 col md → 4 col lg */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                 {rels.map((r) => {
                   const full = allCharacters.find(

@@ -36,6 +36,9 @@ export default function AdminButton() {
           Administration
         </Button>
       )}
+      <Button onClick={() => router.push("/profil")} variant={"default"}>
+        Mon Profil
+      </Button>
       <Button onClick={() => signOut()} variant={"outline"}>
         Se déconnecter
       </Button>

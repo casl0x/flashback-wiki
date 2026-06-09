@@ -9,6 +9,17 @@ datasource db {
   url       = env("DATABASE_URL")
 }
 
+model UserProfile {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  pseudo      String?
+  totalPoints Int      @default(0)
+  acceptedCount  Int      @default(0)
+  badges      String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Version {
   id          String   @id // ex: "V1", "V2"
   label       String
@@ -59,6 +70,8 @@ model Character {
   locationX Float? @map("location_x")
   locationY Float? @map("location_y")
 
+  suggestions Suggestion[]
+
   @@map("characters")
 }
 
@@ -81,4 +94,18 @@ model Relation {
 enum Role {
   civil
   illegal
+}
+
+model Suggestion {
+  id          String   @id @default(cuid())
+  clerkUserId String?
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  nom         String?
+  metier      String?
+  groupe      String?
+  description String?
+  note        String?
+  status      String   @default("pending") // pending | accepted | rejected
+  createdAt   DateTime @default(now())
 }
