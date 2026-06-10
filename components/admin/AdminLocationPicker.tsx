@@ -1,23 +1,16 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import type { GameMapProps } from "@/components/wiki/GameMap";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
-const GameMap = dynamic<GameMapProps>(
-  () => import("@/components/wiki/GameMap"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-100 bg-slate-900 rounded-lg animate-pulse flex items-center justify-center">
-        <span className="text-slate-500 text-sm">
-          Chargement de la carte...
-        </span>
-      </div>
-    ),
-  },
-);
+const GameMap = dynamic(() => import("@/components/wiki/GameMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-100 bg-slate-900 rounded-lg animate-pulse flex items-center justify-center">
+      <span className="text-slate-500 text-sm">Chargement de la carte...</span>
+    </div>
+  ),
+});
 
 type AdminLocationPickerProps = {
   characterId: string;
@@ -125,9 +118,13 @@ export default function AdminLocationPicker({
 
       <div className="flex items-center gap-3">
         {hasPending && (
-          <Button onClick={handleSave} disabled={saving}>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded-lg font-medium transition-colors"
+          >
             {saving ? "Enregistrement..." : "Enregistrer la position"}
-          </Button>
+          </button>
         )}
 
         {justSaved && !hasPending && (
@@ -137,9 +134,13 @@ export default function AdminLocationPicker({
         )}
 
         {hasSaved && !hasPending && (
-          <Button onClick={handleClear} disabled={saving} variant="destructive">
+          <button
+            onClick={handleClear}
+            disabled={saving}
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-300 text-sm rounded-lg transition-colors"
+          >
             Supprimer la localisation
-          </Button>
+          </button>
         )}
       </div>
     </div>

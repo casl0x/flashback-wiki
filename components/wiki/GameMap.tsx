@@ -13,7 +13,7 @@ export type MapMarker = {
   versionColor?: string | null;
 };
 
-export type GameMapProps = {
+type GameMapProps = {
   markers?: MapMarker[];
   height?: number;
   interactive?: boolean;
@@ -22,6 +22,13 @@ export type GameMapProps = {
 };
 
 const MAP_SIZE = 2048;
+const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+
+function buildImgUrl(imageUrl: string | null | undefined, size: number) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("http")) return imageUrl;
+  return `https://res.cloudinary.com/${cloudName}/image/upload/w_${size * 2},h_${size * 2},c_fill,g_face,q_auto,f_auto/${imageUrl}`;
+}
 
 // Déclaré hors du composant pour éviter le problème "accessed before declared"
 function addMarkersToMap(
@@ -35,6 +42,8 @@ function addMarkersToMap(
 ) {
   list.forEach((marker) => {
     const isHighlighted = marker.id === hId;
+    const size = isHighlighted ? 44 : 36;
+    const imgUrl = buildImgUrl(marker.imageUrl, size);
 
     const color = marker.versionColor ?? "#7F77DD";
     const dotSize = isHighlighted ? 16 : 12;
@@ -141,6 +150,8 @@ export default function GameMap({
       });
 
       L.imageOverlay("/map.webp", bounds).addTo(map);
+      map.setMaxBounds(bounds);
+      map.on("drag", () => map.panInsideBounds(bounds, { animate: false }));
 
       const target = highlightRef.current
         ? markersRef2.current.find((m) => m.id === highlightRef.current)
