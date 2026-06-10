@@ -16,10 +16,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const character = await prisma.character.update({
       where: { id },
       data: { locationX, locationY },
-      select: { id: true, locationX: true, locationY: true },
+      select: { id: true, nom: true, locationX: true, locationY: true },
     });
-    const type = locationX != null ? "add_lieu" : "edit_lieu";
-    await logChange(type, character.id);
+
+    await logChange(
+      locationX != null ? "add_lieu" : "edit_lieu",
+      character.nom,
+    );
     await invalidateWikiCache();
     return NextResponse.json(character);
   } catch (err: unknown) {
