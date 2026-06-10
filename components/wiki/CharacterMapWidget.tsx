@@ -3,18 +3,12 @@
 import type { MapMarker } from "@/components/wiki/GameMap";
 import dynamic from "next/dynamic";
 
-import type { GameMapProps } from "@/components/wiki/GameMap";
-import { MapPin } from "lucide-react";
-
-const GameMap = dynamic<GameMapProps>(
-  () => import("@/components/wiki/GameMap"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-75 bg-slate-900 rounded-lg animate-pulse" />
-    ),
-  },
-);
+const GameMap = dynamic(() => import("@/components/wiki/GameMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-75 bg-slate-900 rounded-lg animate-pulse" />
+  ),
+});
 
 type CharacterMapWidgetProps = {
   characterId: string;
@@ -48,7 +42,7 @@ export default function CharacterMapWidget({
   };
 
   return (
-    <div className="rounded-xl overflow-hidden border border-slate-700/50 z-0">
+    <div className="rounded-xl overflow-hidden border border-slate-700/50">
       <GameMap
         markers={[marker]}
         height={height}
@@ -56,9 +50,13 @@ export default function CharacterMapWidget({
         highlightId={characterId}
       />
       <div className="px-2 py-1.5 bg-slate-800/60 border-t border-slate-700/50 flex items-center justify-between">
-        <span className="text-[10px] text-slate-400 flex items-center gap-1">
-          <MapPin size={14} /> Localisation
-        </span>
+        <span className="text-[10px] text-slate-400">📍 Localisation</span>
+        <a
+          href="/map"
+          className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          Carte complète →
+        </a>
       </div>
     </div>
   );
