@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     groupe,
     lien_reddif,
     image_url,
+    etat_vie,
   } = await request.json();
 
   if (!nom)
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
         groupe: groupe ?? null,
         lienReddif: lien_reddif ?? null,
         imageUrl: image_url ?? null,
+        etatVie: etat_vie ?? null,
       },
     });
     await logChange("add_global", char.nom, metier ?? undefined);
@@ -58,6 +60,7 @@ export async function PATCH(request: NextRequest) {
     groupe,
     lien_reddif,
     image_url,
+    etat_vie,
   } = await request.json();
 
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
@@ -75,6 +78,7 @@ export async function PATCH(request: NextRequest) {
         groupe: groupe ?? null,
         lienReddif: lien_reddif ?? null,
         imageUrl: image_url ?? null,
+        etatVie: etat_vie ?? null,
       },
     });
     await logChange("edit_info", char.nom);

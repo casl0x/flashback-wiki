@@ -54,6 +54,7 @@ type CharForm = {
   role: string;
   lienReddif: string;
   imageUrl?: string;
+  etatVie: string;
 };
 type PendingRelation = {
   personnage_b: string;
@@ -78,6 +79,7 @@ const EMPTY_FORM: CharForm = {
   role: "civil",
   lienReddif: "",
   imageUrl: "",
+  etatVie: "",
 };
 const PAGE_SIZE = 20;
 const charToForm = (c: Character): CharForm => ({
@@ -90,6 +92,7 @@ const charToForm = (c: Character): CharForm => ({
   role: c.role ?? "civil",
   lienReddif: c.lienReddif ?? "",
   imageUrl: c.imageUrl ?? "",
+  etatVie: (c as Character & { etatVie?: string }).etatVie ?? "",
 });
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -296,6 +299,7 @@ export function CharactersTab({ players, versions }: Props) {
     role: form.role || null,
     lien_reddif: form.lienReddif || null,
     image_url: form.imageUrl || null,
+    etat_vie: form.etatVie || null,
   });
 
   async function submit() {
@@ -446,6 +450,18 @@ export function CharactersTab({ players, versions }: Props) {
                 {r.label}
               </SelectItem>
             ))}
+          </SimpleSelect>
+        </Field>
+        <Field label="État de vie">
+          <SimpleSelect
+            value={form.etatVie}
+            onValueChange={(v) => setForm((p) => ({ ...p, etatVie: v }))}
+            placeholder="État"
+            label="État de vie"
+          >
+            <SelectItem value="EN_VIE">En vie</SelectItem>
+            <SelectItem value="MORT">Mort</SelectItem>
+            <SelectItem value="PARTI">Parti</SelectItem>
           </SimpleSelect>
         </Field>
         <Field label="Joueur">

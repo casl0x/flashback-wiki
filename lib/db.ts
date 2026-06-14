@@ -39,6 +39,8 @@ export type Character = {
   playerId: string | null;
   versionId: string | null;
   createdAt: string;
+  etatVie: string | null;
+
   // Relations incluses par /api/data
   player?: Pick<
     Player,

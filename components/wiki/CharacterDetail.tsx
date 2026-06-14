@@ -6,6 +6,7 @@ import PlayerCard from "@/components/wiki/PlayerCard";
 import { Character } from "@/lib/db";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { LifeStateIcon } from "../admin/LifeStateIcon";
 import { SuggestEditButton } from "../user/SuggestEditButton";
 import CharacterCard from "./CharacterCard";
 
@@ -69,8 +70,11 @@ export default function CharacterDetail({
 
             {/* Infos texte */}
             <div className="flex-1 min-w-0">
-              <h2 className="font-display font-bold text-[18px] sm:text-[20px] text-text-primary tracking-wide">
+              <h2 className="font-display font-bold text-[18px] sm:text-[20px] text-text-primary tracking-wide flex items-center gap-2">
                 {c.nom}
+                <LifeStateIcon
+                  etat={(c.etatVie as "EN_VIE" | "MORT" | "PARTI") ?? "EN_VIE"}
+                />
               </h2>
               {c.metier && (
                 <p className="text-[13px] text-text-muted mb-1">
