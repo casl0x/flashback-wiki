@@ -73,7 +73,10 @@ export default function CharacterDetail({
               <h2 className="font-display font-bold text-[18px] sm:text-[20px] text-text-primary tracking-wide flex items-center gap-2">
                 {c.nom}
                 <LifeStateIcon
-                  etat={(c.etatVie as "EN_VIE" | "MORT" | "PARTI") ?? "EN_VIE"}
+                  etat={
+                    (c.etatVie as "EN_VIE" | "MORT" | "PARTI" | "DISPARU") ??
+                    "EN_VIE"
+                  }
                 />
               </h2>
               {c.metier && (

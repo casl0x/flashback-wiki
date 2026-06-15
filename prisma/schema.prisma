@@ -13,6 +13,7 @@ enum EtatVie {
   EN_VIE
   MORT
   PARTI
+  DISPARU
 }
 
 model UserProfile {

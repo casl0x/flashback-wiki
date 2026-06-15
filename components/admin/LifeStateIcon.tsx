@@ -4,7 +4,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Heart, LogOut, Skull } from "lucide-react";
+import { Heart, Meh, Plane, Skull } from "lucide-react";
 import { ComponentType } from "react";
 
 type EtatVieConfig = {
@@ -31,7 +31,13 @@ const ETAT_VIE_CONFIG: EtatVieConfig[] = [
     key: "PARTI",
     label: "Parti",
     description: "Ce personnage a quitté le serveur.",
-    icon: LogOut,
+    icon: Plane,
+  },
+  {
+    key: "DISPARU",
+    label: "Disparu",
+    description: "Ce personnage a disparu.",
+    icon: Meh,
   },
 ];
 
