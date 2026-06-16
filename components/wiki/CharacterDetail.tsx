@@ -171,6 +171,15 @@ export default function CharacterDetail({
 
           {rels.length > 0 && (
             <div>
+              {(() => {
+                console.log(
+                  "rels:",
+                  JSON.stringify(
+                    rels.map((r) => ({ id: r.id, linked: r.linked })),
+                  ),
+                );
+                return null;
+              })()}
               <p className="text-[9px] font-semibold text-text-faint uppercase tracking-[.8px] mb-2">
                 Relations
               </p>
@@ -179,13 +188,24 @@ export default function CharacterDetail({
                   const full = allCharacters.find(
                     (ch) => ch.id === r.linked.id,
                   );
-                  if (!full) return null;
+                  const character =
+                    full ??
+                    ({
+                      ...r.linked,
+                      id: r.linked.id,
+                      nom: r.linked.nom,
+                      role: r.linked.role,
+                      metier: r.linked.metier,
+                      groupe: r.linked.groupe,
+                      player: { pseudo: r.linked.player_pseudo },
+                      relations: [],
+                      imageUrl: r.linked.imageUrl,
+                    } as unknown as Character);
                   return (
                     <CharacterCard
                       key={r.id}
-                      character={full}
-                      onClick={() => onNavigate(full)}
-                      hidePlayer
+                      character={character}
+                      onClick={() => onNavigate(character)}
                       relationTag={r.type_relation ?? undefined}
                     />
                   );

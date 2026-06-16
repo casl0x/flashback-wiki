@@ -61,7 +61,8 @@ export type LinkedRelation = {
     nom: string;
     role: "civil" | "illegal" | null;
     metier: string | null;
-    groupe: string | null; // ← nouveau
+    groupe: string | null;
+    imageUrl: string | null; // ← ajouter
     player_pseudo: string | null;
   };
 };
