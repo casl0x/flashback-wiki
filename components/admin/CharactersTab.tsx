@@ -462,6 +462,7 @@ export function CharactersTab({ players, versions }: Props) {
             <SelectItem value="EN_VIE">En vie</SelectItem>
             <SelectItem value="MORT">Mort</SelectItem>
             <SelectItem value="PARTI">Parti</SelectItem>
+            <SelectItem value="DISPARU">Disparu</SelectItem>
           </SimpleSelect>
         </Field>
         <Field label="Joueur">
