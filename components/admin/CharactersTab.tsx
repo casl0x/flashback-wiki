@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Character, Player, Version } from "@/lib/db";
 import { statusBadgeClass } from "@/lib/utils";
-import { MapPin } from "lucide-react";
+import { MapPin, Users } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -43,7 +43,7 @@ const AdminLocationPicker = dynamic(
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Props = { players: Player[]; versions: Version[] };
-type ModalTab = "infos" | "localisation";
+type ModalTab = "infos" | "relations" | "localisation";
 type CharForm = {
   nom: string;
   metier: string;
@@ -55,12 +55,6 @@ type CharForm = {
   lienReddif: string;
   imageUrl?: string;
   etatVie: string;
-};
-type PendingRelation = {
-  personnage_b: string;
-  type_relation: string | null;
-  type_relation_inverse: string | null;
-  linked: Character | undefined;
 };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -153,9 +147,6 @@ export function CharactersTab({ players, versions }: Props) {
   const [activeRelations, setActiveRelations] = useState<
     NonNullable<Character["relations"]>
   >([]);
-  const [pendingRelations, setPendingRelations] = useState<PendingRelation[]>(
-    [],
-  );
   const [form, setForm] = useState<CharForm>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [localPlayers, setLocalPlayers] = useState<Player[]>(players);
@@ -200,17 +191,11 @@ export function CharactersTab({ players, versions }: Props) {
     linked: Character | undefined;
     type_relation: string | null;
   };
-  const displayRelations: DR[] = activeId
-    ? activeRelations.map((r) => ({
-        id: r.id,
-        linked: r.linked as unknown as DR["linked"],
-        type_relation: r.type_relation,
-      }))
-    : pendingRelations.map((r, i) => ({
-        id: `pending-${i}`,
-        linked: r.linked as unknown as DR["linked"],
-        type_relation: r.type_relation,
-      }));
+  const displayRelations: DR[] = activeRelations.map((r) => ({
+    id: r.id,
+    linked: r.linked as unknown as DR["linked"],
+    type_relation: r.type_relation,
+  }));
 
   // ─── Data ──────────────────────────────────────────────────────────────────
 
@@ -256,7 +241,6 @@ export function CharactersTab({ players, versions }: Props) {
     setSelected(null);
     setCreatedId(null);
     setActiveRelations([]);
-    setPendingRelations([]);
     setForm(EMPTY_FORM);
     resetRel();
     setModalTab("infos");
@@ -266,7 +250,6 @@ export function CharactersTab({ players, versions }: Props) {
     setSelected(c);
     setCreatedId(null);
     setActiveRelations(c.relations ?? []);
-    setPendingRelations([]);
     setForm(charToForm(c));
     resetRel();
     setModalTab("infos");
@@ -281,7 +264,6 @@ export function CharactersTab({ players, versions }: Props) {
     setSelected(null);
     setCreatedId(null);
     setActiveRelations([]);
-    setPendingRelations([]);
     resetRel();
     setModalTab("infos");
   }
@@ -310,21 +292,6 @@ export function CharactersTab({ players, versions }: Props) {
         headers: apiHeaders,
         body: JSON.stringify(bodyFromForm()),
       }).then((r) => r.json());
-      await Promise.all(
-        pendingRelations.map((r) =>
-          fetch("/api/relations", {
-            method: "POST",
-            headers: apiHeaders,
-            body: JSON.stringify({
-              personnage_a: newChar.id,
-              personnage_b: r.personnage_b,
-              type_relation: r.type_relation,
-              type_relation_inverse: r.type_relation_inverse,
-            }),
-          }),
-        ),
-      );
-      setPendingRelations([]);
       setCreatedId(newChar.id);
       await load(newChar.id);
     } else {
@@ -351,20 +318,7 @@ export function CharactersTab({ players, versions }: Props) {
   }
 
   async function addRelation() {
-    if (!newRelPerso) return;
-    if (!activeId) {
-      setPendingRelations((p) => [
-        ...p,
-        {
-          personnage_b: newRelPerso,
-          type_relation: newRelType || null,
-          type_relation_inverse: newRelTypeInverse || null,
-          linked: chars.find((c) => c.id === newRelPerso),
-        },
-      ]);
-      resetRel();
-      return;
-    }
+    if (!newRelPerso || !activeId) return;
     setRelLoading(true);
     await fetch("/api/relations", {
       method: "POST",
@@ -382,12 +336,6 @@ export function CharactersTab({ players, versions }: Props) {
   }
 
   async function deleteRelation(id: string) {
-    if (id.startsWith("pending-")) {
-      setPendingRelations((p) =>
-        p.filter((_, i) => i !== parseInt(id.replace("pending-", ""))),
-      );
-      return;
-    }
     await fetch("/api/relations", {
       method: "DELETE",
       headers: apiHeaders,
@@ -554,100 +502,106 @@ export function CharactersTab({ players, versions }: Props) {
           placeholder="https://youtube.com/..."
         />
       </Field>
+    </div>
+  );
 
-      {/* Relations */}
-      <div className="border-t border-border pt-3 flex flex-col gap-2">
-        <p className="text-[10px] uppercase tracking-widest text-text-muted">
-          Relations ({displayRelations.length})
-          {!activeId && pendingRelations.length > 0 && (
-            <span className="ml-2 text-[9px] normal-case tracking-normal">
-              — seront enregistrées à la création
-            </span>
-          )}
-        </p>
-        {displayRelations.length > 0 && (
-          <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
-            {displayRelations.map((r) => (
-              <div
-                key={r.id}
-                className={`flex items-center justify-between px-2.5 py-1.5 rounded-md border ${r.id.startsWith("pending-") ? "bg-elevated/50 border-dashed border-border" : "bg-elevated border-border"}`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[12px] font-medium text-text-primary truncate">
-                    {r.linked?.nom}
-                  </span>
-                  {r.type_relation && (
-                    <span className="text-[10px] text-text-muted shrink-0">
-                      — {r.type_relation}
-                    </span>
-                  )}
-                  {r.id.startsWith("pending-") && (
-                    <span className="text-[9px] text-text-muted shrink-0 italic">
-                      en attente
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => deleteRelation(r.id)}
-                  className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer shrink-0 ml-2"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        <Field label="Personnage">
-          <CharacterCombobox
-            key={`rel-${activeId ?? "new"}`}
-            characters={chars}
-            value={newRelPerso}
-            onValueChange={setNewRelPerso}
-            excludeId={activeId ?? undefined}
-          />
-        </Field>
-        {(["inverse", "direct"] as const).map((dir) => {
-          const isInverse = dir === "inverse";
-          return (
+  const relationsTab = !activeId ? (
+    <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+      <Users className="text-accent" size={32} />
+      <p className="text-[13px] text-text-secondary">
+        Créez d&apos;abord le personnage pour pouvoir lui ajouter des relations.
+      </p>
+      <Button
+        size="sm"
+        onClick={submit}
+        disabled={loading || !form.nom}
+        className="mt-2 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
+      >
+        {loading ? "…" : "Créer le personnage"}
+      </Button>
+    </div>
+  ) : (
+    <div className="flex flex-col gap-2">
+      <p className="text-[10px] uppercase tracking-widest text-text-muted">
+        Relations ({displayRelations.length})
+      </p>
+      {displayRelations.length > 0 && (
+        <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto">
+          {displayRelations.map((r) => (
             <div
-              key={dir}
-              className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary"
+              key={r.id}
+              className="flex items-center justify-between px-2.5 py-1.5 rounded-md border bg-elevated border-border"
             >
-              <span className="shrink-0 font-medium text-text-primary">
-                {isInverse
-                  ? form.nom || "Ce personnage"
-                  : otherPerso?.nom || "L'autre"}
-              </span>
-              <span className="shrink-0">est</span>
-              <Input
-                value={isInverse ? newRelTypeInverse : newRelType}
-                onChange={(e) =>
-                  isInverse
-                    ? setNewRelTypeInverse(e.target.value)
-                    : setNewRelType(e.target.value)
-                }
-                placeholder={isInverse ? "frère…" : "sœur…"}
-                className="h-7 text-[12px] w-24 px-2"
-              />
-              <span className="shrink-0">de</span>
-              <span className="shrink-0 font-medium text-text-primary">
-                {isInverse
-                  ? otherPerso?.nom || "___"
-                  : form.nom || "ce personnage"}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[12px] font-medium text-text-primary truncate">
+                  {r.linked?.nom}
+                </span>
+                {r.type_relation && (
+                  <span className="text-[10px] text-text-muted shrink-0">
+                    — {r.type_relation}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => deleteRelation(r.id)}
+                className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer shrink-0 ml-2"
+              >
+                ✕
+              </button>
             </div>
-          );
-        })}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={addRelation}
-          disabled={relLoading || !newRelPerso}
-          className="text-[11px] border-border-mid text-text-secondary cursor-pointer"
-        >
-          {relLoading ? "…" : "+ Ajouter la relation"}
-        </Button>
-      </div>
+          ))}
+        </div>
+      )}
+      <Field label="Personnage">
+        <CharacterCombobox
+          key={`rel-${activeId}`}
+          characters={chars}
+          value={newRelPerso}
+          onValueChange={setNewRelPerso}
+          excludeId={activeId}
+        />
+      </Field>
+      {(["inverse", "direct"] as const).map((dir) => {
+        const isInverse = dir === "inverse";
+        return (
+          <div
+            key={dir}
+            className="flex items-center gap-1.5 flex-wrap text-[12px] text-text-secondary"
+          >
+            <span className="shrink-0 font-medium text-text-primary">
+              {isInverse
+                ? form.nom || "Ce personnage"
+                : otherPerso?.nom || "L'autre"}
+            </span>
+            <span className="shrink-0">est</span>
+            <Input
+              value={isInverse ? newRelTypeInverse : newRelType}
+              onChange={(e) =>
+                isInverse
+                  ? setNewRelTypeInverse(e.target.value)
+                  : setNewRelType(e.target.value)
+              }
+              placeholder={isInverse ? "frère…" : "sœur…"}
+              className="h-7 text-[12px] w-24 px-2"
+            />
+            <span className="shrink-0">de</span>
+            <span className="shrink-0 font-medium text-text-primary">
+              {isInverse
+                ? otherPerso?.nom || "___"
+                : form.nom || "ce personnage"}
+            </span>
+          </div>
+        );
+      })}
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={addRelation}
+        disabled={relLoading || !newRelPerso}
+        className="text-[11px] border-border-mid text-text-secondary cursor-pointer"
+      >
+        {relLoading ? "…" : "+ Ajouter la relation"}
+      </Button>
     </div>
   );
 
@@ -918,17 +872,29 @@ export function CharactersTab({ players, versions }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="flex gap-1 border-b border-border mb-1">
-            {(["infos", "localisation"] as ModalTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setModalTab(tab)}
-                className={`text-[11px] px-3 py-1.5 rounded-t transition-colors cursor-pointer ${modalTab === tab ? "text-text-primary border-b-2 border-accent -mb-px" : "text-text-muted hover:text-text-secondary"}`}
-              >
-                {tab === "infos" ? "Infos" : <MapPin size={14} />}
-              </button>
-            ))}
+            {(["infos", "relations", "localisation"] as ModalTab[]).map(
+              (tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setModalTab(tab)}
+                  className={`text-[11px] px-3 py-1.5 rounded-t transition-colors cursor-pointer ${modalTab === tab ? "text-text-primary border-b-2 border-accent -mb-px" : "text-text-muted hover:text-text-secondary"}`}
+                >
+                  {tab === "infos" ? (
+                    "Infos"
+                  ) : tab === "relations" ? (
+                    <Users size={14} />
+                  ) : (
+                    <MapPin size={14} />
+                  )}
+                </button>
+              ),
+            )}
           </div>
-          {modalTab === "infos" ? infosTab : localisationTab}
+          {modalTab === "infos"
+            ? infosTab
+            : modalTab === "relations"
+              ? relationsTab
+              : localisationTab}
           <DialogFooter className="flex gap-2 sm:flex-row pt-1">
             <Button
               variant="outline"
@@ -954,15 +920,16 @@ export function CharactersTab({ players, versions }: Props) {
                       : "Créer"}
               </Button>
             )}
-            {modalTab === "localisation" && activeId && (
-              <Button
-                size="sm"
-                onClick={closeModal}
-                className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
-              >
-                Terminer
-              </Button>
-            )}
+            {(modalTab === "relations" || modalTab === "localisation") &&
+              activeId && (
+                <Button
+                  size="sm"
+                  onClick={closeModal}
+                  className="flex-1 text-[12px] bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
+                >
+                  Terminer
+                </Button>
+              )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
