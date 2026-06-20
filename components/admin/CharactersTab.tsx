@@ -154,6 +154,7 @@ export function CharactersTab({ players, versions }: Props) {
   const [newRelType, setNewRelType] = useState("");
   const [newRelTypeInverse, setNewRelTypeInverse] = useState("");
   const [relLoading, setRelLoading] = useState(false);
+  const [editingRelId, setEditingRelId] = useState<string | null>(null);
 
   // Filtres + pagination
   const [search, setSearch] = useState("");
@@ -190,11 +191,15 @@ export function CharactersTab({ players, versions }: Props) {
     id: string;
     linked: Character | undefined;
     type_relation: string | null;
+    type_relation_inverse: string | null;
   };
   const displayRelations: DR[] = activeRelations.map((r) => ({
     id: r.id,
     linked: r.linked as unknown as DR["linked"],
     type_relation: r.type_relation,
+    type_relation_inverse:
+      (r as typeof r & { type_relation_inverse?: string | null })
+        .type_relation_inverse ?? null,
   }));
 
   // ─── Data ──────────────────────────────────────────────────────────────────
@@ -235,7 +240,21 @@ export function CharactersTab({ players, versions }: Props) {
     setNewRelPerso("");
     setNewRelType("");
     setNewRelTypeInverse("");
+    setEditingRelId(null);
   };
+
+  function startEditRelation(r: {
+    id: string;
+    linked: Character | undefined;
+    type_relation: string | null;
+    type_relation_inverse: string | null;
+  }) {
+    if (!r.linked) return;
+    setEditingRelId(r.id);
+    setNewRelPerso(r.linked.id);
+    setNewRelType(r.type_relation ?? "");
+    setNewRelTypeInverse(r.type_relation_inverse ?? "");
+  }
 
   function openAdd() {
     setSelected(null);
@@ -542,25 +561,50 @@ export function CharactersTab({ players, versions }: Props) {
                   </span>
                 )}
               </div>
-              <button
-                onClick={() => deleteRelation(r.id)}
-                className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer shrink-0 ml-2"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-1 shrink-0 ml-2">
+                <button
+                  onClick={() => startEditRelation(r)}
+                  className="text-[10px] text-text-muted hover:text-accent-light px-1.5 py-0.5 rounded hover:bg-elevated transition-colors cursor-pointer"
+                >
+                  ✎
+                </button>
+                <button
+                  onClick={() => deleteRelation(r.id)}
+                  className="text-[10px] text-text-muted hover:text-[#f87171] px-1.5 py-0.5 rounded hover:bg-[#2e1010] transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
-      <Field label="Personnage">
-        <CharacterCombobox
-          key={`rel-${activeId}`}
-          characters={chars}
-          value={newRelPerso}
-          onValueChange={setNewRelPerso}
-          excludeId={activeId}
-        />
-      </Field>
+      {editingRelId ? (
+        <div className="flex items-center justify-between text-[12px] text-text-secondary bg-elevated/50 border border-dashed border-border rounded-md px-2.5 py-1.5">
+          <span>
+            Modification de la relation avec{" "}
+            <span className="font-medium text-text-primary">
+              {otherPerso?.nom}
+            </span>
+          </span>
+          <button
+            onClick={resetRel}
+            className="text-[10px] text-text-muted hover:text-text-secondary px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+          >
+            Annuler
+          </button>
+        </div>
+      ) : (
+        <Field label="Personnage">
+          <CharacterCombobox
+            key={`rel-${activeId}`}
+            characters={chars}
+            value={newRelPerso}
+            onValueChange={setNewRelPerso}
+            excludeId={activeId}
+          />
+        </Field>
+      )}
       {(["inverse", "direct"] as const).map((dir) => {
         const isInverse = dir === "inverse";
         return (
@@ -600,7 +644,11 @@ export function CharactersTab({ players, versions }: Props) {
         disabled={relLoading || !newRelPerso}
         className="text-[11px] border-border-mid text-text-secondary cursor-pointer"
       >
-        {relLoading ? "…" : "+ Ajouter la relation"}
+        {relLoading
+          ? "…"
+          : editingRelId
+            ? "Mettre à jour la relation"
+            : "+ Ajouter la relation"}
       </Button>
     </div>
   );
