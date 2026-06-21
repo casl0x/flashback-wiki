@@ -44,7 +44,7 @@ export default function CharacterCard({
       className="cursor-pointer hover:bg-(--card-hover) transition-colors"
     >
       <CardHeader className="pb-0">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 flex-wrap">
           {/* Avatar */}
           <div
             className="w-11 h-11 rounded-full border-2 shrink-0 overflow-hidden flex items-center justify-center text-[13px] font-medium"
@@ -66,10 +66,38 @@ export default function CharacterCard({
 
           {/* Infos */}
           <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-medium text-(--text-primary) truncate">
-              {character.nom}
-            </p>
-            <div className="flex flex-row gap-1">
+            <div className="flex justify-between items-center gap-2">
+              <p className="text-[14px] font-medium text-(--text-primary) truncate">
+                {character.nom}
+              </p>
+              {/* Badge version ou tag de relation */}
+              {relationTag ? (
+                <Badge
+                  className="text-[9px] shrink-0"
+                  variant="outline"
+                  style={{
+                    color: "var(--accent-light)",
+                    borderColor: "var(--border-accent)",
+                    background: "var(--accent-bg)",
+                  }}
+                >
+                  {relationTag}
+                </Badge>
+              ) : character.versionId ? (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] shrink-0"
+                  style={{
+                    color: `${color}CC`,
+                    borderColor: `${color}40`,
+                    background: `${color}18`,
+                  }}
+                >
+                  {character.versionId}
+                </Badge>
+              ) : null}
+            </div>
+            <div className="flex flex-row gap-1 mt-1">
               {character.metier && (
                 <p className="text-[12px] text-(--text-secondary) mb-1">
                   {character.metier}
@@ -87,33 +115,6 @@ export default function CharacterCard({
               )}
             </div>
           </div>
-
-          {/* Badge version ou tag de relation */}
-          {relationTag ? (
-            <Badge
-              className="text-[9px] shrink-0"
-              variant="outline"
-              style={{
-                color: "var(--accent-light)",
-                borderColor: "var(--border-accent)",
-                background: "var(--accent-bg)",
-              }}
-            >
-              {relationTag}
-            </Badge>
-          ) : character.versionId ? (
-            <Badge
-              variant="outline"
-              className="text-[10px] shrink-0"
-              style={{
-                color: `${color}CC`,
-                borderColor: `${color}40`,
-                background: `${color}18`,
-              }}
-            >
-              {character.versionId}
-            </Badge>
-          ) : null}
         </div>
       </CardHeader>
 
