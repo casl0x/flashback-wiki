@@ -3,29 +3,17 @@
 import AdminButton from "@/components/admin/AdminButton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
-import { Version } from "@/lib/db";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 type Props = {
-  versions: Version[];
-  counts: Record<string, number>;
   totalChars: number;
-  totalPlayers: number;
-  totalRels: number;
   open?: boolean;
   onClose?: () => void;
 };
 
-export default function Sidebar({
-  versions,
-  counts,
-  totalChars,
-  open,
-  onClose,
-}: Props) {
+export default function Sidebar({ totalChars, open, onClose }: Props) {
   const pathname = usePathname();
-  const allVersions = [{ id: "all", label: "Tout voir" }, ...versions];
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -45,45 +33,35 @@ export default function Sidebar({
         onClick={onClose}
         className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[1px] text-primary text-center hover:underline"
       >
-        Mise à jours
+        Mise à jour
       </Link>
 
       <div className="px-2 py-3 text-[9px] font-semibold uppercase tracking-[1px] text-text-faint border-t border-border">
-        Versions
+        Wiki
       </div>
 
-      {allVersions.map((v) => {
-        const href = v.id === "all" ? "/personnages" : `/versions/${v.id}`;
-        const isOn = v.id === "all" ? isActive("/personnages") : isActive(href);
-        return (
-          <Link
-            key={v.id}
-            href={href}
-            onClick={onClose}
-            className={cn(
-              "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition-all",
-              isOn ? "bg-active border-border-accent" : "hover:bg-elevated",
-            )}
-          >
-            <div className="flex items-center gap-2">
-              {/* <div className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold font-display">
-                {v.id === "all" ? <i className="ti ti-layout-grid" /> : v.id}
-              </div> */}
-              <div
-                className={cn(
-                  "text-[13px]",
-                  isOn
-                    ? "text-accent-light font-medium"
-                    : "text-text-secondary",
-                )}
-              >
-                {v.id === "all" ? "Tout voir" : v.label}
-              </div>
-            </div>
-            <Badge>{v.id === "all" ? totalChars : counts[v.id] || 0}</Badge>
-          </Link>
-        );
-      })}
+      <Link
+        href="/personnages"
+        onClick={onClose}
+        className={cn(
+          "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition-all",
+          isActive("/personnages")
+            ? "bg-active border-border-accent"
+            : "hover:bg-elevated",
+        )}
+      >
+        <span
+          className={cn(
+            "text-[13px]",
+            isActive("/personnages")
+              ? "text-accent-light font-medium"
+              : "text-text-secondary",
+          )}
+        >
+          Personnages
+        </span>
+        <Badge>{totalChars}</Badge>
+      </Link>
 
       {/* Séparateur */}
       <div className="my-1 border-t border-border" />
@@ -95,17 +73,15 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Desktop sidebar — toujours visible à partir de lg */}
+      {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card">
         {content}
       </aside>
 
-      {/* Mobile drawer overlay */}
+      {/* Mobile drawer */}
       {open && (
         <div className="fixed inset-0 z-30 lg:hidden">
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-          {/* Drawer */}
           <aside className="absolute left-0 top-0 h-full w-64 overflow-y-auto border-r border-border bg-card shadow-xl">
             {content}
           </aside>

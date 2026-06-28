@@ -114,6 +114,7 @@ export async function fetchWikiData(): Promise<WikiData> {
               id: character.version.id,
               label: character.version.label,
               color: character.version.color,
+              description: character.version.description,
             }
           : null;
 
@@ -187,6 +188,7 @@ export const getCharacterById = unstable_cache(
             id: character.version.id,
             label: character.version.label,
             color: character.version.color,
+            description: character.version.description,
           }
         : null,
       relations: [
