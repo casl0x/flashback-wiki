@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    cacheLife: {
-      wiki: {
-        stale: 0,
-        revalidate: 300,
-        expire: 3600,
-      },
+  cacheLife: {
+    wiki: {
+      stale: 0,
+      revalidate: 300,
+      expire: 3600,
     },
   },
   images: {

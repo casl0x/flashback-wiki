@@ -24,9 +24,6 @@ export default function WikiLayout({
   totalChars,
   totalPlayers,
   totalVersions,
-  versions,
-  counts,
-  totalRels,
   children,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,11 +43,7 @@ export default function WikiLayout({
         />
         <div className="flex flex-1">
           <Sidebar
-            versions={versions}
-            counts={counts}
             totalChars={totalChars}
-            totalPlayers={totalPlayers}
-            totalRels={totalRels}
             open={menuOpen}
             onClose={() => setMenuOpen(false)}
           />

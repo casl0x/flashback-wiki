@@ -63,6 +63,28 @@ export default function Sidebar({ totalChars, open, onClose }: Props) {
         <Badge>{totalChars}</Badge>
       </Link>
 
+      <Link
+        href="/musiques"
+        onClick={onClose}
+        className={cn(
+          "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition-all",
+          isActive("/musiques")
+            ? "bg-active border-border-accent"
+            : "hover:bg-elevated",
+        )}
+      >
+        <span
+          className={cn(
+            "text-[13px]",
+            isActive("/musiques")
+              ? "text-accent-light font-medium"
+              : "text-text-secondary",
+          )}
+        >
+          Musiques
+        </span>
+      </Link>
+
       {/* Séparateur */}
       <div className="my-1 border-t border-border" />
 
