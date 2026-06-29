@@ -109,7 +109,7 @@ export default function CharactersClient({ characters }: Props) {
             <div className="h-5 w-px bg-border" />
 
             {/* Versions */}
-            <div className="flex flex-wrap items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card p-1">
               <button
                 onClick={() => handleVersionFilter("all")}
                 className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${

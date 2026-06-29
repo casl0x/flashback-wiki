@@ -42,11 +42,7 @@ export default function WikiLayout({
           menuOpen={menuOpen}
         />
         <div className="flex flex-1">
-          <Sidebar
-            totalChars={totalChars}
-            open={menuOpen}
-            onClose={() => setMenuOpen(false)}
-          />
+          <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
           <div className="flex-1 min-w-0">{children}</div>
         </div>
       </main>

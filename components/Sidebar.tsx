@@ -1,18 +1,16 @@
 "use client";
 
 import AdminButton from "@/components/admin/AdminButton";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 type Props = {
-  totalChars: number;
   open?: boolean;
   onClose?: () => void;
 };
 
-export default function Sidebar({ totalChars, open, onClose }: Props) {
+export default function Sidebar({ open, onClose }: Props) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
@@ -60,7 +58,6 @@ export default function Sidebar({ totalChars, open, onClose }: Props) {
         >
           Personnages
         </span>
-        <Badge>{totalChars}</Badge>
       </Link>
 
       <Link
