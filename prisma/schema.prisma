@@ -16,15 +16,64 @@ enum EtatVie {
   DISPARU
 }
 
+enum Role {
+  civil
+  illegal
+}
+
+enum CreatorType {
+  ARTISTE
+  EDITEUR
+}
+
+enum SocialPlatform {
+  TWITTER
+  TIKTOK
+  YOUTUBE
+  INSTAGRAM
+  TWITCH
+  AUTRE
+}
+
 model UserProfile {
-  id          String   @id @default(cuid())
-  clerkUserId String   @unique
-  pseudo      String?
-  totalPoints Int      @default(0)
-  acceptedCount  Int      @default(0)
-  badges      String[] @default([])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  clerkUserId        String   @unique
+  pseudo             String?
+  onboardingComplete Boolean  @default(false)
+  totalPoints        Int      @default(0)
+  acceptedCount      Int      @default(0)
+  badges             String[] @default([])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  creatorRoles       CreatorRole[]
+  socialLinks        SocialLink[]
+}
+
+model CreatorRole {
+  id            String      @id @default(cuid())
+  type          CreatorType
+  displayOnWiki Boolean     @default(false)
+  bio           String?
+  createdAt     DateTime    @default(now())
+
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, type])
+  @@map("creator_roles")
+}
+
+model SocialLink {
+  id            String         @id @default(cuid())
+  platform      SocialPlatform
+  url           String
+  createdAt     DateTime       @default(now())
+
+  userProfileId String
+  userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@map("social_links")
 }
 
 model Version {
@@ -99,10 +148,6 @@ model Relation {
   @@map("relations")
 }
 
-enum Role {
-  civil
-  illegal
-}
 
 model Suggestion {
   id          String   @id @default(cuid())

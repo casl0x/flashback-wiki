@@ -10,7 +10,13 @@ export async function GET() {
   const user = await client.users.getUser(userId);
 
   const [profile, suggestions] = await Promise.all([
-    prisma.userProfile.findUnique({ where: { clerkUserId: userId } }),
+    prisma.userProfile.findUnique({
+      where: { clerkUserId: userId },
+      include: {
+        creatorRoles: true,
+        socialLinks: true,
+      },
+    }),
     prisma.suggestion.groupBy({
       by: ["status"],
       where: { clerkUserId: userId },
@@ -30,5 +36,16 @@ export async function GET() {
     points: profile?.totalPoints ?? 0,
     badges: profile?.badges ?? [],
     stats,
+    creatorRoles:
+      profile?.creatorRoles.map((r) => ({
+        type: r.type,
+        displayOnWiki: r.displayOnWiki,
+      })) ?? [],
+    socialLinks:
+      profile?.socialLinks.map((l) => ({
+        id: l.id,
+        platform: l.platform,
+        url: l.url,
+      })) ?? [],
   });
 }

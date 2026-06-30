@@ -6,18 +6,36 @@ import {
 import { NextResponse } from "next/server";
 
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+const isOnboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/api(.*)",
+  "/__clerk/(.*)",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isAdminRoute(req)) {
-    const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
 
+  // --- Onboarding check ---
+  if (userId && !isOnboardingRoute(req) && !isPublicRoute(req)) {
+    const onboardingComplete = (
+      sessionClaims?.metadata as { onboardingComplete?: boolean } | undefined
+    )?.onboardingComplete;
+
+    if (!onboardingComplete) {
+      return NextResponse.redirect(new URL("/onboarding", req.url));
+    }
+  }
+
+  // --- Admin check ---
+  if (isAdminRoute(req)) {
     if (!userId) {
       const signInUrl = new URL("/sign-in", req.url);
       signInUrl.searchParams.set("redirect_url", req.url);
       return NextResponse.redirect(signInUrl);
     }
 
-    // Vérifie directement si l'user est membre de l'org admin
     const client = await clerkClient();
     const memberships = await client.users.getOrganizationMembershipList({
       userId,
