@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db";
 import {
   clerkClient,
   clerkMiddleware,
@@ -15,16 +16,16 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth();
-  console.log("metadata:", JSON.stringify(sessionClaims?.metadata));
+  const { userId } = await auth();
 
   // --- Onboarding check ---
   if (userId && !isOnboardingRoute(req) && !isPublicRoute(req)) {
-    const onboardingComplete = (
-      sessionClaims?.metadata as { onboardingComplete?: boolean } | undefined
-    )?.onboardingComplete;
+    const profile = await prisma.userProfile.findUnique({
+      where: { clerkUserId: userId },
+      select: { onboardingComplete: true },
+    });
 
-    if (!onboardingComplete) {
+    if (!profile?.onboardingComplete) {
       return NextResponse.redirect(new URL("/onboarding", req.url));
     }
   }
