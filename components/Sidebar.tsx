@@ -82,6 +82,28 @@ export default function Sidebar({ open, onClose }: Props) {
         </span>
       </Link>
 
+      <Link
+        href="/createurs"
+        onClick={onClose}
+        className={cn(
+          "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition-all",
+          isActive("/createurs")
+            ? "bg-active border-border-accent"
+            : "hover:bg-elevated",
+        )}
+      >
+        <span
+          className={cn(
+            "text-[13px]",
+            isActive("/createurs")
+              ? "text-accent-light font-medium"
+              : "text-text-secondary",
+          )}
+        >
+          Créateurs
+        </span>
+      </Link>
+
       {/* Séparateur */}
       <div className="my-1 border-t border-border" />
 

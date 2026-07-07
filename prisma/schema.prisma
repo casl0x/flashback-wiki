@@ -7,6 +7,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 enum EtatVie {
@@ -54,6 +55,7 @@ model CreatorRole {
   id            String      @id @default(cuid())
   type          CreatorType
   displayOnWiki Boolean     @default(false)
+  status        String      @default("pending")
   bio           String?
   createdAt     DateTime    @default(now())
 

@@ -86,7 +86,6 @@ export default function OnboardingPage() {
       });
       await session?.reload();
       router.push("/");
-      router.refresh();
     } catch (err) {
       console.error(err);
       setError("Une erreur est survenue, réessaie.");
