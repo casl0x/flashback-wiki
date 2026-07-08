@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/db";
 import {
   clerkClient,
   clerkMiddleware,
@@ -20,12 +19,13 @@ export default clerkMiddleware(async (auth, req) => {
 
   // --- Onboarding check ---
   if (userId && !isOnboardingRoute(req) && !isPublicRoute(req)) {
-    const profile = await prisma.userProfile.findUnique({
-      where: { clerkUserId: userId },
-      select: { onboardingComplete: true },
+    const checkUrl = new URL("/api/check-onboarding", req.url);
+    const res = await fetch(checkUrl, {
+      headers: { cookie: req.headers.get("cookie") ?? "" },
     });
+    const json = await res.json();
 
-    if (!profile?.onboardingComplete) {
+    if (!json.complete) {
       return NextResponse.redirect(new URL("/onboarding", req.url));
     }
   }
