@@ -196,7 +196,11 @@ export function PlayersTab() {
     } else if (modal === "edit" && selected) {
       await fetch("/api/players", {
         method: "PATCH",
-        body: JSON.stringify({ id: selected.id, ...body }),
+        body: JSON.stringify({
+          id: selected.id,
+          originalPseudo: selected.pseudo,
+          ...body,
+        }),
       });
     }
     await new Promise((r) => setTimeout(r, 300));
@@ -370,7 +374,6 @@ export function PlayersTab() {
                   setForm((f) => ({ ...f, pseudo: e.target.value }))
                 }
                 placeholder="Jade_W"
-                disabled={modal === "edit"}
               />
             </div>
 
