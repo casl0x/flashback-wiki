@@ -21,6 +21,7 @@ export async function completeOnboarding(data: {
   roles: CreatorRoleInput[];
 }) {
   const { userId } = await auth();
+  console.log("userId dans completeOnboarding:", userId);
   if (!userId) throw new Error("Non authentifié");
 
   await prisma.userProfile.upsert({

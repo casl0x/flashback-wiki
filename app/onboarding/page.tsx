@@ -2,6 +2,7 @@
 "use client";
 
 import { useSession } from "@clerk/nextjs";
+import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { completeOnboarding } from "./action";
@@ -50,6 +51,8 @@ export default function OnboardingPage() {
   const [pseudo, setPseudo] = useState("");
   const [wantsCreator, setWantsCreator] = useState<boolean | null>(null);
   const [roles, setRoles] = useState<CreatorRoleInput[]>([]);
+
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   function toggleRole(type: "ARTISTE" | "EDITEUR") {
     setRoles((prev) =>
@@ -289,6 +292,41 @@ export default function OnboardingPage() {
               <h1 className="text-text-primary font-display font-bold text-lg">
                 Ton profil créateur
               </h1>
+              <button
+                onClick={() => setRulesOpen((o) => !o)}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors shrink-0"
+              >
+                Règles
+                <ChevronDown
+                  className={`h-3 w-3 transition-transform ${rulesOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {rulesOpen && (
+                <div className="mt-4 border-t border-border pt-4 space-y-1.5">
+                  <p className="text-[11px] text-text-muted leading-relaxed mb-2">
+                    Je me permets de mettre quelques règles en place pour que
+                    cet endroit reste une place de bienveillance et de partage :
+                  </p>
+                  {[
+                    "Le contenu partagé doit être en lien avec Flashback WL",
+                    "Pas de contenu offensant ou haineux",
+                    "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
+                    "Les liens partagés doivent pointer vers ton propre contenu",
+                    "Les comptes de clipfarming ne seront pas acceptés",
+                    "Chaque demande est examinée manuellement avant d'apparaître sur la page",
+                    "Aucun délai de validation garanti - sois patient",
+                  ].map((rule, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 text-[11px] text-text-muted"
+                    >
+                      <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/50" />
+                      {rule}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Sélection des rôles */}
               <div>

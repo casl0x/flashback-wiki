@@ -93,7 +93,7 @@ export default function CreateursPage() {
               "Les liens partagés doivent pointer vers ton propre contenu",
               "Les comptes de clipfarming ne seront pas acceptés",
               "Chaque demande est examinée manuellement avant d'apparaître sur la page",
-              "Aucun délai de validation garanti — sois patient",
+              "Aucun délai de validation garanti - sois patient",
             ].map((rule, i) => (
               <div
                 key={i}

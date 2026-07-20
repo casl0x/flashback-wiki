@@ -15,16 +15,17 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth();
-  console.log("metadata:", JSON.stringify(sessionClaims?.metadata));
+  const { userId } = await auth();
 
   // --- Onboarding check ---
   if (userId && !isOnboardingRoute(req) && !isPublicRoute(req)) {
-    const onboardingComplete = (
-      sessionClaims?.metadata as { onboardingComplete?: boolean } | undefined
-    )?.onboardingComplete;
+    const checkUrl = new URL("/api/check-onboarding", req.url);
+    const res = await fetch(checkUrl, {
+      headers: { cookie: req.headers.get("cookie") ?? "" },
+    });
+    const json = await res.json();
 
-    if (!onboardingComplete) {
+    if (!json.complete) {
       return NextResponse.redirect(new URL("/onboarding", req.url));
     }
   }
