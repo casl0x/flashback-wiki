@@ -48,19 +48,19 @@ model UserProfile {
   updatedAt          DateTime @updatedAt
 
   creatorRoles       CreatorRole[]
-  socialLinks        SocialLink[]
 }
 
 model CreatorRole {
-  id            String      @id @default(cuid())
+  id            String         @id @default(cuid())
   type          CreatorType
-  displayOnWiki Boolean     @default(false)
-  status        String      @default("pending")
+  displayOnWiki Boolean        @default(false)
+  status        String         @default("pending")
   bio           String?
-  createdAt     DateTime    @default(now())
+  createdAt     DateTime       @default(now())
 
   userProfileId String
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  socialLinks   SocialLink[]   // ← déplacé ici
 
   @@unique([userProfileId, type])
   @@map("creator_roles")
@@ -72,8 +72,8 @@ model SocialLink {
   url           String
   createdAt     DateTime       @default(now())
 
-  userProfileId String
-  userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  creatorRoleId String         // ← lié au rôle, plus au profil
+  creatorRole   CreatorRole    @relation(fields: [creatorRoleId], references: [id], onDelete: Cascade)
 
   @@map("social_links")
 }

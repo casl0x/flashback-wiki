@@ -2,17 +2,24 @@ import { prisma } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+type GroupedCreator = {
+  id: string;
+  pseudo: string;
+  avatarUrl: string | null;
+  types: ("ARTISTE" | "EDITEUR")[];
+  roles: {
+    type: "ARTISTE" | "EDITEUR";
+    socialLinks: { platform: string; url: string }[];
+  }[];
+};
+
 export async function GET() {
   const roles = await prisma.creatorRole.findMany({
-    where: {
-      status: "approved",
-      displayOnWiki: true,
-    },
+    where: { status: "approved", displayOnWiki: true },
     orderBy: { createdAt: "asc" },
     include: {
-      userProfile: {
-        include: { socialLinks: true },
-      },
+      userProfile: true,
+      socialLinks: true,
     },
   });
 
@@ -23,17 +30,7 @@ export async function GET() {
   );
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
 
-  // Grouper par userProfileId
-  const grouped = new Map<
-    string,
-    {
-      id: string;
-      pseudo: string;
-      avatarUrl: string | null;
-      types: ("ARTISTE" | "EDITEUR")[];
-      socialLinks: { platform: string; url: string }[];
-    }
-  >();
+  const grouped = new Map<string, GroupedCreator>();
 
   for (const r of roles) {
     const profileId = r.userProfile.id;
@@ -45,14 +42,19 @@ export async function GET() {
         pseudo: r.userProfile.pseudo ?? clerkUser?.username ?? "Anonyme",
         avatarUrl: clerkUser?.imageUrl ?? null,
         types: [],
-        socialLinks: r.userProfile.socialLinks.map((l) => ({
-          platform: l.platform,
-          url: l.url,
-        })),
+        roles: [],
       });
     }
 
-    grouped.get(profileId)!.types.push(r.type);
+    const entry = grouped.get(profileId)!;
+    entry.types.push(r.type);
+    entry.roles.push({
+      type: r.type,
+      socialLinks: r.socialLinks.map((l) => ({
+        platform: l.platform,
+        url: l.url,
+      })),
+    });
   }
 
   return NextResponse.json([...grouped.values()]);

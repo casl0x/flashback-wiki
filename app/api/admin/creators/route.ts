@@ -9,9 +9,8 @@ export async function GET() {
   const roles = await prisma.creatorRole.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      userProfile: {
-        include: { socialLinks: true },
-      },
+      userProfile: true,
+      socialLinks: true, // ← sur le rôle directement
     },
   });
 
@@ -37,7 +36,7 @@ export async function GET() {
           userMap[r.userProfile.clerkUserId]?.firstName ??
           "Anonyme",
       },
-      socialLinks: r.userProfile.socialLinks.map((l) => ({
+      socialLinks: r.socialLinks.map((l) => ({
         platform: l.platform,
         url: l.url,
       })),

@@ -1,14 +1,16 @@
+// app/profil/page.tsx
 "use client";
 
 import { BadgePill } from "@/components/user/badges";
 import { useUser } from "@clerk/nextjs";
 import {
   Check,
+  Film,
   Link2,
   Pencil,
+  PencilLine,
   Plus,
   Sparkles,
-  Trophy,
   User,
   X,
 } from "lucide-react";
@@ -16,8 +18,13 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { updateCreatorProfile } from "../onboarding/action";
 
-type CreatorRole = { type: "ARTISTE" | "EDITEUR"; displayOnWiki: boolean };
-type SocialLink = { id?: string; platform: string; url: string };
+type SocialLink = { platform: string; url: string };
+type CreatorRole = {
+  type: "ARTISTE" | "EDITEUR";
+  displayOnWiki: boolean;
+  status?: string;
+  socialLinks: SocialLink[];
+};
 
 type MeData = {
   pseudo: string;
@@ -26,7 +33,6 @@ type MeData = {
   badges: string[];
   stats: { pending: number; accepted: number; rejected: number };
   creatorRoles: CreatorRole[];
-  socialLinks: SocialLink[];
 };
 
 const PLATFORMS = [
@@ -46,15 +52,25 @@ const PLATFORM_LABELS: Record<string, string> = {
   AUTRE: "Autre",
 };
 
+const STATUS_STYLE: Record<string, string> = {
+  pending: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+  approved: "border-green-500/30 bg-green-500/10 text-green-400",
+  rejected: "border-red-500/30 bg-red-500/10 text-red-400",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: "En attente de validation",
+  approved: "Validé",
+  rejected: "Refusé",
+};
+
 export default function ProfilePage() {
   const { isLoaded, isSignedIn } = useUser();
   const [data, setData] = useState<MeData | null>(null);
   const [fetched, setFetched] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-
   const [roles, setRoles] = useState<CreatorRole[]>([]);
-  const [links, setLinks] = useState<SocialLink[]>([]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -63,7 +79,6 @@ export default function ProfilePage() {
       .then((d) => {
         setData(d);
         setRoles(d.creatorRoles ?? []);
-        setLinks(d.socialLinks ?? []);
         setFetched(true);
       });
   }, [isLoaded, isSignedIn]);
@@ -77,7 +92,7 @@ export default function ProfilePage() {
     setRoles((prev) =>
       prev.find((r) => r.type === type)
         ? prev.filter((r) => r.type !== type)
-        : [...prev, { type, displayOnWiki: false }],
+        : [...prev, { type, displayOnWiki: false, socialLinks: [] }],
     );
   }
 
@@ -89,9 +104,46 @@ export default function ProfilePage() {
     );
   }
 
-  function updateLink(i: number, field: keyof SocialLink, value: string) {
-    setLinks((prev) =>
-      prev.map((l, idx) => (idx === i ? { ...l, [field]: value } : l)),
+  function addLink(type: "ARTISTE" | "EDITEUR") {
+    setRoles((prev) =>
+      prev.map((r) =>
+        r.type === type
+          ? {
+              ...r,
+              socialLinks: [...r.socialLinks, { platform: "TIKTOK", url: "" }],
+            }
+          : r,
+      ),
+    );
+  }
+
+  function updateLink(
+    type: "ARTISTE" | "EDITEUR",
+    i: number,
+    field: keyof SocialLink,
+    value: string,
+  ) {
+    setRoles((prev) =>
+      prev.map((r) =>
+        r.type === type
+          ? {
+              ...r,
+              socialLinks: r.socialLinks.map((l, idx) =>
+                idx === i ? { ...l, [field]: value } : l,
+              ),
+            }
+          : r,
+      ),
+    );
+  }
+
+  function removeLink(type: "ARTISTE" | "EDITEUR", i: number) {
+    setRoles((prev) =>
+      prev.map((r) =>
+        r.type === type
+          ? { ...r, socialLinks: r.socialLinks.filter((_, idx) => idx !== i) }
+          : r,
+      ),
     );
   }
 
@@ -99,15 +151,15 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       await updateCreatorProfile({
-        roles,
-        socialLinks: links.map((l) => ({
-          platform: l.platform as never,
-          url: l.url,
+        roles: roles.map((r) => ({
+          ...r,
+          socialLinks: r.socialLinks.map((l) => ({
+            platform: l.platform as never,
+            url: l.url,
+          })),
         })),
       });
-      setData((prev) =>
-        prev ? { ...prev, creatorRoles: roles, socialLinks: links } : prev,
-      );
+      setData((prev) => (prev ? { ...prev, creatorRoles: roles } : prev));
       setEditing(false);
     } catch (err) {
       console.error(err);
@@ -118,7 +170,7 @@ export default function ProfilePage() {
 
   return (
     <section className="space-y-4 p-4 lg:p-5">
-      {/* Header profil — inchangé */}
+      {/* Header profil */}
       <div className="space-y-5 rounded-xl border border-border bg-card p-5 lg:p-8">
         <div className="flex items-center gap-3.5">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-muted overflow-hidden">
@@ -160,82 +212,38 @@ export default function ProfilePage() {
         </div>
 
         {!loading && isSignedIn && (
-          <div className="border-t border-border pt-5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
-              Badges
-            </p>
-            {data?.badges.length ? (
-              <div className="flex flex-wrap gap-2">
-                {data.badges.map((b) => (
-                  <BadgePill key={b} badgeKey={b} />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Aucun badge pour l&apos;instant, peut-être qu&apos;ils
-                arriveront plus tard...
+          <>
+            <div className="border-t border-border pt-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
+                Badges
               </p>
-            )}
-          </div>
+              {data?.badges.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {data.badges.map((b) => (
+                    <BadgePill key={b} badgeKey={b} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Aucun badge pour l&apos;instant, peut-être qu&apos;ils
+                  arriveront plus tard...
+                </p>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-5">
+              <div className="flex  gap-2 mb-2">
+                <PencilLine className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">
+                  Total de propositions de modifications : {totalSuggestions}
+                </p>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Stats contributions — inchangé */}
-      {!loading && isSignedIn && (
-        <div className="space-y-5 rounded-xl border border-border bg-card p-5 lg:p-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted">
-              <Trophy className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-base font-medium">Contributions</p>
-              <p className="text-xs text-muted-foreground">
-                Tes propositions de modifications
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 border-t border-border pt-5">
-            {[
-              {
-                label: "Total",
-                value: totalSuggestions,
-                color: "text-text-primary",
-              },
-              {
-                label: "Acceptées",
-                value: data?.stats.accepted ?? 0,
-                color: "text-accent-light",
-              },
-              {
-                label: "En attente",
-                value: data?.stats.pending ?? 0,
-                color: "text-amber-400",
-              },
-            ].map(({ label, value, color }) => (
-              <div
-                key={label}
-                className="flex flex-col gap-1 rounded-lg border border-border bg-muted p-4"
-              >
-                <span className={`text-[22px] font-bold ${color}`}>
-                  {value}
-                </span>
-                <span className="text-xs text-muted-foreground">{label}</span>
-              </div>
-            ))}
-          </div>
-
-          {(data?.stats.rejected ?? 0) > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {data!.stats.rejected} proposition
-              {data!.stats.rejected > 1 ? "s" : ""} refusée
-              {data!.stats.rejected > 1 ? "s" : ""}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Section créateur de contenu */}
+      {/* Section créateur */}
       {!loading && isSignedIn && (
         <div className="space-y-5 rounded-xl border border-border bg-card p-5 lg:p-8">
           <div className="flex items-center justify-between">
@@ -250,7 +258,6 @@ export default function ProfilePage() {
                 </p>
               </div>
             </div>
-
             {!editing ? (
               <button
                 onClick={() => setEditing(true)}
@@ -271,16 +278,15 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="border-t border-border pt-5 space-y-5">
-            {/* Rôles */}
+          <div className="border-t border-border pt-5 space-y-3">
+            {/* Sélection des rôles */}
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
                 Rôles
               </p>
               <div className="flex flex-wrap gap-2">
                 {(["ARTISTE", "EDITEUR"] as const).map((type) => {
-                  const role = roles.find((r) => r.type === type);
-                  const active = !!role;
+                  const active = !!roles.find((r) => r.type === type);
                   return (
                     <button
                       key={type}
@@ -297,111 +303,130 @@ export default function ProfilePage() {
                   );
                 })}
               </div>
-
-              {roles.length > 0 && (
-                <div className="mt-3 space-y-1.5">
-                  {roles.map((r) => (
-                    <label
-                      key={r.type}
-                      className={`flex items-center gap-2 text-xs ${editing ? "text-text-primary" : "text-muted-foreground"}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={r.displayOnWiki}
-                        disabled={!editing}
-                        onChange={() => toggleDisplay(r.type)}
-                        className="accent-accent"
-                      />
-                      M&apos;afficher sur la page{" "}
-                      {r.type === "ARTISTE" ? "Artistes" : "Edits"} du wiki
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              {roles.length === 0 && !editing && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Aucun rôle créateur défini.
-                </p>
-              )}
             </div>
 
-            {/* Liens */}
-            <div className="border-t border-border pt-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
-                <Link2 className="h-3 w-3" />
-                Réseaux sociaux
-              </p>
-
-              {!editing ? (
-                links.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {links.map((l, i) => (
-                      <a
-                        key={i}
-                        href={l.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs text-muted-foreground hover:text-text-primary transition-colors"
+            {/* Sections par rôle */}
+            {roles.map((role) => (
+              <div
+                key={role.type}
+                className="rounded-lg border border-border bg-muted p-4 space-y-3"
+              >
+                {/* Titre + statut + toggle wiki */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    {role.type === "ARTISTE" ? (
+                      <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+                    ) : (
+                      <Film className="h-3.5 w-3.5 text-blue-400" />
+                    )}
+                    <span className="text-[13px] font-medium text-text-primary">
+                      {role.type === "ARTISTE" ? "Fan art" : "Edits"}
+                    </span>
+                    {role.status && (
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_STYLE[role.status] ?? ""}`}
                       >
-                        {PLATFORM_LABELS[l.platform] ?? l.platform}
-                      </a>
-                    ))}
+                        {STATUS_LABEL[role.status] ?? role.status}
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Aucun lien renseigné.
+                  <label
+                    className={`flex items-center gap-1.5 text-xs ${editing ? "text-text-primary cursor-pointer" : "text-muted-foreground"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={role.displayOnWiki}
+                      disabled={!editing}
+                      onChange={() => toggleDisplay(role.type)}
+                      className="accent-accent"
+                    />
+                    Afficher sur le wiki
+                  </label>
+                </div>
+
+                {/* Liens du rôle */}
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
+                    <Link2 className="h-2.5 w-2.5" />
+                    Réseaux
                   </p>
-                )
-              ) : (
-                <div className="space-y-2">
-                  {links.map((link, i) => (
-                    <div key={i} className="flex gap-2">
-                      <select
-                        value={link.platform}
-                        onChange={(e) =>
-                          updateLink(i, "platform", e.target.value)
-                        }
-                        className="rounded-md border border-border bg-muted px-2 text-xs text-text-primary outline-none focus:border-accent"
-                      >
-                        {PLATFORMS.map((p) => (
-                          <option key={p} value={p}>
-                            {PLATFORM_LABELS[p]}
-                          </option>
+                  {!editing ? (
+                    role.socialLinks.length ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {role.socialLinks.map((l, i) => (
+                          <a
+                            key={i}
+                            href={l.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-muted-foreground hover:text-text-primary border border-border bg-elevated rounded-md px-2 py-0.5 transition-colors"
+                          >
+                            {PLATFORM_LABELS[l.platform] ?? l.platform}
+                          </a>
                         ))}
-                      </select>
-                      <input
-                        type="url"
-                        value={link.url}
-                        onChange={(e) => updateLink(i, "url", e.target.value)}
-                        placeholder="https://..."
-                        className="flex-1 rounded-md border border-border bg-muted px-3 text-xs text-text-primary placeholder-muted-foreground outline-none focus:border-accent"
-                      />
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">
+                        Aucun lien renseigné.
+                      </p>
+                    )
+                  ) : (
+                    <div className="space-y-1.5">
+                      {role.socialLinks.map((link, i) => (
+                        <div key={i} className="flex gap-2">
+                          <select
+                            value={link.platform}
+                            onChange={(e) =>
+                              updateLink(
+                                role.type,
+                                i,
+                                "platform",
+                                e.target.value,
+                              )
+                            }
+                            className="rounded-md border border-border bg-card px-2 text-xs text-text-primary outline-none focus:border-accent"
+                          >
+                            {PLATFORMS.map((p) => (
+                              <option key={p} value={p}>
+                                {PLATFORM_LABELS[p]}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="url"
+                            value={link.url}
+                            onChange={(e) =>
+                              updateLink(role.type, i, "url", e.target.value)
+                            }
+                            placeholder="https://..."
+                            className="flex-1 rounded-md border border-border bg-card px-3 text-xs text-text-primary placeholder-muted-foreground outline-none focus:border-accent"
+                          />
+                          <button
+                            onClick={() => removeLink(role.type, i)}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-red-400 transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
                       <button
-                        onClick={() =>
-                          setLinks((prev) => prev.filter((_, idx) => idx !== i))
-                        }
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-red-400 transition-colors"
+                        onClick={() => addLink(role.type)}
+                        className="flex items-center gap-1.5 text-xs font-medium text-accent-light hover:text-accent transition-colors"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <Plus className="h-3.5 w-3.5" />
+                        Ajouter un lien
                       </button>
                     </div>
-                  ))}
-                  <button
-                    onClick={() =>
-                      setLinks((prev) => [
-                        ...prev,
-                        { platform: "TWITTER", url: "" },
-                      ])
-                    }
-                    className="flex items-center gap-1.5 text-xs font-medium text-accent-light hover:text-accent transition-colors"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Ajouter un lien
-                  </button>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
+
+            {roles.length === 0 && !editing && (
+              <p className="text-sm text-muted-foreground">
+                Aucun rôle créateur défini.
+              </p>
+            )}
           </div>
         </div>
       )}

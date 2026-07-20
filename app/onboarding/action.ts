@@ -5,20 +5,20 @@ import { prisma } from "@/lib/db";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { CreatorType, SocialPlatform } from "@prisma/client";
 
-type CreatorRoleInput = {
-  type: CreatorType;
-  displayOnWiki: boolean;
-};
-
 type SocialLinkInput = {
   platform: SocialPlatform;
   url: string;
 };
 
+type CreatorRoleInput = {
+  type: CreatorType;
+  displayOnWiki: boolean;
+  socialLinks: SocialLinkInput[];
+};
+
 export async function completeOnboarding(data: {
   pseudo: string;
   roles: CreatorRoleInput[];
-  socialLinks: SocialLinkInput[];
 }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
@@ -29,14 +29,22 @@ export async function completeOnboarding(data: {
       clerkUserId: userId,
       pseudo: data.pseudo,
       onboardingComplete: true,
-      creatorRoles: { create: data.roles },
-      socialLinks: { create: data.socialLinks },
+      creatorRoles: {
+        create: data.roles.map((r) => ({
+          type: r.type,
+          displayOnWiki: r.displayOnWiki,
+          status: "pending",
+          socialLinks: {
+            createMany: {
+              data: r.socialLinks.filter((l) => l.url.trim() !== ""),
+            },
+          },
+        })),
+      },
     },
     update: {
       pseudo: data.pseudo,
       onboardingComplete: true,
-      creatorRoles: { create: data.roles },
-      socialLinks: { create: data.socialLinks },
     },
   });
 
@@ -48,7 +56,6 @@ export async function completeOnboarding(data: {
 
 export async function updateCreatorProfile(data: {
   roles: CreatorRoleInput[];
-  socialLinks: SocialLinkInput[];
 }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
@@ -57,51 +64,53 @@ export async function updateCreatorProfile(data: {
     where: { clerkUserId: userId },
     create: { clerkUserId: userId, onboardingComplete: true },
     update: {},
-    include: { creatorRoles: true },
   });
 
-  await prisma.$transaction(async (tx) => {
-    // Supprimer les rôles qui ne sont plus sélectionnés
-    const newTypes = data.roles.map((r) => r.type);
-    await tx.creatorRole.deleteMany({
-      where: {
-        userProfileId: profile.id,
-        type: { notIn: newTypes },
-      },
-    });
+  const newTypes = data.roles.map((r) => r.type);
 
-    const existingRoles = await tx.creatorRole.findMany({
-      where: { userProfileId: profile.id },
-    });
-    const existingTypes = existingRoles.map((r) => r.type);
+  const existingRoles = await prisma.creatorRole.findMany({
+    where: { userProfileId: profile.id },
+    select: { id: true, type: true },
+  });
+  const existingTypes = existingRoles.map((r) => r.type);
 
-    // Upsert chaque rôle — préserve le status existant
-    for (const role of data.roles) {
-      if (existingTypes.includes(role.type)) {
-        // Rôle existant → update displayOnWiki uniquement, status intact
-        await tx.creatorRole.updateMany({
-          where: { userProfileId: profile.id, type: role.type },
-          data: { displayOnWiki: role.displayOnWiki },
-        });
-      } else {
-        // Nouveau rôle → create avec pending
-        await tx.creatorRole.create({
-          data: {
-            userProfileId: profile.id,
-            type: role.type,
-            displayOnWiki: role.displayOnWiki,
-            status: "pending",
+  // Supprimer les rôles décochés (cascade supprime leurs liens)
+  await prisma.creatorRole.deleteMany({
+    where: { userProfileId: profile.id, type: { notIn: newTypes } },
+  });
+
+  for (const role of data.roles) {
+    const existing = existingRoles.find((r) => r.type === role.type);
+
+    if (existing) {
+      // Rôle existant → update displayOnWiki + remplace les liens
+      await prisma.creatorRole.update({
+        where: { id: existing.id },
+        data: {
+          displayOnWiki: role.displayOnWiki,
+          socialLinks: {
+            deleteMany: {},
+            createMany: {
+              data: role.socialLinks.filter((l) => l.url.trim() !== ""),
+            },
           },
-        });
-      }
+        },
+      });
+    } else {
+      // Nouveau rôle → pending
+      await prisma.creatorRole.create({
+        data: {
+          userProfileId: profile.id,
+          type: role.type,
+          displayOnWiki: role.displayOnWiki,
+          status: "pending",
+          socialLinks: {
+            createMany: {
+              data: role.socialLinks.filter((l) => l.url.trim() !== ""),
+            },
+          },
+        },
+      });
     }
-
-    // Liens — pas de statut, delete+create reste ok
-    await tx.socialLink.deleteMany({ where: { userProfileId: profile.id } });
-    await tx.socialLink.createMany({
-      data: data.socialLinks
-        .filter((l) => l.url.trim() !== "")
-        .map((l) => ({ ...l, userProfileId: profile.id })),
-    });
-  });
+  }
 }

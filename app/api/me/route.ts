@@ -13,8 +13,9 @@ export async function GET() {
     prisma.userProfile.findUnique({
       where: { clerkUserId: userId },
       include: {
-        creatorRoles: true,
-        socialLinks: true,
+        creatorRoles: {
+          include: { socialLinks: true }, // ← liens dans le rôle
+        },
       },
     }),
     prisma.suggestion.groupBy({
@@ -40,12 +41,11 @@ export async function GET() {
       profile?.creatorRoles.map((r) => ({
         type: r.type,
         displayOnWiki: r.displayOnWiki,
-      })) ?? [],
-    socialLinks:
-      profile?.socialLinks.map((l) => ({
-        id: l.id,
-        platform: l.platform,
-        url: l.url,
+        status: r.status,
+        socialLinks: r.socialLinks.map((l) => ({
+          platform: l.platform,
+          url: l.url,
+        })),
       })) ?? [],
   });
 }
