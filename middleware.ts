@@ -15,14 +15,25 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
 
   // --- Onboarding check ---
   if (userId && !isOnboardingRoute(req) && !isPublicRoute(req)) {
-    const onboardingComplete = sessionClaims?.onboardingComplete === true;
+    try {
+      const checkUrl = new URL("/api/check-onboarding", req.url);
+      const res = await fetch(checkUrl, {
+        headers: { cookie: req.headers.get("cookie") ?? "" },
+      });
 
-    if (!onboardingComplete) {
-      return NextResponse.redirect(new URL("/onboarding", req.url));
+      if (res.ok) {
+        const json = await res.json();
+        if (!json.complete) {
+          return NextResponse.redirect(new URL("/onboarding", req.url));
+        }
+      }
+      // Si res pas ok → on laisse passer plutôt que boucler
+    } catch {
+      // Erreur réseau → on laisse passer
     }
   }
 
