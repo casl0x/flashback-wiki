@@ -16,6 +16,8 @@ import { useEffect, useState } from "react";
 import { getAvatarStyle, getInitials } from "../wiki/CharacterCard";
 import { BadgeKey, BADGES_CONFIG, PlayerBadges } from "./PlayerBadges";
 
+const PER_PAGE = 15;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Player = {
@@ -100,10 +102,20 @@ export function PlayersTab() {
   });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const filtered = players.filter((p) =>
     p.pseudo.toLowerCase().includes(search.toLowerCase()),
   );
+
+  // Remettre à la page 1 quand la recherche change
+  function handleSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   useEffect(() => {
     let cancelled = false;
@@ -239,7 +251,7 @@ export function PlayersTab() {
         <div className="flex items-center gap-2">
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             placeholder="Rechercher…"
             className="h-7 text-[11px] w-36 bg-elevated border-border-mid"
           />
@@ -255,7 +267,7 @@ export function PlayersTab() {
 
       {/* Liste */}
       <div className="flex flex-col gap-2">
-        {filtered.map((p) => {
+        {paginated.map((p) => {
           const avatarStyle = getAvatarStyle(p.pseudo);
           const reseauxEntries = Object.entries(p.reseaux ?? {}) as [
             ReseauKey,
@@ -348,6 +360,61 @@ export function PlayersTab() {
           );
         })}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+          <button
+            onClick={() => setPage((p) => p - 1)}
+            disabled={page === 1}
+            className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-elevated transition-colors disabled:opacity-30 disabled:cursor-default cursor-pointer"
+          >
+            ← Préc.
+          </button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(
+                (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1,
+              )
+              .reduce<(number | "…")[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("…");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "…" ? (
+                  <span
+                    key={`d${i}`}
+                    className="text-[11px] text-text-faint px-1"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(Number(p))}
+                    className={`w-7 h-7 rounded text-[11px] transition-colors cursor-pointer ${
+                      p === page
+                        ? "bg-elevated border border-border-mid text-text-primary font-medium"
+                        : "text-text-muted hover:text-text-primary hover:bg-elevated"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
+          </div>
+
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page === totalPages}
+            className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-elevated transition-colors disabled:opacity-30 disabled:cursor-default cursor-pointer"
+          >
+            Suiv. →
+          </button>
+        </div>
+      )}
 
       {/* Modal add/edit */}
       <Dialog
