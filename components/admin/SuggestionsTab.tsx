@@ -47,7 +47,7 @@ export function SuggestionsTab() {
           <CardContent className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1.5 min-w-0">
               <p className="text-[12px] font-semibold text-text-primary">
-                {s.character.nom}
+                {s.character?.nom ?? s.nom ?? "Nouveau personnage"}
               </p>
               {[
                 { label: "Nom", value: s.nom },

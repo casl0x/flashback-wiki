@@ -10,24 +10,45 @@ import {
 import { Input } from "@/components/ui/input";
 import { Character } from "@/lib/db";
 import { useUser } from "@clerk/nextjs";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function SuggestEditButton({ character }: { character: Character }) {
+type Mode = "create" | "edit";
+
+interface SuggestButtonProps {
+  mode: Mode;
+  character?: Character; // requis en mode "edit"
+}
+
+const EMPTY_FORM = {
+  nom: "",
+  metier: "",
+  groupe: "",
+  description: "",
+  note: "",
+};
+
+export function SuggestButton({ mode, character }: SuggestButtonProps) {
   const { isSignedIn } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
+
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    nom: character.nom,
-    metier: character.metier ?? "",
-    groupe: character.groupe ?? "",
-    description: character.description ?? "",
-    note: "",
-  });
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const pathname = usePathname();
+
+  const [form, setForm] = useState(() =>
+    mode === "edit" && character
+      ? {
+          nom: character.nom,
+          metier: character.metier ?? "",
+          groupe: character.groupe ?? "",
+          description: character.description ?? "",
+          note: "",
+        }
+      : EMPTY_FORM,
+  );
 
   function handleClick() {
     if (!isSignedIn) {
@@ -37,16 +58,51 @@ export function SuggestEditButton({ character }: { character: Character }) {
     setOpen(true);
   }
 
+  function handleOpenChange(o: boolean) {
+    setOpen(o);
+    if (!o) setSent(false);
+  }
+
   async function submit() {
     setLoading(true);
-    await fetch("/api/suggestions", {
+
+    const endpoint = "/api/suggestions";
+    const body =
+      mode === "edit" ? { characterId: character?.id, ...form } : { ...form }; // pas de characterId → nouveau perso
+
+    await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ characterId: character.id, ...form }),
+      body: JSON.stringify(body),
     });
+
     setLoading(false);
     setSent(true);
   }
+
+  const isEdit = mode === "edit";
+
+  const fields: {
+    label: string;
+    key: keyof typeof form;
+    placeholder: string;
+  }[] = [
+    {
+      label: "Nom",
+      key: "nom",
+      placeholder: isEdit ? (character?.nom ?? "") : "Nom du personnage",
+    },
+    {
+      label: "Métier",
+      key: "metier",
+      placeholder: isEdit ? (character?.metier ?? "—") : "Métier",
+    },
+    {
+      label: "Groupe",
+      key: "groupe",
+      placeholder: isEdit ? (character?.groupe ?? "—") : "Groupe",
+    },
+  ];
 
   return (
     <>
@@ -54,21 +110,26 @@ export function SuggestEditButton({ character }: { character: Character }) {
         onClick={handleClick}
         className="inline-flex items-center gap-1.5 text-[11px] text-text-muted hover:text-text-secondary px-2.5 py-1 rounded-lg border border-border hover:border-border-mid transition-colors"
       >
-        <Pencil className="w-3 h-3" />
-        Proposer une modification
+        {isEdit ? (
+          <>
+            <Pencil className="w-3 h-3" />
+            Proposer une modification
+          </>
+        ) : (
+          <>
+            <Plus className="w-3 h-3" />
+            Proposer un personnage
+          </>
+        )}
       </button>
 
-      <Dialog
-        open={open}
-        onOpenChange={(o) => {
-          setOpen(o);
-          if (!o) setSent(false);
-        }}
-      >
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="bg-card border-border-mid max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-[14px]">
-              Proposer une modification
+              {isEdit
+                ? "Proposer une modification"
+                : "Proposer un nouveau personnage"}
             </DialogTitle>
           </DialogHeader>
 
@@ -80,25 +141,13 @@ export function SuggestEditButton({ character }: { character: Character }) {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {[
-                { label: "Nom", key: "nom", placeholder: character.nom },
-                {
-                  label: "Métier",
-                  key: "metier",
-                  placeholder: character.metier ?? "—",
-                },
-                {
-                  label: "Groupe",
-                  key: "groupe",
-                  placeholder: character.groupe ?? "—",
-                },
-              ].map(({ label, key, placeholder }) => (
+              {fields.map(({ label, key, placeholder }) => (
                 <div key={key} className="flex flex-col gap-1">
                   <label className="text-[10px] uppercase tracking-widest text-text-muted">
                     {label}
                   </label>
                   <Input
-                    value={form[key as keyof typeof form]}
+                    value={form[key]}
                     onChange={(e) =>
                       setForm((p) => ({ ...p, [key]: e.target.value }))
                     }
@@ -106,6 +155,7 @@ export function SuggestEditButton({ character }: { character: Character }) {
                   />
                 </div>
               ))}
+
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
                   Description
@@ -116,12 +166,17 @@ export function SuggestEditButton({ character }: { character: Character }) {
                   onChange={(e) =>
                     setForm((p) => ({ ...p, description: e.target.value }))
                   }
-                  placeholder={character.description ?? "—"}
+                  placeholder={
+                    isEdit
+                      ? (character?.description ?? "—")
+                      : "Description du personnage"
+                  }
                 />
               </div>
+
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Note (exemple: relations, lieux de vie, etc - optionnel)
+                  Note (relations, lieux de vie, etc — optionnel)
                 </label>
                 <Input
                   value={form.note}

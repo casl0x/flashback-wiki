@@ -7,7 +7,7 @@ import { Character } from "@/lib/db";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { LifeStateIcon } from "../admin/LifeStateIcon";
-import { SuggestEditButton } from "../user/SuggestEditButton";
+import { SuggestButton } from "../user/SuggestEditButton";
 import CharacterCard from "./CharacterCard";
 
 const CharacterMapWidget = dynamic(
@@ -112,7 +112,7 @@ export default function CharacterDetail({
 
               {/* Bouton suggestion — sous les badges, discret */}
               <div className="mt-3">
-                <SuggestEditButton character={c} />
+                <SuggestButton mode="edit" character={c} />
               </div>
             </div>
 

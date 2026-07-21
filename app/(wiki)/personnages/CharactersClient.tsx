@@ -1,6 +1,7 @@
 "use client";
 
 import Pagination from "@/components/Pagination";
+import { SuggestButton } from "@/components/user/SuggestEditButton";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
 import EmptyState from "@/components/wiki/EmptyState";
 import HeaderBlock from "@/components/wiki/HeaderBlock";
@@ -138,6 +139,9 @@ export default function CharactersClient({ characters }: Props) {
                   {v.label}
                 </button>
               ))}
+            </div>
+            <div className="items-end flex flex-1 justify-end">
+              <SuggestButton mode="create" />
             </div>
           </div>
 

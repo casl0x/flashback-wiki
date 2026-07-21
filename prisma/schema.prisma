@@ -154,8 +154,8 @@ model Relation {
 model Suggestion {
   id          String   @id @default(cuid())
   clerkUserId String?
-  characterId String
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  characterId String?
+  character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
   nom         String?
   metier      String?
   groupe      String?
