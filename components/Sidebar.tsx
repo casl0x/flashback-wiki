@@ -2,8 +2,10 @@
 
 import AdminButton from "@/components/admin/AdminButton";
 import { cn } from "@/lib/cn";
+import { BadgeInfo } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "./ui/button";
 
 type Props = {
   open?: boolean;
@@ -17,7 +19,7 @@ export default function Sidebar({ open, onClose }: Props) {
     pathname === href || pathname.startsWith(`${href}/`);
 
   const content = (
-    <div className="flex flex-col gap-2 p-3 z-100 sticky top-15">
+    <div className="flex flex-col gap-2 p-3 z-100 sticky top-15 h-full">
       <Link
         href="/"
         onClick={onClose}
@@ -106,9 +108,22 @@ export default function Sidebar({ open, onClose }: Props) {
 
       {/* Séparateur */}
       <div className="my-1 border-t border-border" />
+      <Button variant="ghost" className="w-full justify-start gap-2">
+        <a
+          href="https://discord.gg/9B5dn8EVsw"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-[13px] text-text-secondary hover:text-accent-light"
+        >
+          <BadgeInfo className="w-4 h-4" />
+          Rejoindre le Discord
+        </a>
+      </Button>
 
       {/* Bouton admin/connexion */}
-      <AdminButton />
+      <div className="absolute bottom-0 left-0 w-full mb-10 px-3">
+        <AdminButton />
+      </div>
     </div>
   );
 

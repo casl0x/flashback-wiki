@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
 
 type Props = {
   totalChars: number;
@@ -39,15 +40,13 @@ export default function NavBar({
 
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent font-bold text-white">
-            ⚡
-          </div>
-          <div>
-            <div className="font-display text-[16px] font-bold leading-tight text-text-primary">
-              FLASH<span className="text-accent-light">BACK</span>
-            </div>
-            <div className="text-[10px] text-text-faint">— Wiki WL</div>
-          </div>
+          <Image
+            src="/icon.png"
+            alt="Logo"
+            width={48}
+            height={48}
+            className="rounded-full"
+          />
         </div>
 
         {/* Search + badges */}
