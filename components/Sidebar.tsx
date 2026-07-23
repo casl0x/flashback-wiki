@@ -18,7 +18,7 @@ export default function Sidebar({ open, onClose }: Props) {
     pathname === href || pathname.startsWith(`${href}/`);
 
   const content = (
-    <div className="flex flex-col gap-2 p-3 z-100 sticky top-15 h-screen">
+    <div className="flex flex-col gap-2 p-3 overflow-y-auto h-full">
       <Link
         href="/"
         onClick={onClose}
@@ -130,7 +130,7 @@ export default function Sidebar({ open, onClose }: Props) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card">
+      <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card sticky top-0 h-screen">
         {content}
       </aside>
 
