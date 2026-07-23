@@ -111,7 +111,7 @@ export default function Sidebar({ open, onClose }: Props) {
         href="https://discord.gg/9B5dn8EVsw"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-3 px-2 py-3 text-xs text-text-faint"
+        className="flex items-center gap-3 text-xs text-text-faint"
       >
         <BadgeInfo className="w-4 h-4" />
         <div>
@@ -132,7 +132,7 @@ export default function Sidebar({ open, onClose }: Props) {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card sticky top-[72px] h-[calc(100vh-72px)]">
         <div className="flex flex-col gap-2 p-3 overflow-y-auto h-full">
-        {content}
+          {content}
         </div>
       </aside>
 

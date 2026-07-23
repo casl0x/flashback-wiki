@@ -1,9 +1,4 @@
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Heart, Meh, Plane, Skull } from "lucide-react";
 import { ComponentType } from "react";
 
@@ -47,18 +42,13 @@ export function LifeStateIcon({ etat }: { etat: string }) {
   const Icon = cfg.icon;
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger>
-          <span className="inline-flex items-center justify-center rounded-full bg-elevated border border-border p-0.5 cursor-default">
-            <Icon className="w-2.5 h-2.5 text-text-muted" />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          <p className="text-xs font-medium">{cfg.label}</p>
-          <p className="text-xs text-muted-foreground">{cfg.description}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Badge
+      variant="secondary"
+      className="flex items-center gap-1.5 text-[11px] font-medium capitalize"
+      title={cfg.description}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      <span>{cfg.label}</span>
+    </Badge>
   );
 }

@@ -72,12 +72,6 @@ export default function CharacterDetail({
             <div className="flex-1 min-w-0">
               <h2 className="font-display font-bold text-[18px] sm:text-[20px] text-text-primary tracking-wide flex items-center gap-2">
                 {c.nom}
-                <LifeStateIcon
-                  etat={
-                    (c.etatVie as "EN_VIE" | "MORT" | "PARTI" | "DISPARU") ??
-                    "EN_VIE"
-                  }
-                />
               </h2>
               {c.metier && (
                 <p className="text-[13px] text-text-muted mb-1">
@@ -108,6 +102,12 @@ export default function CharacterDetail({
                     {c.role === "civil" ? "Civil" : "Illégal"}
                   </Badge>
                 )}
+                <LifeStateIcon
+                  etat={
+                    (c.etatVie as "EN_VIE" | "MORT" | "PARTI" | "DISPARU") ??
+                    "EN_VIE"
+                  }
+                />
               </div>
 
               {/* Bouton suggestion — sous les badges, discret */}
