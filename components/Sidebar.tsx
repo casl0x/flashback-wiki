@@ -18,7 +18,7 @@ export default function Sidebar({ open, onClose }: Props) {
     pathname === href || pathname.startsWith(`${href}/`);
 
   const content = (
-    <div className="flex flex-col gap-2 p-3 z-100 sticky top-15 h-vh-100">
+    <div className="flex flex-col gap-2 p-3 z-100 sticky top-15 h-screen">
       <Link
         href="/"
         onClick={onClose}
