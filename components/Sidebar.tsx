@@ -130,8 +130,10 @@ export default function Sidebar({ open, onClose }: Props) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card sticky top-0 h-screen">
+      <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card sticky top-[72px] h-[calc(100vh-72px)]">
+        <div className="flex flex-col gap-2 p-3 overflow-y-auto h-full">
         {content}
+        </div>
       </aside>
 
       {/* Mobile drawer */}
