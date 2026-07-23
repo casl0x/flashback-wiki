@@ -43,7 +43,7 @@ export function SuggestButton({ mode, character }: SuggestButtonProps) {
       ? {
           nom: character.nom,
           metier: character.metier ?? "",
-          groupe: character.groupe ?? "",
+          groupe: character.groupes?.map((g) => g.nom).join(", ") ?? "",
           description: character.description ?? "",
           note: "",
         }
@@ -100,7 +100,9 @@ export function SuggestButton({ mode, character }: SuggestButtonProps) {
     {
       label: "Groupe",
       key: "groupe",
-      placeholder: isEdit ? (character?.groupe ?? "—") : "Groupe",
+      placeholder: isEdit
+        ? (character?.groupes?.map((g) => g.nom).join(", ") ?? "—")
+        : "Groupe",
     },
   ];
 
