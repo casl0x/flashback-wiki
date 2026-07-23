@@ -14,12 +14,7 @@ type CreatorRoleInput = {
   socialLinks: { platform: SocialPlatform; url: string }[];
 };
 
-const SOCIAL_PLATFORMS: SocialPlatform[] = [
-  "TIKTOK",
-  "YOUTUBE",
-  "INSTAGRAM",
-  "AUTRE",
-];
+const SOCIAL_PLATFORMS: SocialPlatform[] = ["TIKTOK", "YOUTUBE", "INSTAGRAM", "AUTRE"];
 const PLATFORM_LABELS: Record<SocialPlatform, string> = {
   TIKTOK: "TikTok",
   YOUTUBE: "YouTube",
@@ -27,10 +22,7 @@ const PLATFORM_LABELS: Record<SocialPlatform, string> = {
   AUTRE: "Autre",
 };
 
-const ROLE_LABELS: Record<
-  "ARTISTE" | "EDITEUR",
-  { label: string; sub: string }
-> = {
+const ROLE_LABELS: Record<"ARTISTE" | "EDITEUR", { label: string; sub: string }> = {
   ARTISTE: {
     label: "Artiste (fan art)",
     sub: "Tu crées des fan arts des persos ou scènes de Flashback WL",
@@ -41,18 +33,27 @@ const ROLE_LABELS: Record<
   },
 };
 
+const RULES = [
+  "Le contenu partagé doit être en lien avec Flashback WL",
+  "Pas de contenu offensant ou haineux",
+  "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
+  "Les liens partagés doivent pointer vers ton propre contenu",
+  "Les comptes de clipfarming ne seront pas acceptés",
+  "Chaque demande est examinée manuellement avant d'apparaître sur la page",
+  "Aucun délai de validation garanti - sois patient",
+];
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { session } = useSession();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const [pseudo, setPseudo] = useState("");
   const [wantsCreator, setWantsCreator] = useState<boolean | null>(null);
   const [roles, setRoles] = useState<CreatorRoleInput[]>([]);
-
-  const [rulesOpen, setRulesOpen] = useState(false);
 
   function toggleRole(type: "ARTISTE" | "EDITEUR") {
     setRoles((prev) =>
@@ -64,9 +65,7 @@ export default function OnboardingPage() {
 
   function toggleDisplay(type: "ARTISTE" | "EDITEUR") {
     setRoles((prev) =>
-      prev.map((r) =>
-        r.type === type ? { ...r, displayOnWiki: !r.displayOnWiki } : r,
-      ),
+      prev.map((r) => (r.type === type ? { ...r, displayOnWiki: !r.displayOnWiki } : r)),
     );
   }
 
@@ -74,33 +73,17 @@ export default function OnboardingPage() {
     setRoles((prev) =>
       prev.map((r) =>
         r.type === type
-          ? {
-              ...r,
-              socialLinks: [
-                ...r.socialLinks,
-                { platform: "TIKTOK" as SocialPlatform, url: "" },
-              ],
-            }
+          ? { ...r, socialLinks: [...r.socialLinks, { platform: "TIKTOK" as SocialPlatform, url: "" }] }
           : r,
       ),
     );
   }
 
-  function updateLink(
-    type: "ARTISTE" | "EDITEUR",
-    i: number,
-    field: "platform" | "url",
-    value: string,
-  ) {
+  function updateLink(type: "ARTISTE" | "EDITEUR", i: number, field: "platform" | "url", value: string) {
     setRoles((prev) =>
       prev.map((r) =>
         r.type === type
-          ? {
-              ...r,
-              socialLinks: r.socialLinks.map((l, idx) =>
-                idx === i ? { ...l, [field]: value } : l,
-              ),
-            }
+          ? { ...r, socialLinks: r.socialLinks.map((l, idx) => (idx === i ? { ...l, [field]: value } : l)) }
           : r,
       ),
     );
@@ -114,6 +97,20 @@ export default function OnboardingPage() {
           : r,
       ),
     );
+  }
+
+  async function handleSubmitDirect() {
+    setLoading(true);
+    setError(null);
+    try {
+      await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
+      await session?.reload();
+      router.push("/");
+    } catch (err) {
+      console.error(err);
+      setError("Une erreur est survenue, réessaie.");
+      setLoading(false);
+    }
   }
 
   async function handleSubmit() {
@@ -157,11 +154,7 @@ export default function OnboardingPage() {
             <div
               key={s}
               className={`h-1 rounded-full transition-all ${
-                s === step
-                  ? "w-6 bg-accent"
-                  : s < step
-                    ? "w-3 bg-accent/40"
-                    : "w-3 bg-border"
+                s === step ? "w-6 bg-accent" : s < step ? "w-3 bg-accent/40" : "w-3 bg-border"
               }`}
             />
           ))}
@@ -169,11 +162,7 @@ export default function OnboardingPage() {
 
         <div className="bg-card border border-border rounded-xl p-6">
           <p className="text-[9px] font-medium text-text-muted uppercase tracking-widest mb-1">
-            {step === 1
-              ? "Bienvenue"
-              : step === 2
-                ? "Créateur de contenu"
-                : "Ton profil créateur"}
+            {step === 1 ? "Bienvenue" : step === 2 ? "Créateur de contenu" : "Ton profil créateur"}
           </p>
 
           {/* Étape 1 — pseudo */}
@@ -221,61 +210,43 @@ export default function OnboardingPage() {
                 Es-tu créateur de contenu ?
               </h1>
               <p className="text-[12px] text-text-muted leading-relaxed">
-                Fan art, edits vidéo, montages... Si tu crées du contenu autour
-                de Flashback WL, tu peux apparaître sur la page créateurs du
-                wiki après validation.
+                Fan art, edits vidéo, montages... Si tu crées du contenu autour de Flashback WL, tu peux apparaître sur la page créateurs du wiki après validation.
               </p>
 
               <div className="space-y-2">
                 <button
-                  onClick={() => {
-                    setWantsCreator(true);
-                    setStep(3);
-                  }}
+                  onClick={() => { setWantsCreator(true); setStep(3); }}
                   className={`flex w-full items-center gap-3 rounded-md border px-4 py-3 text-left transition-colors ${
                     wantsCreator === true
                       ? "border-accent/40 bg-accent/10 text-accent-light"
                       : "border-border bg-elevated text-text-secondary hover:text-text-primary"
                   }`}
                 >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 rounded-full border transition-colors ${wantsCreator === true ? "border-accent bg-accent" : "border-border"}`}
-                  />
+                  <span className={`flex h-4 w-4 shrink-0 rounded-full border transition-colors ${wantsCreator === true ? "border-accent bg-accent" : "border-border"}`} />
                   <div>
-                    <p className="text-[13px] font-medium">
-                      Oui, je crée du contenu
-                    </p>
-                    <p className="text-[11px] text-text-muted mt-0.5">
-                      Configurer mon profil créateur
-                    </p>
+                    <p className="text-[13px] font-medium">Oui, je crée du contenu</p>
+                    <p className="text-[11px] text-text-muted mt-0.5">Configurer mon profil créateur</p>
                   </div>
                 </button>
 
                 <button
-                  onClick={() => {
-                    setWantsCreator(false);
-                    setRoles([]);
-                    handleSubmitDirect();
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-md border px-4 py-3 text-left transition-colors ${
+                  onClick={handleSubmitDirect}
+                  disabled={loading}
+                  className={`flex w-full items-center gap-3 rounded-md border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
                     wantsCreator === false
                       ? "border-accent/40 bg-accent/10 text-accent-light"
                       : "border-border bg-elevated text-text-secondary hover:text-text-primary"
                   }`}
                 >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 rounded-full border transition-colors ${wantsCreator === false ? "border-accent bg-accent" : "border-border"}`}
-                  />
+                  <span className={`flex h-4 w-4 shrink-0 rounded-full border transition-colors ${wantsCreator === false ? "border-accent bg-accent" : "border-border"}`} />
                   <div>
-                    <p className="text-[13px] font-medium">
-                      Non, juste spectateur
-                    </p>
-                    <p className="text-[11px] text-text-muted mt-0.5">
-                      Terminer et accéder au wiki
-                    </p>
+                    <p className="text-[13px] font-medium">Non, juste spectateur</p>
+                    <p className="text-[11px] text-text-muted mt-0.5">Terminer et accéder au wiki</p>
                   </div>
                 </button>
               </div>
+
+              {error && <p className="text-[12px] text-red-400">{error}</p>}
 
               <button
                 onClick={() => setStep(1)}
@@ -292,35 +263,23 @@ export default function OnboardingPage() {
               <h1 className="text-text-primary font-display font-bold text-lg">
                 Ton profil créateur
               </h1>
+
+              {/* Règles */}
               <button
                 onClick={() => setRulesOpen((o) => !o)}
-                className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors shrink-0"
+                className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors"
               >
                 Règles
-                <ChevronDown
-                  className={`h-3 w-3 transition-transform ${rulesOpen ? "rotate-180" : ""}`}
-                />
+                <ChevronDown className={`h-3 w-3 transition-transform ${rulesOpen ? "rotate-180" : ""}`} />
               </button>
 
               {rulesOpen && (
-                <div className="mt-4 border-t border-border pt-4 space-y-1.5">
+                <div className="rounded-lg border border-border bg-elevated p-3 space-y-1.5">
                   <p className="text-[11px] text-text-muted leading-relaxed mb-2">
-                    Je me permets de mettre quelques règles en place pour que
-                    cet endroit reste une place de bienveillance et de partage :
+                    Je me permets de mettre quelques règles en place pour que cet endroit reste une place de bienveillance et de partage :
                   </p>
-                  {[
-                    "Le contenu partagé doit être en lien avec Flashback WL",
-                    "Pas de contenu offensant ou haineux",
-                    "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
-                    "Les liens partagés doivent pointer vers ton propre contenu",
-                    "Les comptes de clipfarming ne seront pas acceptés",
-                    "Chaque demande est examinée manuellement avant d'apparaître sur la page",
-                    "Aucun délai de validation garanti - sois patient",
-                  ].map((rule, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-2 text-[11px] text-text-muted"
-                    >
+                  {RULES.map((rule, i) => (
+                    <div key={i} className="flex items-start gap-2 text-[11px] text-text-muted">
                       <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/50" />
                       {rule}
                     </div>
@@ -334,27 +293,21 @@ export default function OnboardingPage() {
                   Quel type de contenu tu crées ?
                 </p>
                 <div className="space-y-1.5">
-                  {(["ARTISTE", "EDITEUR"] as const).map((type) => {
-                    const active = roles.some((r) => r.type === type);
-                    return (
-                      <RoleOption
-                        key={type}
-                        label={ROLE_LABELS[type].label}
-                        sub={ROLE_LABELS[type].sub}
-                        checked={active}
-                        onClick={() => toggleRole(type)}
-                      />
-                    );
-                  })}
+                  {(["ARTISTE", "EDITEUR"] as const).map((type) => (
+                    <RoleOption
+                      key={type}
+                      label={ROLE_LABELS[type].label}
+                      sub={ROLE_LABELS[type].sub}
+                      checked={roles.some((r) => r.type === type)}
+                      onClick={() => toggleRole(type)}
+                    />
+                  ))}
                 </div>
               </div>
 
               {/* Config par rôle */}
               {roles.map((role) => (
-                <div
-                  key={role.type}
-                  className="rounded-lg border border-border bg-elevated p-4 space-y-3"
-                >
+                <div key={role.type} className="rounded-lg border border-border bg-elevated p-4 space-y-3">
                   <p className="text-[12px] font-semibold text-text-primary">
                     {role.type === "ARTISTE" ? "Fan art" : "Edits"}
                   </p>
@@ -366,42 +319,26 @@ export default function OnboardingPage() {
                     onClick={() => toggleDisplay(role.type)}
                   />
 
-                  {/* Liens du rôle */}
                   <div>
                     <p className="text-[10px] font-medium text-text-muted uppercase tracking-wide mb-1.5">
-                      Tes liens (
-                      {role.type === "ARTISTE"
-                        ? "où trouver ton fan art"
-                        : "où trouver tes edits"}
-                      )
+                      Tes liens ({role.type === "ARTISTE" ? "où trouver ton fan art" : "où trouver tes edits"})
                     </p>
                     <div className="space-y-1.5">
                       {role.socialLinks.map((link, i) => (
                         <div key={i} className="flex gap-2">
                           <select
                             value={link.platform}
-                            onChange={(e) =>
-                              updateLink(
-                                role.type,
-                                i,
-                                "platform",
-                                e.target.value,
-                              )
-                            }
+                            onChange={(e) => updateLink(role.type, i, "platform", e.target.value)}
                             className="rounded-md border border-border bg-card px-2 text-[12px] text-text-primary outline-none focus:border-accent"
                           >
                             {SOCIAL_PLATFORMS.map((p) => (
-                              <option key={p} value={p}>
-                                {PLATFORM_LABELS[p]}
-                              </option>
+                              <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>
                             ))}
                           </select>
                           <input
                             type="url"
                             value={link.url}
-                            onChange={(e) =>
-                              updateLink(role.type, i, "url", e.target.value)
-                            }
+                            onChange={(e) => updateLink(role.type, i, "url", e.target.value)}
                             placeholder="https://..."
                             className="flex-1 rounded-md border border-border bg-card px-3 text-[12px] text-text-primary placeholder-text-muted outline-none focus:border-accent"
                           />
@@ -409,16 +346,7 @@ export default function OnboardingPage() {
                             onClick={() => removeLink(role.type, i)}
                             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:text-red-400 transition-colors"
                           >
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.75"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M18 6L6 18M6 6l12 12" />
                             </svg>
                           </button>
@@ -429,16 +357,7 @@ export default function OnboardingPage() {
                       onClick={() => addLink(role.type)}
                       className="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-accent-light hover:text-accent transition-colors"
                     >
-                      <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.75"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 5v14M5 12h14" />
                       </svg>
                       Ajouter un lien
@@ -470,20 +389,6 @@ export default function OnboardingPage() {
       </div>
     </div>
   );
-
-  async function handleSubmitDirect() {
-    setLoading(true);
-    setError(null);
-    try {
-      await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
-      await session?.reload();
-      router.push("/");
-    } catch (err) {
-      console.error(err);
-      setError("Une erreur est survenue, réessaie.");
-      setLoading(false);
-    }
-  }
 }
 
 function RoleOption({
@@ -513,16 +418,7 @@ function RoleOption({
         }`}
       >
         {checked && (
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5" />
           </svg>
         )}
