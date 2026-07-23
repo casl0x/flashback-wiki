@@ -1,12 +1,13 @@
 "use client";
 
 import { CharactersTab } from "@/components/admin/CharactersTab";
-import { Player, Version } from "@/lib/db";
+import { Groupe, Player, Version } from "@/lib/db";
 import { useEffect, useState } from "react";
 
 export default function CharactersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [versions, setVersions] = useState<Version[]>([]);
+  const [groupes, setGroupes] = useState<Groupe[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -15,6 +16,7 @@ export default function CharactersPage() {
       .then((d) => {
         setPlayers(d.players ?? []);
         setVersions(d.versions ?? []);
+        setGroupes(d.groupes ?? []);
         setLoaded(true);
       });
   }, []);
@@ -50,7 +52,11 @@ export default function CharactersPage() {
       {/* Content */}
       <div className="flex-1 p-6">
         {loaded ? (
-          <CharactersTab players={players} versions={versions} />
+          <CharactersTab
+            players={players}
+            versions={versions}
+            groupes={groupes}
+          />
         ) : (
           <div className="flex items-center justify-center py-16">
             <div className="flex flex-col items-center gap-3 text-text-muted">

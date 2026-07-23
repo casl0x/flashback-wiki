@@ -7,6 +7,7 @@ import { Character } from "@/lib/db";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { LifeStateIcon } from "../admin/LifeStateIcon";
+import BackButton from "../BackButton";
 import { SuggestButton } from "../user/SuggestEditButton";
 import CharacterCard from "./CharacterCard";
 
@@ -42,12 +43,7 @@ export default function CharacterDetail({
 
   return (
     <div className="flex-1 p-3 sm:p-5 overflow-y-auto">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text-primary mb-3.5 transition-colors bg-transparent border-none cursor-pointer"
-      >
-        <i className="ti ti-arrow-left" aria-hidden="true" /> Retour
-      </button>
+      <BackButton />
 
       <div className="flex flex-col gap-3">
         {/* Fiche personnage */}
@@ -78,10 +74,23 @@ export default function CharacterDetail({
                   Métier : {c.metier}
                 </p>
               )}
-              {c.groupe && (
-                <p className="text-[13px] text-text-muted mb-1">
-                  Groupe : {c.groupe}
-                </p>
+              {c.groupes.length > 0 && (
+                <a
+                  href={`/groupes/${c.groupes[0].slug}`}
+                  className="inline-flex items-center gap-1.5 text-[13px] text-text-muted hover:text-accent transition-colors mb-1 group"
+                >
+                  {c.groupes[0].color && (
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: c.groupes[0].color }}
+                    />
+                  )}
+                  Groupe :
+                  <span className="group-hover:underline">
+                    {c.groupes[0].nom}
+                  </span>
+                  <i className="ti ti-arrow-right text-[11px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
               )}
               {/* Badges version + role */}
               <div className="flex items-center gap-1.5 flex-wrap pt-3">
@@ -196,7 +205,7 @@ export default function CharacterDetail({
                       nom: r.linked.nom,
                       role: r.linked.role,
                       metier: r.linked.metier,
-                      groupe: r.linked.groupe,
+                      groupes: r.linked.groupes,
                       player: { pseudo: r.linked.player_pseudo },
                       relations: [],
                       imageUrl: r.linked.imageUrl,

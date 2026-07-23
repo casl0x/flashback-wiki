@@ -103,14 +103,14 @@ export default function CharacterCard({
                   {character.metier}
                 </p>
               )}
-              {character.metier && character.groupe && (
+              {character.metier && character.groupes.length > 0 && (
                 <span className="text-[10px] text-(--text-secondary) mx-1">
                   •
                 </span>
               )}
-              {character.groupe && (
+              {character.groupes.length > 0 && (
                 <p className="text-[12px] text-(--text-secondary) mb-1">
-                  {character.groupe}
+                  {character.groupes[0].nom}
                 </p>
               )}
             </div>

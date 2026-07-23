@@ -1,4 +1,4 @@
-import { Character, Player, Version, prisma } from "@/lib/db";
+import { Character, Groupe, Player, Version, prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 
@@ -6,8 +6,17 @@ type CharacterWithRelations = Prisma.CharacterGetPayload<{
   include: {
     player: true;
     version: true;
-    relationsA: { include: { personnageB: { include: { player: true } } } };
-    relationsB: { include: { personnageA: { include: { player: true } } } };
+    groupes: true;
+    relationsA: {
+      include: {
+        personnageB: { include: { player: true; groupes: true } };
+      };
+    };
+    relationsB: {
+      include: {
+        personnageA: { include: { player: true; groupes: true } };
+      };
+    };
   };
 }>;
 
@@ -15,6 +24,7 @@ export type WikiData = {
   versions: Version[];
   players: Player[];
   characters: Character[];
+  groupes: Groupe[];
   counts: Record<string, number>;
   totalRelations: number;
 };
@@ -28,17 +38,23 @@ const normalizeReseaux = (value: Prisma.JsonValue): Record<string, string> => {
   );
 };
 
+const normalizeGroupes = (
+  groupes: { id: string; slug: string; nom: string; color: string | null }[],
+) =>
+  groupes.map((g) => ({ id: g.id, slug: g.slug, nom: g.nom, color: g.color }));
+
 export async function fetchWikiData(): Promise<WikiData> {
   const emptyWikiData: WikiData = {
     versions: [],
     players: [],
     characters: [],
+    groupes: [],
     counts: {},
     totalRelations: 0,
   };
 
   try {
-    const [versions, players, characters] = await Promise.all([
+    const [versions, players, characters, groupes] = await Promise.all([
       prisma.version.findMany({ orderBy: { id: "asc" } }),
       prisma.player.findMany({ orderBy: { pseudo: "asc" } }),
       prisma.character.findMany({
@@ -46,14 +62,20 @@ export async function fetchWikiData(): Promise<WikiData> {
         include: {
           player: true,
           version: true,
+          groupes: true,
           relationsA: {
-            include: { personnageB: { include: { player: true } } },
+            include: {
+              personnageB: { include: { player: true, groupes: true } },
+            },
           },
           relationsB: {
-            include: { personnageA: { include: { player: true } } },
+            include: {
+              personnageA: { include: { player: true, groupes: true } },
+            },
           },
         },
       }),
+      prisma.groupe.findMany({ orderBy: { nom: "asc" } }),
     ]);
 
     const normalizedVersions = versions.map((version) => ({
@@ -78,7 +100,7 @@ export async function fetchWikiData(): Promise<WikiData> {
               nom: relation.personnageB.nom,
               role: relation.personnageB.role,
               metier: relation.personnageB.metier,
-              groupe: relation.personnageB.groupe,
+              groupes: normalizeGroupes(relation.personnageB.groupes),
               imageUrl: relation.personnageB.imageUrl,
               player_pseudo: relation.personnageB.player?.pseudo ?? null,
             },
@@ -91,7 +113,7 @@ export async function fetchWikiData(): Promise<WikiData> {
               nom: relation.personnageA.nom,
               role: relation.personnageA.role,
               metier: relation.personnageA.metier,
-              groupe: relation.personnageA.groupe,
+              groupes: normalizeGroupes(relation.personnageA.groupes),
               imageUrl: relation.personnageA.imageUrl,
               player_pseudo: relation.personnageA.player?.pseudo ?? null,
             },
@@ -105,7 +127,7 @@ export async function fetchWikiData(): Promise<WikiData> {
               stream: character.player.stream,
               lienChaine: character.player.lienChaine,
               reseaux: normalizeReseaux(character.player.reseaux),
-              badges: character.player.badges, // ← ajout
+              badges: character.player.badges,
             }
           : null;
 
@@ -123,6 +145,7 @@ export async function fetchWikiData(): Promise<WikiData> {
           createdAt: character.createdAt.toISOString(),
           player,
           version,
+          groupes: normalizeGroupes(character.groupes),
           relations,
           imageUrl: character.imageUrl,
         } as Character;
@@ -146,6 +169,10 @@ export async function fetchWikiData(): Promise<WikiData> {
       versions: normalizedVersions,
       players: normalizedPlayers,
       characters: enrichedCharacters,
+      groupes: groupes.map((g) => ({
+        ...g,
+        createdAt: g.createdAt.toISOString(),
+      })),
       counts,
       totalRelations,
     };
@@ -162,14 +189,22 @@ export const getCharacterById = unstable_cache(
       include: {
         player: true,
         version: true,
-        relationsA: { include: { personnageB: { include: { player: true } } } },
-        relationsB: { include: { personnageA: { include: { player: true } } } },
+        groupes: true,
+        relationsA: {
+          include: {
+            personnageB: { include: { player: true, groupes: true } },
+          },
+        },
+        relationsB: {
+          include: {
+            personnageA: { include: { player: true, groupes: true } },
+          },
+        },
       },
     });
 
     if (!character) return null;
 
-    // Normalisation identique à getWikiData
     return {
       ...character,
       createdAt: character.createdAt.toISOString(),
@@ -191,6 +226,7 @@ export const getCharacterById = unstable_cache(
             description: character.version.description,
           }
         : null,
+      groupes: normalizeGroupes(character.groupes),
       relations: [
         ...character.relationsA.map((r) => ({
           id: r.id,
@@ -200,7 +236,7 @@ export const getCharacterById = unstable_cache(
             nom: r.personnageB.nom,
             role: r.personnageB.role,
             metier: r.personnageB.metier,
-            groupe: r.personnageB.groupe,
+            groupes: normalizeGroupes(r.personnageB.groupes),
             player_pseudo: r.personnageB.player?.pseudo ?? null,
             imageUrl: r.personnageB.imageUrl ?? null,
           },
@@ -213,7 +249,7 @@ export const getCharacterById = unstable_cache(
             nom: r.personnageA.nom,
             role: r.personnageA.role,
             metier: r.personnageA.metier,
-            groupe: r.personnageA.groupe,
+            groupes: normalizeGroupes(r.personnageA.groupes),
             player_pseudo: r.personnageA.player?.pseudo ?? null,
             imageUrl: r.personnageA.imageUrl ?? null,
           },
@@ -229,7 +265,7 @@ export const getCharactersByPlayerId = unstable_cache(
   async (playerId: string) => {
     const chars = await prisma.character.findMany({
       where: { playerId },
-      include: { player: true, version: true },
+      include: { player: true, version: true, groupes: true },
       orderBy: { nom: "asc" },
     });
 
@@ -247,8 +283,14 @@ export const getCharactersByPlayerId = unstable_cache(
           }
         : null,
       version: c.version
-        ? { id: c.version.id, label: c.version.label, color: c.version.color }
+        ? {
+            id: c.version.id,
+            label: c.version.label,
+            color: c.version.color,
+            description: c.version.description,
+          }
         : null,
+      groupes: normalizeGroupes(c.groupes),
       relations: [],
     })) as Character[];
   },

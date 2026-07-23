@@ -7,7 +7,8 @@ import EmptyState from "@/components/wiki/EmptyState";
 import HeaderBlock from "@/components/wiki/HeaderBlock";
 import { useSearch } from "@/components/wiki/SearchContext";
 import { Character } from "@/lib/db";
-import { useRef, useState } from "react";
+import { Check, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const PER_PAGE = 20;
 
@@ -15,24 +16,137 @@ type Props = {
   characters: Character[];
 };
 
+type DropdownOption = { label: string; value: string; color?: string | null };
+
+function FilterDropdown({
+  label,
+  options,
+  active,
+  onChange,
+  allLabel = "Tous",
+}: {
+  label: string;
+  options: DropdownOption[];
+  active: string;
+  onChange: (val: string) => void;
+  allLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const activeOption = options.find((o) => o.value === active);
+  const isFiltered = active !== "all";
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+          isFiltered
+            ? "border-accent bg-accent/10 text-accent"
+            : "border-border bg-card text-text-secondary hover:bg-muted hover:text-text-primary"
+        }`}
+      >
+        {activeOption?.color && (
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ backgroundColor: activeOption.color }}
+          />
+        )}
+        <span className="text-text-faint font-normal">{label}</span>
+        <span
+          className={
+            isFiltered ? "text-accent font-semibold" : "text-text-primary"
+          }
+        >
+          {activeOption ? activeOption.label : allLabel}
+        </span>
+        <ChevronDown
+          className={`h-3 w-3 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1.5 min-w-[160px] rounded-lg border border-border bg-card shadow-lg">
+          {/* Option "Tous" */}
+          <button
+            onClick={() => {
+              onChange("all");
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-muted first:rounded-t-lg"
+          >
+            <span className="h-2 w-2 shrink-0" />
+            <span
+              className={`flex-1 text-left ${active === "all" ? "font-semibold text-text-primary" : "text-text-secondary"}`}
+            >
+              {allLabel}
+            </span>
+            {active === "all" && <Check className="h-3 w-3 text-accent" />}
+          </button>
+
+          <div className="mx-2 h-px bg-border" />
+
+          {/* Options */}
+          {options.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => {
+                onChange(o.value);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-muted last:rounded-b-lg"
+            >
+              {o.color ? (
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: o.color }}
+                />
+              ) : (
+                <span className="h-2 w-2 shrink-0" />
+              )}
+              <span
+                className={`flex-1 text-left ${active === o.value ? "font-semibold text-text-primary" : "text-text-secondary"}`}
+              >
+                {o.label}
+              </span>
+              {active === o.value && <Check className="h-3 w-3 text-accent" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CharactersClient({ characters }: Props) {
   const ctx = useSearch();
   const query = ctx?.query ?? "";
   const [page, setPage] = useState(1);
   const prevQueryRef = useRef(query);
 
-  // Filtres locaux
   const [roleFilter, setRoleFilter] = useState<"all" | "civil" | "illegal">(
     "all",
   );
   const [versionFilter, setVersionFilter] = useState<string>("all");
+  const [etatVieFilter, setEtatVieFilter] = useState<string>("all");
+  const [groupeFilter, setGroupeFilter] = useState<string>("all");
+  const [metierFilter, setMetierFilter] = useState<string>("all");
 
   if (prevQueryRef.current !== query) {
     prevQueryRef.current = query;
     setPage(1);
   }
 
-  // Versions disponibles (dédupliquées)
   const versions = [
     ...new Map(
       characters
@@ -40,6 +154,18 @@ export default function CharactersClient({ characters }: Props) {
         .map((c) => [c.version!.id, c.version!]),
     ).values(),
   ];
+
+  const etatsVie = [
+    ...new Set(characters.map((c) => c.etatVie).filter(Boolean)),
+  ] as string[];
+  const groupes = [
+    ...new Map(
+      characters.flatMap((c) => c.groupes).map((g) => [g.id, g]),
+    ).values(),
+  ];
+  const metiers = [
+    ...new Set(characters.map((c) => c.metier).filter(Boolean)),
+  ] as string[];
 
   const filtered = characters.filter((c) => {
     const q = query.toLowerCase();
@@ -49,23 +175,33 @@ export default function CharactersClient({ characters }: Props) {
       c.player?.pseudo?.toLowerCase().includes(q) ||
       c.metier?.toLowerCase().includes(q);
 
-    const matchRole = roleFilter === "all" || c.role === roleFilter;
-
-    const matchVersion =
-      versionFilter === "all" || c.versionId === versionFilter;
-
-    return matchSearch && matchRole && matchVersion;
+    return (
+      matchSearch &&
+      (roleFilter === "all" || c.role === roleFilter) &&
+      (versionFilter === "all" || c.versionId === versionFilter) &&
+      (etatVieFilter === "all" || c.etatVie === etatVieFilter) &&
+      (groupeFilter === "all" ||
+        c.groupes.some((g) => g.id === groupeFilter)) &&
+      (metierFilter === "all" || c.metier === metierFilter)
+    );
   });
 
-  // Reset page si filtre change
-  const handleRoleFilter = (val: typeof roleFilter) => {
-    setRoleFilter(val);
-    setPage(1);
-  };
+  const resetPage = () => setPage(1);
 
-  const handleVersionFilter = (val: string) => {
-    setVersionFilter(val);
-    setPage(1);
+  const hasActiveFilters =
+    roleFilter !== "all" ||
+    versionFilter !== "all" ||
+    etatVieFilter !== "all" ||
+    groupeFilter !== "all" ||
+    metierFilter !== "all";
+
+  const resetAll = () => {
+    setRoleFilter("all");
+    setVersionFilter("all");
+    setEtatVieFilter("all");
+    setGroupeFilter("all");
+    setMetierFilter("all");
+    resetPage();
   };
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
@@ -85,67 +221,63 @@ export default function CharactersClient({ characters }: Props) {
 
           {/* ── Filtres ── */}
           <div className="my-4 flex flex-wrap items-center gap-2">
-            {/* Civil / Illégal */}
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
-              {(["all", "civil", "illegal"] as const).map((val) => (
-                <button
-                  key={val}
-                  onClick={() => handleRoleFilter(val)}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                    roleFilter === val
-                      ? "bg-accent text-white"
-                      : "text-text-secondary hover:bg-muted hover:text-text-primary"
-                  }`}
-                >
-                  {val === "all"
-                    ? "Tous"
-                    : val === "civil"
-                      ? "Civil"
-                      : "Illégal"}
-                </button>
-              ))}
-            </div>
+            <FilterDropdown
+              label="Rôle · "
+              allLabel="Tous"
+              active={roleFilter}
+              onChange={(v) => {
+                setRoleFilter(v as typeof roleFilter);
+                resetPage();
+              }}
+              options={[
+                { label: "Civil", value: "civil" },
+                { label: "Illégal", value: "illegal" },
+              ]}
+            />
 
-            {/* Séparateur */}
-            <div className="h-5 w-px bg-border" />
+            <FilterDropdown
+              label="Version · "
+              allLabel="Toutes"
+              active={versionFilter}
+              onChange={(v) => {
+                setVersionFilter(v);
+                resetPage();
+              }}
+              options={versions.map((v) => ({
+                label: v.label,
+                value: v.id,
+                color: v.color,
+              }))}
+            />
 
-            {/* Versions */}
-            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card p-1">
+            {etatsVie.length > 0 && (
+              <FilterDropdown
+                label="État de vie · "
+                allLabel="Tous"
+                active={etatVieFilter}
+                onChange={(v) => {
+                  setEtatVieFilter(v);
+                  resetPage();
+                }}
+                options={etatsVie.map((e) => ({ label: e, value: e }))}
+              />
+            )}
+
+            {hasActiveFilters && (
               <button
-                onClick={() => handleVersionFilter("all")}
-                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                  versionFilter === "all"
-                    ? "bg-accent text-white"
-                    : "text-text-secondary hover:bg-muted hover:text-text-primary"
-                }`}
+                onClick={resetAll}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-muted hover:text-text-primary"
               >
-                Toutes
+                Réinitialiser
               </button>
-              {versions.map((v) => (
-                <button
-                  key={v.id}
-                  onClick={() => handleVersionFilter(v.id)}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                    versionFilter === v.id
-                      ? "text-white"
-                      : "text-text-secondary hover:bg-muted hover:text-text-primary"
-                  }`}
-                  style={
-                    versionFilter === v.id && v.color
-                      ? { backgroundColor: v.color }
-                      : {}
-                  }
-                >
-                  {v.label}
-                </button>
-              ))}
-            </div>
-            <div className="items-end flex flex-1 justify-end">
+            )}
+
+            <div className="flex flex-1 justify-end">
               <SuggestButton mode="create" />
             </div>
           </div>
 
-          {/* Description de la version filtrée — en dehors du flex des filtres */}
+          {/* Description de la version filtrée */}
           {versionFilter !== "all" &&
             (() => {
               const activeVersion = versions.find(

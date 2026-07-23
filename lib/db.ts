@@ -26,13 +26,24 @@ export type Version = {
   createdAt: string;
 };
 
+// ─── Groupe ───────────────────────────────────────────────────────────────────
+export type Groupe = {
+  id: string;
+  slug: string;
+  nom: string;
+  description: string | null;
+  imageUrl: string | null;
+  color: string | null;
+  createdAt: string;
+};
+
 // ─── Character ───────────────────────────────────────────────────────────────
 export type Character = {
   id: string;
   nom: string;
   role: "civil" | "illegal" | null;
   metier: string | null;
-  groupe: string | null;
+  groupes: Pick<Groupe, "id" | "slug" | "nom" | "color">[];
   description: string | null;
   lienReddif: string | null;
   imageUrl: string | null;
@@ -61,7 +72,7 @@ export type LinkedRelation = {
     nom: string;
     role: "civil" | "illegal" | null;
     metier: string | null;
-    groupe: string | null;
+    groupes: Pick<Groupe, "id" | "slug" | "nom" | "color">[];
     imageUrl: string | null; // ← ajouter
     player_pseudo: string | null;
   };

@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Character, Player, Version } from "@/lib/db";
+import { Character, Groupe, Player, Version } from "@/lib/db";
 import { statusBadgeClass } from "@/lib/utils";
 import { MapPin, Users } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
@@ -42,12 +42,12 @@ const AdminLocationPicker = dynamic(
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Props = { players: Player[]; versions: Version[] };
+type Props = { players: Player[]; versions: Version[]; groupes: Groupe[] };
 type ModalTab = "infos" | "relations" | "localisation";
 type CharForm = {
   nom: string;
   metier: string;
-  groupe: string;
+  groupeIds: string[];
   description: string;
   playerId: string;
   versionId: string;
@@ -66,7 +66,7 @@ const ROLES = [
 const EMPTY_FORM: CharForm = {
   nom: "",
   metier: "",
-  groupe: "",
+  groupeIds: [],
   description: "",
   playerId: "",
   versionId: "",
@@ -79,7 +79,7 @@ const PAGE_SIZE = 20;
 const charToForm = (c: Character): CharForm => ({
   nom: c.nom,
   metier: c.metier ?? "",
-  groupe: c.groupe ?? "",
+  groupeIds: c.groupes.map((g) => g.id),
   description: c.description ?? "",
   playerId: c.playerId ?? "",
   versionId: c.versionId ?? "",
@@ -138,7 +138,7 @@ function SimpleSelect({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function CharactersTab({ players, versions }: Props) {
+export function CharactersTab({ players, versions, groupes }: Props) {
   const [chars, setChars] = useState<Character[]>([]);
   const [modal, setModal] = useState<"form" | "delete" | null>(null);
   const [modalTab, setModalTab] = useState<ModalTab>("infos");
@@ -293,7 +293,7 @@ export function CharactersTab({ players, versions }: Props) {
   const bodyFromForm = () => ({
     nom: form.nom,
     metier: form.metier || null,
-    groupe: form.groupe || null,
+    groupe_ids: form.groupeIds || [],
     description: form.description || null,
     player_id: form.playerId || null,
     version_id: form.versionId || null,
@@ -397,12 +397,41 @@ export function CharactersTab({ players, versions }: Props) {
           placeholder="Mécanicien, Avocat…"
         />
       </Field>
-      <Field label="Groupe">
-        <Input
-          value={form.groupe}
-          onChange={f("groupe")}
-          placeholder="Los Santos MC, Mafia…"
-        />
+      <Field label="Groupes">
+        <div className="flex flex-col gap-1 rounded-md border border-border bg-input p-2 max-h-36 overflow-y-auto">
+          {groupes.map((g) => (
+            <label
+              key={g.id}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={form.groupeIds.includes(g.id)}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    groupeIds: e.target.checked
+                      ? [...p.groupeIds, g.id]
+                      : p.groupeIds.filter((id) => id !== g.id),
+                  }))
+                }
+                className="accent-accent"
+              />
+              {g.color && (
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: g.color }}
+                />
+              )}
+              <span className="text-[12px] text-text-secondary">{g.nom}</span>
+            </label>
+          ))}
+          {groupes.length === 0 && (
+            <p className="text-[11px] text-text-muted">
+              Aucun groupe disponible
+            </p>
+          )}
+        </div>
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Rôle">
@@ -819,15 +848,16 @@ export function CharactersTab({ players, versions }: Props) {
                         {c.metier}
                       </span>
                     )}
-                    {c.metier && c.groupe && (
+                    {c.metier && c.groupes && (
                       <span className="text-text-muted">·</span>
                     )}
-                    {c.groupe && (
+                    {c.groupes.length > 0 && (
                       <span className="text-[11px] text-text-secondary truncate">
-                        {c.groupe}
+                        {c.groupes[0].nom}
                       </span>
                     )}
-                    {c.groupe && c.player && (
+
+                    {c.groupes.length > 0 && c.player && (
                       <span className="text-text-muted">·</span>
                     )}
 

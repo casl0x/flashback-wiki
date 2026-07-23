@@ -178,13 +178,28 @@ export function SuggestButton({ mode, character }: SuggestButtonProps) {
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
                   Note (relations, lieux de vie, etc — optionnel)
                 </label>
-                <Input
+                <textarea
+                  className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
                   value={form.note}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, note: e.target.value }))
                   }
                   placeholder="Relations, localisation, lien reddif, précisions…"
                 />
+              </div>
+
+              <div>
+                <p className="text-sm text-text-muted">
+                  Vous pouvez envoyer les images de personnage ici :{" "}
+                  <a
+                    href="https://discord.gg/eyStpqcYwa"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    https://discord.gg/eyStpqcYwa
+                  </a>
+                </p>
               </div>
             </div>
           )}
