@@ -27,7 +27,7 @@ export default function NavBar({
   const currentQuery = query ?? "";
 
   return (
-    <nav className="sticky top-0 z-20 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+   <nav className="sticky top-0 z-20 h-[72px] border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
       <div className="flex items-center gap-3">
         {/* Burger — mobile only */}
         <button
