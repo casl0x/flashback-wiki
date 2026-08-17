@@ -65,6 +65,7 @@ async function fetchTopPages(
   }
 
   const data = await res.json();
+  console.log("Vercel API response:", JSON.stringify(data, null, 2));
   const rows: { requestPath: string; count: number }[] = data.rows ?? [];
 
   return rows
