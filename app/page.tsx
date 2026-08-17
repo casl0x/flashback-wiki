@@ -1,5 +1,6 @@
 import WikiLayout from "@/components/wiki/WikiLayout";
 import { getWikiData } from "@/lib/wiki-data";
+import TopPages from "@/components/TopPages";
 import {
   BookOpen,
   Clapperboard,
@@ -27,56 +28,20 @@ export default async function HomePage() {
     >
       <section className="space-y-4 p-4 lg:p-5">
         <div className="space-y-6 rounded-xl border border-border bg-card p-5 lg:p-8">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-muted">
-              <BookOpen className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-lg font-medium">Wiki Flashback WL</p>
-            </div>
-          </div>
-
-          <p className="border-l-2 border-border pl-4 text-sm leading-7 text-muted-foreground">
-            Bienvenue sur le wiki{" "}
-            <span className="font-bold">non officiel</span> de tous les
-            personnages de Flashback WL !
-          </p>
-
-          <div className="space-y-4 border-t border-border pt-5">
-            <p className="text-s font-medium underline tracking-wide text-muted-foreground">
-              Ce que tu peux retrouver ici :
-            </p>
-            {[
-              {
-                icon: Lightbulb,
-                label:
-                  "Tous les personnages qui ont été joués sur le serveur ainsi que leurs joueurs.  ",
-              },
-              {
-                icon: Music,
-                label:
-                  "Des playlists avec les sons des joueurs (en lien avec leurs personnages bien sûr)",
-              },
-              {
-                icon: Clapperboard,
-                label:
-                  "Pour certains personnages, retrouve aussi les playlists de rediffusion pour voir ou revoir leurs aventures.",
-              },
-              {
-                icon: Palette,
-                label: "Ainsi que les créations de la communauté Flashback.",
-              },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-start gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <p className="pt-1 text-sm leading-relaxed">{label}</p>
-              </div>
-            ))}
-          </div>
+          {/* ... ton contenu existant ... */}
         </div>
       </section>
+
+      {/* 👇 Nouveau bloc top personnages */}
+      <section className="space-y-4 p-4 lg:p-5">
+        <TopPages
+          pathPrefix="/personnages"
+          title="Personnages les plus consultés"
+          limit={5}
+          since="30d"
+        />
+      </section>
+
       <section className="space-y-4 p-4 lg:p-5">
         <div className="space-y-2 rounded-xl border border-border bg-card p-5 lg:p-8">
           <p className="font-medium text-muted-foreground bold">Sources :</p>
