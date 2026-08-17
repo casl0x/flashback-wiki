@@ -35,13 +35,19 @@ async function fetchTopPages(
     );
   }
 
+  // Conversion de la durée relative en dates ISO
+  const until = new Date();
+  const sinceDate = new Date();
+  const days = parseInt(since.replace("d", ""));
+  sinceDate.setDate(sinceDate.getDate() - days);
+
   const params = new URLSearchParams({
     projectId,
     by: "requestPath",
-    since,
+    since: sinceDate.toISOString(),
+    until: until.toISOString(),
     limit: String(limit),
     ...(teamId ? { teamId } : {}),
-    // Filtre OData : startswith() si un préfixe est fourni
     ...(pathPrefix
       ? { filter: `startswith(requestPath, '${pathPrefix}')` }
       : {}),
