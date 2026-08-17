@@ -63,7 +63,7 @@ async function fetchTopPersonnages(limit: number, since: string): Promise<PageSt
 
   // Résolution UUID → nom via getWikiData
   const { characters } = await getWikiData();
-  const charMap = new Map(characters.map((c: any) => [c.id, c.name]));
+  const charMap = new Map(characters.map((c: any) => [c.id, c.nom]));
 
   return personnageRows.map((r) => {
     const uuid = r.requestPath.replace("/personnages/", "");
