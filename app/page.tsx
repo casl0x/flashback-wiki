@@ -1,6 +1,6 @@
 import WikiLayout from "@/components/wiki/WikiLayout";
 import { getWikiData } from "@/lib/wiki-data";
-import TopPages from "@/components/TopPages";
+import TopPages from "@/components/wiki/TopPages";
 import {
   BookOpen,
   Clapperboard,
