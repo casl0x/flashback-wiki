@@ -1,9 +1,8 @@
 "use client";
 
-// components/TopPagesUI.tsx
-
 interface PageStat {
   path: string;
+  name: string;
   views: number;
 }
 
@@ -12,7 +11,6 @@ interface TopPagesUIProps {
   error: string | null;
   title: string;
   since: string;
-  pathPrefix?: string;
 }
 
 const sinceLabel: Record<string, string> = {
@@ -21,13 +19,7 @@ const sinceLabel: Record<string, string> = {
   "90d": "90 derniers jours",
 };
 
-export default function TopPagesUI({
-  pages,
-  error,
-  title,
-  since,
-  pathPrefix,
-}: TopPagesUIProps) {
+export default function TopPagesUI({ pages, error, title, since }: TopPagesUIProps) {
   if (error) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -46,56 +38,46 @@ export default function TopPagesUI({
 
   const maxViews = pages[0].views;
 
-  // Si toutes les pages partagent un préfixe commun, on l'affiche une seule
-  // fois dans le header et on retire le préfixe de chaque ligne pour plus de lisibilité
-  const displayPath = (path: string) =>
-    pathPrefix ? path.replace(pathPrefix, "") || "/" : path;
-
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="rounded-xl border border-border bg-card shadow-sm">
       {/* En-tête */}
-      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
-          {pathPrefix && (
-            <p className="mt-0.5 font-mono text-xs text-gray-400">{pathPrefix}/…</p>
-          )}
-        </div>
-        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-500">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
           {sinceLabel[since] ?? since}
         </span>
       </div>
 
       {/* Liste */}
-      <ul className="divide-y divide-gray-50 px-5 py-2">
+      <ul className="divide-y divide-border px-5 py-2">
         {pages.map((page, index) => {
           const barWidth = Math.round((page.views / maxViews) * 100);
-          const label = displayPath(page.path);
 
           return (
             <li key={page.path} className="group flex items-center gap-3 py-3">
               {/* Rang */}
-              <span className="w-5 shrink-0 text-center text-xs font-medium text-gray-400">
+              <span className="w-5 shrink-0 text-center text-xs font-medium text-muted-foreground">
                 {index + 1}
               </span>
 
-              {/* Chemin + barre */}
+              {/* Nom + barre */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span
-                    className="truncate font-mono text-sm font-medium text-gray-700 group-hover:text-gray-900"
-                    title={page.path}
+                  <a
+                    href={page.path}
+                    className="truncate text-sm font-medium hover:underline"
+                    title={page.name}
                   >
-                    {label}
-                  </span>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">
-                    {page.views.toLocaleString("fr-FR")}
+                    {page.name}
+                  </a>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
+                    {page.views.toLocaleString("fr-FR")} vues
                   </span>
                 </div>
 
-                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-black transition-all duration-500"
+                    className="h-full rounded-full bg-foreground transition-all duration-500"
                     style={{ width: `${barWidth}%` }}
                   />
                 </div>
@@ -106,7 +88,7 @@ export default function TopPagesUI({
       </ul>
 
       {/* Footer */}
-      <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-400">
+      <div className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
         Données Vercel Web Analytics · Mis à jour toutes les heures
       </div>
     </div>
