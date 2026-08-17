@@ -42,15 +42,13 @@ async function fetchTopPages(
   sinceDate.setDate(sinceDate.getDate() - days);
 
   const params = new URLSearchParams({
-    projectId,
-    by: "requestPath",
-    since: sinceDate.toISOString(),
-    until: until.toISOString(),
-    limit: String(limit),
-    ...(teamId ? { teamId } : {}),
-    ...(pathPrefix
-      ? { filter: `startswith(requestPath, '${pathPrefix}')` }
-      : {}),
+      projectId,
+      by: "requestPath",
+      since: sinceDate.toISOString(),
+      until: until.toISOString(),
+      limit: "100", // on prend plus pour avoir assez à filtrer
+      ...(teamId ? { teamId } : {}),
+      // plus de filter: ici
   });
 
   const res = await fetch(
@@ -71,6 +69,7 @@ async function fetchTopPages(
 
   return rows
     .map((r) => ({ path: r.requestPath, views: r.count }))
+    .filter((r) => !pathPrefix || r.path.startsWith(pathPrefix)) // filtre JS
     .sort((a, b) => b.views - a.views)
     .slice(0, limit);
 }
