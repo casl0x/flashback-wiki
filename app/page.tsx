@@ -106,7 +106,7 @@ export default async function HomePage() {
             <a  href="https://discord.gg/9B5dn8EVsw"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block mt-1 text-sm font-medium text-primary hover:underline"
+              className="inline-block mt-1 text-xs font-medium text-primary hover:underline"
             >
               → Rejoindre le Discord
             </a>
