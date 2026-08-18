@@ -725,7 +725,7 @@ export function CharactersTab({ players, versions, groupes }: Props) {
               setPage(1);
             }}
             placeholder="Rechercher…"
-            className="h-7 text-[11px] w-36 bg-elevated border-border-mid"
+            className="h-7 text-[11px] w-48 bg-elevated border-border-mid"
           />
           <Select
             value={filterVersion}

@@ -239,21 +239,13 @@ export function PlayersTab() {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-[15px] font-bold tracking-wide text-text-primary">
-            Joueurs
-          </h2>
-          <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
-            {filtered.length}
-          </span>
-        </div>
+      <div className="flex items-center mb-4">
         <div className="flex items-center gap-2">
           <Input
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Rechercher…"
-            className="h-7 text-[11px] w-36 bg-elevated border-border-mid"
+            className="h-7 text-[11px] w-48 bg-elevated border-border-mid"
           />
           <Button
             size="sm"

@@ -23,7 +23,9 @@ export default function AdminButton() {
   if (!userId) {
     return (
       <SignInButton mode="modal">
-        <Button variant={"outline"}>Se connecter</Button>
+        <Button variant={"outline"} className="w-full">
+          Se connecter
+        </Button>
       </SignInButton>
     );
   }

@@ -123,7 +123,7 @@ export default function Sidebar({ open, onClose }: Props) {
       {/* Bouton admin/connexion */}
       <div className="absolute bottom-0 left-0 w-full mb-10 px-3">
         <AdminButton />
-        <p className="text-[10px] text-text-faint text-center mb-2">
+        <p className="text-[10px] text-text-faint text-center mt-4">
           ©{new Date().getFullYear()} - Made by casl0x
         </p>
       </div>
@@ -133,7 +133,7 @@ export default function Sidebar({ open, onClose }: Props) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card sticky top-[72px] h-[calc(100vh-72px)]">
+      <aside className="hidden lg:flex w-50 min-w-50 flex-col border-r border-border bg-card sticky top-18 h-[calc(100vh-72px)]">
         <div className="flex flex-col gap-2 p-3 overflow-y-auto h-full">
           {content}
         </div>

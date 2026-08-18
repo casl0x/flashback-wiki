@@ -113,15 +113,7 @@ export function VersionsTab() {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-[15px] font-bold tracking-wide text-text-primary">
-            Versions
-          </h2>
-          <span className="text-[11px] text-text-muted bg-elevated border border-border px-2 py-0.5 rounded-full">
-            {versions.length}
-          </span>
-        </div>
+      <div className="flex items-center mb-4">
         <Button
           size="sm"
           onClick={openAdd}
@@ -132,7 +124,7 @@ export function VersionsTab() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {versions.map((v) => (
           <Card
             key={v.id}

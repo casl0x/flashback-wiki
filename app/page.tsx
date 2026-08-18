@@ -1,5 +1,5 @@
-import WikiLayout from "@/components/wiki/WikiLayout";
 import TopPages from "@/components/wiki/TopPages";
+import WikiLayout from "@/components/wiki/WikiLayout";
 import { getWikiData } from "@/lib/wiki-data";
 import {
   BookOpen,
@@ -94,16 +94,19 @@ export default async function HomePage() {
               <li>stream, best-of et discord divers pour les infos globales</li>
             </ul>
           </div>
-      
+
           <hr className="border-border" />
-      
+
           <div className="space-y-2">
             <p className="font-medium bold text-sm">Contribuer :</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Pour signaler une erreur, proposer un ajout ou contribuer au wiki, rejoins le Discord de la communauté.
+              Pour signaler une erreur, proposer un ajout ou contribuer au wiki,
+              rejoins le Discord de la communauté ou clique directement sur les
+              pages personnages pour proposer des modifications.
             </p>
-            
-            <a  href="https://discord.gg/9B5dn8EVsw"
+
+            <a
+              href="https://discord.gg/9B5dn8EVsw"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block mt-1 text-xs font-medium text-primary hover:underline"
@@ -111,13 +114,14 @@ export default async function HomePage() {
               → Rejoindre le Discord
             </a>
           </div>
-      
+
           <hr className="border-border" />
-      
+
           <div className="space-y-2">
             <p className="font-medium bold text-sm">Avertissement :</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Ce wiki est <span className="font-medium">non officiel</span> et n'est pas affilié aux créateurs de Flashback WL. Il est maintenu bénévolement par des membres de la communauté.
+              Ce wiki est <span className="font-medium">non officiel</span> et
+              maintenu bénévolement par des membres de la communauté.
             </p>
           </div>
         </div>

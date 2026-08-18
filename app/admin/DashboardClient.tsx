@@ -15,21 +15,41 @@ type ChangelogEntry = {
 };
 
 const TYPES = {
-  add_global:    { label: "Ajout",   sub: "Global",      cat: "add",     color: "#639922" },
-  add_relation:  { label: "Ajout",   sub: "Relation",    cat: "add",     color: "#639922" },
-  add_lieu:      { label: "Ajout",   sub: "Lieu de vie", cat: "add",     color: "#639922" },
-  edit_info:     { label: "Modif",   sub: "Infos",       cat: "edit",    color: "#185FA5" },
-  edit_relation: { label: "Modif",   sub: "Relations",   cat: "edit",    color: "#185FA5" },
-  edit_lieu:     { label: "Modif",   sub: "Lieu de vie", cat: "edit",    color: "#185FA5" },
-  version:       { label: "Version", sub: "",            cat: "version", color: "#534AB7" },
-  site:          { label: "Site",    sub: "",            cat: "site",    color: "#B85FA5" },
+  add_global: { label: "Ajout", sub: "Global", cat: "add", color: "#639922" },
+  add_relation: {
+    label: "Ajout",
+    sub: "Relation",
+    cat: "add",
+    color: "#639922",
+  },
+  add_lieu: {
+    label: "Ajout",
+    sub: "Lieu de vie",
+    cat: "add",
+    color: "#639922",
+  },
+  edit_info: { label: "Modif", sub: "Infos", cat: "edit", color: "#185FA5" },
+  edit_relation: {
+    label: "Modif",
+    sub: "Relations",
+    cat: "edit",
+    color: "#185FA5",
+  },
+  edit_lieu: {
+    label: "Modif",
+    sub: "Lieu de vie",
+    cat: "edit",
+    color: "#185FA5",
+  },
+  version: { label: "Version", sub: "", cat: "version", color: "#534AB7" },
+  site: { label: "Site", sub: "", cat: "site", color: "#B85FA5" },
 } as const;
 
 const BADGE_CLASS: Record<string, string> = {
-  add:     "bg-[#EAF3DE] text-[#3B6D11] border-[#C0DD97]",
-  edit:    "bg-[#E6F1FB] text-[#185FA5] border-[#B5D4F4]",
+  add: "bg-[#EAF3DE] text-[#3B6D11] border-[#C0DD97]",
+  edit: "bg-[#E6F1FB] text-[#185FA5] border-[#B5D4F4]",
   version: "bg-[#EEEDFE] text-[#3C3489] border-[#CECBF6]",
-  site:    "bg-[#FBEAF0] text-[#993356] border-[#F4C0D1]",
+  site: "bg-[#FBEAF0] text-[#993356] border-[#F4C0D1]",
 };
 
 export function DashboardClient({
@@ -51,11 +71,36 @@ export function DashboardClient({
   const [entries, setEntries] = useState<ChangelogEntry[]>(recentChangelog);
 
   const STATS: Stat[] = [
-    { label: "Personnages",  value: stats.totalChars,       href: "/admin/characters", color: "text-accent-light" },
-    { label: "Joueurs",      value: stats.totalPlayers,     href: "/admin/players",    color: "text-accent-light" },
-    { label: "Versions",     value: stats.totalVersions,    href: "/admin/versions",   color: "text-accent-light" },
-    { label: "Relations",    value: stats.totalRels,        href: "/admin/characters", color: "text-accent-light" },
-    { label: "Suggestions",  value: stats.totalSuggestions, href: "/admin/suggestions",color: "text-amber-400" },
+    {
+      label: "Personnages",
+      value: stats.totalChars,
+      href: "/admin/characters",
+      color: "text-accent-light",
+    },
+    {
+      label: "Joueurs",
+      value: stats.totalPlayers,
+      href: "/admin/players",
+      color: "text-accent-light",
+    },
+    {
+      label: "Versions",
+      value: stats.totalVersions,
+      href: "/admin/versions",
+      color: "text-accent-light",
+    },
+    {
+      label: "Relations",
+      value: stats.totalRels,
+      href: "/admin/characters",
+      color: "text-accent-light",
+    },
+    {
+      label: "Suggestions",
+      value: stats.totalSuggestions,
+      href: "/admin/suggestions",
+      color: "text-amber-400",
+    },
   ];
 
   async function submit() {
@@ -74,7 +119,7 @@ export function DashboardClient({
   }
 
   return (
-    <div className="p-5 lg:p-7 flex flex-col gap-5 max-w-3xl">
+    <div className="p-5 lg:p-7 flex flex-col gap-5 mx-10">
       {/* Header */}
       <div>
         <p className="text-[10px] uppercase tracking-widest text-text-muted mb-0.5">
@@ -157,14 +202,19 @@ export function DashboardClient({
               return (
                 <div key={e.id} className="flex gap-3">
                   <div className="flex flex-col items-center pt-1.5">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
+                    <div
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: t.color }}
+                    />
                     {i < entries.length - 1 && (
                       <div className="w-px flex-1 bg-border min-h-[20px] mt-1" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0 pb-4">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${BADGE_CLASS[t.cat]}`}>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${BADGE_CLASS[t.cat]}`}
+                      >
                         {t.label}
                       </span>
                       {t.sub && (
@@ -177,11 +227,16 @@ export function DashboardClient({
                       </span>
                     </div>
                     {e.detail && (
-                      <p className="text-[12px] text-text-secondary mt-0.5">{e.detail}</p>
+                      <p className="text-[12px] text-text-secondary mt-0.5">
+                        {e.detail}
+                      </p>
                     )}
                     <p className="text-[11px] text-text-faint mt-0.5">
                       {new Date(e.createdAt).toLocaleDateString("fr-FR", {
-                        day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+                        day: "numeric",
+                        month: "long",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </p>
                   </div>
