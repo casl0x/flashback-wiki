@@ -20,7 +20,10 @@ export default async function AdminPage() {
   return (
     <DashboardClient
       stats={{ totalChars, totalPlayers, totalVersions, totalRels, totalSuggestions }}
-      recentChangelog={recentChangelog}
+      recentChangelog={recentChangelog.map((e) => ({
+        ...e,
+        createdAt: e.createdAt.toISOString(),
+      }))}
     />
   );
 }
