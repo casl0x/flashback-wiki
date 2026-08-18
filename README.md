@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚡ Flashback WL — Wiki
 
-## Getting Started
+> Wiki communautaire **non officiel** dédié à l'univers de **Flashback WL** : personnages, joueurs, versions, musiques et créations de la communauté.
 
-First, run the development server:
+🌐 **Site en ligne :** [flashback-wiki.vercel.app](https://flashback-wiki.vercel.app)
+
+---
+
+## 📖 Présentation
+
+Flashback WL Wiki est une encyclopédie participative qui répertorie l'ensemble des personnages ayant existé sur le serveur Flashback WL, au fil de ses différentes versions. Le projet est porté par la communauté, pour la communauté.
+
+On y trouve :
+
+- **Tous les personnages** joués sur le serveur, avec leur joueur associé et leur organisation/faction
+- **Les musiques** liées aux personnages (playlists)
+- **Les rediffusions** de certaines aventures (streams, best-of)
+- **Les créations** de la communauté Flashback
+- **Un classement** des personnages les plus consultés (30 derniers jours, via Vercel Analytics)
+
+---
+
+## 🗂️ Structure du contenu
+
+| Page | Description |
+|---|---|
+| `/` | Accueil — top personnages, présentation |
+| `/personnages` | Liste complète des personnages (755+, paginée 20/page) |
+| `/versions/:id` | Personnages filtrés par version |
+| `/musiques` | Playlists musicales |
+| `/createurs` | Créateurs de la communauté |
+| `/changelog` | Historique des mises à jour du wiki |
+
+---
+
+## 🛠️ Stack technique
+
+- **Framework :** [Next.js](https://nextjs.org/) (React)
+- **Déploiement :** [Vercel](https://vercel.com/)
+- **Analytics :** Vercel Web Analytics (stats de consultation, mises à jour toutes les heures)
+
+---
+
+## 📦 Installation locale
 
 ```bash
+# Cloner le dépôt
+git clone <url-du-repo>
+cd flashback-wiki
+
+# Installer les dépendances
+npm install
+
+# Lancer le serveur de développement
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Le site sera disponible sur `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🤝 Contribuer
 
-## Learn More
+Les données proviennent de sources communautaires :
+- Discord et Instagram pour les **images**
+- Streams, best-of et Discord pour les **informations**
 
-To learn more about Next.js, take a look at the following resources:
+Pour signaler une erreur, proposer un ajout ou contribuer :
+👉 [Rejoindre le Discord](https://discord.gg/9B5dn8EVsw)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## ⚠️ Avertissement
 
-## Deploy on Vercel
+Ce wiki est **non officiel** et n'est pas affilié aux créateurs de Flashback WL. Il est maintenu bénévolement par des membres de la communauté.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Mis à jour au fil des versions du serveur Flashback WL.*
