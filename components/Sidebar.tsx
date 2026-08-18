@@ -124,7 +124,7 @@ export default function Sidebar({ open, onClose }: Props) {
       <div className="absolute bottom-0 left-0 w-full mb-10 px-3">
         <AdminButton />
         <p className="text-[10px] text-text-faint text-center mb-2">
-          © {new Date().getFullYear()} casl0x
+          ©{new Date().getFullYear()} - Made by casl0x
         </p>
       </div>
     </div>
