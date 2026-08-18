@@ -149,9 +149,6 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const isActive = item.exact
-  ? pathname === item.href
-  : pathname.startsWith(item.href);
 
   return (
     <div className="flex min-h-screen bg-background">
