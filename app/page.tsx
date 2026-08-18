@@ -85,37 +85,43 @@ export default async function HomePage() {
           since="30d"
         />
       </section>
-<section className="space-y-4 p-4 lg:p-5">
-  <div className="space-y-2 rounded-xl border border-border bg-card p-5 lg:p-8">
-    <p className="font-medium text-muted-foreground bold">Sources :</p>
-    <ul className="list-disc pl-5 text-sm leading-relaxed text-muted-foreground">
-      <li>discord et Instagram pour les images</li>
-      <li>stream, best-of et discord divers pour les infos globales</li>
-    </ul>
-  </div>
-
-  <div className="space-y-2 rounded-xl border border-border bg-card p-5 lg:p-8">
-    <p className="font-medium text-muted-foreground bold">Contribuer :</p>
-    <p className="text-sm leading-relaxed text-muted-foreground">
-      Pour signaler une erreur, proposer un ajout ou contribuer au wiki, rejoins le Discord de la communauté ou tu peux directement demander une modification sur les pages personnages.
-    </p>
-    
-     <a href="https://discord.gg/9B5dn8EVsw"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-block mt-1 text-sm font-medium text-primary hover:underline"
-    >
-      → Rejoindre le Discord
-    </a>
-  </div>
-
-  <div className="space-y-2 rounded-xl border border-border bg-card p-5 lg:p-8">
-    <p className="font-medium text-muted-foreground bold">Avertissement :</p>
-    <p className="text-sm leading-relaxed text-muted-foreground">
-      Ce wiki est <span className="font-medium">non officiel</span> et n'est pas affilié aux créateurs de Flashback WL. Il est maintenu bénévolement par des membres de la communauté.
-    </p>
-  </div>
-</section>
+      <section className="space-y-4 p-4 lg:p-5">
+        <div className="space-y-4 rounded-xl border border-border bg-card p-5 lg:p-8">
+          <div className="space-y-2">
+            <p className="font-medium bold text-sm">Sources :</p>
+            <ul className="list-disc pl-5 text-xs leading-relaxed text-muted-foreground">
+              <li>discord et Instagram pour les images</li>
+              <li>stream, best-of et discord divers pour les infos globales</li>
+            </ul>
+          </div>
+      
+          <hr className="border-border" />
+      
+          <div className="space-y-2">
+            <p className="font-medium bold text-sm">Contribuer :</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Pour signaler une erreur, proposer un ajout ou contribuer au wiki, rejoins le Discord de la communauté.
+            </p>
+            
+            <a  href="https://discord.gg/9B5dn8EVsw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-1 text-sm font-medium text-primary hover:underline"
+            >
+              → Rejoindre le Discord
+            </a>
+          </div>
+      
+          <hr className="border-border" />
+      
+          <div className="space-y-2">
+            <p className="font-medium bold text-sm">Avertissement :</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Ce wiki est <span className="font-medium">non officiel</span> et n'est pas affilié aux créateurs de Flashback WL. Il est maintenu bénévolement par des membres de la communauté.
+            </p>
+          </div>
+        </div>
+      </section>
     </WikiLayout>
   );
 }
