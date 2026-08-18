@@ -100,7 +100,7 @@ export default async function HomePage() {
       Pour signaler une erreur, proposer un ajout ou contribuer au wiki, rejoins le Discord de la communauté ou tu peux directement demander une modification sur les pages personnages.
     </p>
     
-      href="https://discord.gg/9B5dn8EVsw"
+     <a href="https://discord.gg/9B5dn8EVsw"
       target="_blank"
       rel="noopener noreferrer"
       className="inline-block mt-1 text-sm font-medium text-primary hover:underline"
