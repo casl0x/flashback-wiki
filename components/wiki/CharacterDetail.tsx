@@ -159,7 +159,7 @@ export default function CharacterDetail({
           )}
 
           {c.description && (
-            <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
+            <p className="text-[13px] text-text-secondary leading-relaxed mb-3 whitespace-pre-line">
               {c.description}
             </p>
           )}

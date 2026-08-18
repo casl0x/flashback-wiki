@@ -185,7 +185,7 @@ export default function ChangelogPage() {
                         </span>
                       </div>
                       {e.detail && (
-                        <p className="text-[13px] text-text-secondary mt-0.5">
+                        <p className="text-[12px] text-text-secondary mt-0.5 whitespace-pre-line">
                           {e.detail}
                         </p>
                       )}
