@@ -1,4 +1,3 @@
-// app/admin/layout.tsx
 "use client";
 
 import { Menu, X } from "lucide-react";
@@ -7,6 +6,19 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const NAV_ITEMS = [
+    {
+    href: "/admin",
+    label: "Tableau de bord",
+    exact: true, 
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
   {
     href: "/admin/characters",
     label: "Personnages",
@@ -137,6 +149,9 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const isActive = item.exact
+  ? pathname === item.href
+  : pathname.startsWith(item.href);
 
   return (
     <div className="flex min-h-screen bg-background">

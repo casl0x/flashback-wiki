@@ -53,12 +53,14 @@ const TYPES = {
     color: "#185FA5",
   },
   version: { label: "Version", sub: "", cat: "version", color: "#534AB7" },
+  site: { label: "Site", sub: "", cat: "site", color: "#B85FA5" },
 } as const;
 
 const BADGE_CLASS: Record<string, string> = {
   add: "bg-[#EAF3DE] text-[#3B6D11] border-[#C0DD97]",
   edit: "bg-[#E6F1FB] text-[#185FA5] border-[#B5D4F4]",
   version: "bg-[#EEEDFE] text-[#3C3489] border-[#CECBF6]",
+  site: "bg-[#FBEAF0] text-[#993356] border-[#F4C0D1]",
 };
 
 // ─── Page ──────────────────────────────────────────────────────────────────────

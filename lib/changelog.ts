@@ -7,7 +7,8 @@ type ChangelogType =
   | "edit_info"
   | "edit_relation"
   | "edit_lieu"
-  | "version";
+  | "version"
+  | "site";
 
 export async function logChange(
   type: ChangelogType,
