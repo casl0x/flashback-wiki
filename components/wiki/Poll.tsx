@@ -145,7 +145,7 @@ export function Poll() {
               key={option.id}
               onClick={() => handleVote(option.id)}
               disabled={voting || !isSignedIn}
-              className="w-full text-left px-4 py-2.5 rounded-lg border border-border bg-muted text-[13px] font-medium text-text-secondary hover:border-border-mid hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-left cursor-pointer px-4 py-2.5 rounded-lg border border-border bg-muted text-[13px] font-medium text-text-secondary hover:border-border-mid hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {option.label}
             </button>
