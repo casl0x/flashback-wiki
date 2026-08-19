@@ -1,11 +1,13 @@
+// app/api/polls/[id]/vote/route.ts
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const { userId } = await auth();
 
   if (!userId) {
@@ -18,9 +20,8 @@ export async function POST(
     return NextResponse.json({ error: "Option manquante" }, { status: 400 });
   }
 
-  // Vérifie que l'option appartient bien à ce sondage
   const option = await prisma.pollOption.findFirst({
-    where: { id: optionId, pollId: params.id },
+    where: { id: optionId, pollId: id },
     include: { poll: true },
   });
 
@@ -36,11 +37,10 @@ export async function POST(
     return NextResponse.json({ error: "Ce sondage est expiré" }, { status: 403 });
   }
 
-  // Vérifie que l'user n'a pas déjà voté dans ce sondage
   const existingVote = await prisma.pollVote.findFirst({
     where: {
       userId,
-      option: { pollId: params.id },
+      option: { pollId: id },
     },
   });
 

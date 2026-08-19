@@ -1,15 +1,17 @@
+// app/api/polls/[id]/route.ts
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const { userId } = await auth();
 
   const poll = await prisma.poll.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       options: {
         include: { votes: true },
