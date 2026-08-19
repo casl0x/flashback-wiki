@@ -187,3 +187,30 @@ model ChangelogEntry {
 
   @@map("changelog_entries")
 }
+
+model Poll {
+  id        String       @id @default(cuid())
+  question  String
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  endsAt    DateTime?
+  options   PollOption[]
+}
+
+model PollOption {
+  id     String      @id @default(cuid())
+  label  String
+  pollId String
+  poll   Poll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes  PollVote[]
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  userId    String
+  optionId  String
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, optionId])
+}

@@ -1,4 +1,3 @@
-// components/admin/ChangelogTab.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";

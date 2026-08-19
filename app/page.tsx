@@ -8,6 +8,7 @@ import {
   Music,
   Palette,
 } from "lucide-react";
+import Poll from "@/components/wiki/Poll";
 
 export default async function HomePage() {
   const { versions, players, characters, counts } = await getWikiData();
@@ -77,6 +78,9 @@ export default async function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+      <section className="space-y-4 p-4 lg:p-5">
+        <Poll />
       </section>
       <section className="space-y-4 p-4 lg:p-5">
         <TopPages
