@@ -113,20 +113,22 @@ export default function OnboardingPage() {
     }
   }
 
-  async function handleSubmit() {
-    if (!pseudo.trim()) {
-      setError("Le pseudo est obligatoire.");
-      setStep(1);
-      return;
-    }
+  async function handleSubmitDirect() {
     setLoading(true);
     setError(null);
     try {
-      await completeOnboarding({
-        pseudo: pseudo.trim(),
-        roles: wantsCreator ? roles : [],
-      });
-      await session?.reload();
+      await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
+  
+      // Retry jusqu'à ce que la session reflète onboardingComplete
+      let attempts = 0;
+      while (attempts < 5) {
+        await session?.reload();
+        const meta = session?.user?.publicMetadata as { onboardingComplete?: boolean } | undefined;
+        if (meta?.onboardingComplete) break;
+        await new Promise((r) => setTimeout(r, 500));
+        attempts++;
+      }
+  
       router.push("/");
     } catch (err) {
       console.error(err);
