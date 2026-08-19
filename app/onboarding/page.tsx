@@ -104,20 +104,6 @@ export default function OnboardingPage() {
     setError(null);
     try {
       await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
-      await session?.reload();
-      router.push("/");
-    } catch (err) {
-      console.error(err);
-      setError("Une erreur est survenue, réessaie.");
-      setLoading(false);
-    }
-  }
-
-  async function handleSubmitDirect() {
-    setLoading(true);
-    setError(null);
-    try {
-      await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
   
       // Retry jusqu'à ce que la session reflète onboardingComplete
       let attempts = 0;
