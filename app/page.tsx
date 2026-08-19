@@ -8,7 +8,7 @@ import {
   Music,
   Palette,
 } from "lucide-react";
-import Poll from "@/components/wiki/Poll";
+import {Poll} from "@/components/wiki/Poll";
 
 export default async function HomePage() {
   const { versions, players, characters, counts } = await getWikiData();
