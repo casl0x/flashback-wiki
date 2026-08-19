@@ -66,9 +66,9 @@ export default function TopPagesUI({ pages, error, title, since }: TopPagesUIPro
                   <a
                     href={page.path}
                     className="truncate text-sm font-medium hover:underline"
-                    title={page.name}
+                    title={page.nom}
                   >
-                    {page.name}
+                    {page.nom}
                   </a>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                     {page.views.toLocaleString("fr-FR")} vues
