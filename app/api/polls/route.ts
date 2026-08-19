@@ -17,8 +17,6 @@ export async function GET() {
 export async function POST(req: Request) {
   const { question, options, endsAt } = await req.json();
 
-  const { question, options, endsAt } = await req.json();
-
   if (!question || !options || options.length < 2) {
     return NextResponse.json({ error: "Question et au moins 2 options requises" }, { status: 400 });
   }
