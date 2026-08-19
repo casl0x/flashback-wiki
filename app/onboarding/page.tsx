@@ -122,6 +122,37 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   }
+  
+  async function handleSubmit() {
+  if (!pseudo.trim()) {
+    setError("Le pseudo est obligatoire.");
+    setStep(1);
+    return;
+  }
+  setLoading(true);
+  setError(null);
+  try {
+    await completeOnboarding({
+      pseudo: pseudo.trim(),
+      roles: wantsCreator ? roles : [],
+    });
+
+    let attempts = 0;
+    while (attempts < 5) {
+      await session?.reload();
+      const meta = session?.user?.publicMetadata as { onboardingComplete?: boolean } | undefined;
+      if (meta?.onboardingComplete) break;
+      await new Promise((r) => setTimeout(r, 500));
+      attempts++;
+    }
+
+    router.push("/");
+  } catch (err) {
+    console.error(err);
+    setError("Une erreur est survenue, réessaie.");
+    setLoading(false);
+  }
+}
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
