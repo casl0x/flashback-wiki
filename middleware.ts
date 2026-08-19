@@ -14,8 +14,9 @@ const isPublicRoute = createRouteMatcher([
   "/__clerk/(.*)",
 ]);
 
+export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
-  
+
   console.log("sessionClaims complet:", JSON.stringify(sessionClaims));
 
   if (userId && !isOnboardingRoute(req) && !isPublicRoute(req)) {
