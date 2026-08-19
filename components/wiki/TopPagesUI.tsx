@@ -2,7 +2,7 @@
 
 interface PageStat {
   path: string;
-  name: string;
+  nom: string;
   views: number;
 }
 
