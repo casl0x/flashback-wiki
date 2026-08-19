@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 
 // GET /api/polls → sondage actif pour la home
 export async function GET() {
