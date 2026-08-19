@@ -105,6 +105,7 @@ async function handleSubmitDirect() {
   try {
     await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
     await session?.reload();
+    await new Promise((r) => setTimeout(r, 2000)); // attendre que le JWT se propage
     window.location.href = "/";
   } catch (err) {
     console.error(err);

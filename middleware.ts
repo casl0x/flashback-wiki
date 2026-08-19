@@ -19,7 +19,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // --- Onboarding check ---
   if (userId && !isOnboardingRoute(req) && !isPublicRoute(req)) {
-    const onboardingComplete = sessionClaims?.metadata?.onboardingComplete;
+    const onboardingComplete = (sessionClaims?.metadata as { onboardingComplete?: boolean })?.onboardingComplete;
     if (!onboardingComplete) {
       return NextResponse.redirect(new URL("/onboarding", req.url));
     }

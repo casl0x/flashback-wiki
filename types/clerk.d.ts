@@ -2,7 +2,7 @@ export {};
 
 declare global {
   interface CustomJwtSessionClaims {
-    metadata: {
+    publicMetadata: {
       onboardingComplete?: boolean;
     };
   }
