@@ -99,29 +99,19 @@ export default function OnboardingPage() {
     );
   }
 
-  async function handleSubmitDirect() {
-    setLoading(true);
-    setError(null);
-    try {
-      await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
-  
-      // Retry jusqu'à ce que la session reflète onboardingComplete
-      let attempts = 0;
-      while (attempts < 5) {
-        await session?.reload();
-        const meta = session?.user?.publicMetadata as { onboardingComplete?: boolean } | undefined;
-        if (meta?.onboardingComplete) break;
-        await new Promise((r) => setTimeout(r, 500));
-        attempts++;
-      }
-  
-      router.push("/");
-    } catch (err) {
-      console.error(err);
-      setError("Une erreur est survenue, réessaie.");
-      setLoading(false);
-    }
+async function handleSubmitDirect() {
+  setLoading(true);
+  setError(null);
+  try {
+    await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
+    await session?.reload();
+    window.location.href = "/";
+  } catch (err) {
+    console.error(err);
+    setError("Une erreur est survenue, réessaie.");
+    setLoading(false);
   }
+}
   
   async function handleSubmit() {
   if (!pseudo.trim()) {
