@@ -2,7 +2,7 @@
 
 interface PageStat {
   path: string;
-  nom: string;
+  name: string;
   views: number;
 }
 
@@ -66,9 +66,9 @@ export default function TopPagesUI({ pages, error, title, since }: TopPagesUIPro
                   <a
                     href={page.path}
                     className="truncate text-sm font-medium hover:underline"
-                    title={page.nom}
+                    title={page.name}
                   >
-                    {page.nom}
+                    {page.name}
                   </a>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                     {page.views.toLocaleString("fr-FR")} vues
