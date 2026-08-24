@@ -123,8 +123,8 @@ export default function Sidebar({ open, onClose }: Props) {
       {/* Bouton admin/connexion */}
       <div className="absolute bottom-0 left-0 w-full mb-10 px-3">
         <AdminButton />
-        <p className="text-[10px] text-text-faint text-center mt-4">
-          ©{new Date().getFullYear()} - Made by casl0x
+        <p className="text-[10px] text-text-faint text-center mt-4 inline-block">
+          ©{new Date().getFullYear()} - Made by <a href="https://github.com/casl0x">casl0x</a>
         </p>
       </div>
     </div>
