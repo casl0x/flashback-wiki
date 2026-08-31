@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         etatVie: etat_vie ?? null,
       },
     });
-    await logChange("add_global", char.nom, metier ?? undefined);
+    await logChange("add_global", char.nom, char.versionId ?? undefined);
     await invalidateWikiCache();
     return NextResponse.json(char, { status: 201 });
   } catch (err: unknown) {
@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest) {
         etatVie: etat_vie ?? null,
       },
     });
-    await logChange("edit_info", char.nom);
+    await logChange("edit_info", char.nom, char.versionId ?? undefined);
     await invalidateWikiCache();
     return NextResponse.json(char);
   } catch (err: unknown) {
