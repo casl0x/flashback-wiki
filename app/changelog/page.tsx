@@ -184,22 +184,26 @@ export default function ChangelogPage() {
                           {e.label}
                         </span>
                       </div>
-                      {e.detail && wikiData.versions.find(v => v.id === e.detail) ? (
-  <span
-    className="text-[10px] px-1.5 py-0.5 rounded border font-medium"
-    style={{
-      color: wikiData.versions.find(v => v.id === e.detail)!.color,
-      borderColor: `${wikiData.versions.find(v => v.id === e.detail)!.color}40`,
-      background: `${wikiData.versions.find(v => v.id === e.detail)!.color}18`,
-    }}
-  >
-    {e.detail}
-  </span>
-) : e.detail ? (
-  <p className="text-[12px] text-text-secondary mt-0.5 whitespace-pre-line">
-    {e.detail}
-  </p>
-) : null}
+                      {e.detail && wikiData.versions.find(v => v.id === e.detail) ? (() => {
+                        const version = wikiData.versions.find(v => v.id === e.detail)!;
+                        const color = version.color ?? "#8880a8";
+                        return (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded border font-medium"
+                            style={{
+                              color,
+                              borderColor: `${color}40`,
+                              background: `${color}18`,
+                            }}
+                          >
+                            {e.detail}
+                          </span>
+                        );
+                      })() : e.detail ? (
+                        <p className="text-[12px] text-text-secondary mt-0.5 whitespace-pre-line">
+                          {e.detail}
+                        </p>
+                      ) : null}
                       <p className="text-[11px] text-text-faint mt-1">
                         {new Date(e.createdAt).toLocaleDateString("fr-FR", {
                           day: "numeric",
