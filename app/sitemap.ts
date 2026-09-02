@@ -18,13 +18,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  const playerUrls = players.map((p) => ({
-    url: `https://flashback-wiki.vercel.app/joueurs/${p.id}`,
-    lastModified: p.createdAt,
-    changeFrequency: 'weekly' as const,
-    priority: 0.6,
-  }))
-
   return [
     {
       url: 'https://flashback-wiki.vercel.app',
