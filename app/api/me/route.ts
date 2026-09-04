@@ -18,7 +18,11 @@ export async function GET() {
             socialLinks: true, // ← liens dans le rôle
             posts: {
               orderBy: { createdAt: "desc" },
-              include: { character: { select: { id: true, nom: true } } },
+              include: {
+                characters: {
+                  include: { character: { select: { id: true, nom: true } } },
+                },
+              },
             },
           },
         },
@@ -60,7 +64,7 @@ export async function GET() {
           platform: p.platform,
           caption: p.caption,
           createdAt: p.createdAt,
-          character: p.character,
+          characters: p.characters.map((c) => c.character),
         })),
       })) ?? [],
   });

@@ -10,7 +10,7 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
     include: {
       creatorRole: { include: { userProfile: true } },
-      character: { select: { id: true, nom: true } },
+      characters: { include: { character: { select: { id: true, nom: true } } } },
     },
   });
 
@@ -35,7 +35,7 @@ export async function GET() {
         platform: p.platform,
         caption: p.caption,
         createdAt: p.createdAt,
-        character: p.character,
+        characters: p.characters.map((c) => c.character),
         user: {
           pseudo: p.creatorRole.userProfile.pseudo,
           avatarUrl: clerkUser?.imageUrl ?? null,

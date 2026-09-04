@@ -80,10 +80,20 @@ model CreatorPost {
   creatorRoleId String
   creatorRole   CreatorRole @relation(fields: [creatorRoleId], references: [id], onDelete: Cascade)
 
-  characterId String?
-  character   Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  characters CreatorPostCharacter[]
 
   @@map("creator_posts")
+}
+
+model CreatorPostCharacter {
+  creatorPostId String
+  characterId   String
+
+  creatorPost CreatorPost @relation(fields: [creatorPostId], references: [id], onDelete: Cascade)
+  character   Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@id([creatorPostId, characterId])
+  @@map("creator_post_characters")
 }
 
 model SocialLink {
@@ -150,7 +160,7 @@ model Character {
   locationY Float? @map("location_y")
 
   suggestions  Suggestion[]
-  creatorPosts CreatorPost[]
+  creatorPosts CreatorPostCharacter[]
 
   @@map("characters")
 }

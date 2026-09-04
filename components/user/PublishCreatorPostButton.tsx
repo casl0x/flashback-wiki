@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Character } from "@/lib/db";
 import { useUser } from "@clerk/nextjs";
-import { Film, Sparkles, Upload } from "lucide-react";
+import { Film, Sparkles, Upload, X } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,12 +30,18 @@ const PLATFORM_LABELS: Record<string, string> = {
   AUTRE: "Autre",
 };
 
-const EMPTY_STATE = {
+const EMPTY_STATE: {
+  imageUrl: string;
+  linkUrl: string;
+  platform: string;
+  caption: string;
+  characterIds: string[];
+} = {
   imageUrl: "",
   linkUrl: "",
   platform: "TIKTOK",
   caption: "",
-  characterId: "",
+  characterIds: [],
 };
 
 export function PublishCreatorPostButton({
@@ -64,6 +70,7 @@ export function PublishCreatorPostButton({
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [characterPicker, setCharacterPicker] = useState("");
 
   useEffect(() => {
     if (!open || characters.length) return;
@@ -87,7 +94,24 @@ export function PublishCreatorPostButton({
       setError(null);
       setForm(EMPTY_STATE);
       setType(initialType);
+      setCharacterPicker("");
     }
+  }
+
+  function addCharacter(id: string) {
+    setForm((p) =>
+      p.characterIds.includes(id)
+        ? p
+        : { ...p, characterIds: [...p.characterIds, id] },
+    );
+    setCharacterPicker("");
+  }
+
+  function removeCharacter(id: string) {
+    setForm((p) => ({
+      ...p,
+      characterIds: p.characterIds.filter((c) => c !== id),
+    }));
   }
 
   async function submit() {
@@ -109,7 +133,7 @@ export function PublishCreatorPostButton({
         linkUrl: form.linkUrl.trim() || undefined,
         platform: type === "EDITEUR" ? (form.platform as never) : undefined,
         caption: form.caption.trim() || undefined,
-        characterId: form.characterId || undefined,
+        characterIds: form.characterIds,
       });
       setSent(true);
       onPublished?.();
@@ -245,14 +269,36 @@ export function PublishCreatorPostButton({
 
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Personnage lié (optionnel)
+                  Personnages liés (optionnel)
                 </label>
+                {form.characterIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-1">
+                    {form.characterIds.map((id) => {
+                      const c = characters.find((ch) => ch.id === id);
+                      return (
+                        <span
+                          key={id}
+                          className="flex items-center gap-1 text-[11px] text-text-secondary border border-border bg-elevated rounded-md pl-2 pr-1 py-0.5"
+                        >
+                          {c?.nom ?? id}
+                          <button
+                            type="button"
+                            onClick={() => removeCharacter(id)}
+                            className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-border text-text-muted hover:text-text-primary transition-colors"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
                 <CharacterCombobox
-                  characters={characters}
-                  value={form.characterId}
-                  onValueChange={(v) =>
-                    setForm((p) => ({ ...p, characterId: v }))
-                  }
+                  characters={characters.filter(
+                    (c) => !form.characterIds.includes(c.id),
+                  )}
+                  value={characterPicker}
+                  onValueChange={addCharacter}
                 />
               </div>
 

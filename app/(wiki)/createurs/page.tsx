@@ -1,6 +1,7 @@
 // app/createurs/page.tsx
 "use client";
 
+import { deleteCreatorPost } from "@/app/profil/actions";
 import { PublishCreatorPostButton } from "@/components/user/PublishCreatorPostButton";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -8,6 +9,7 @@ import {
   ExternalLink,
   Film,
   Sparkles,
+  Trash2,
   User,
   UserCircle2,
 } from "lucide-react";
@@ -23,8 +25,8 @@ type CreatorPost = {
   platform: string | null;
   caption: string | null;
   createdAt: string;
-  character: { id: string; nom: string } | null;
-  creator: { pseudo: string; avatarUrl: string | null };
+  characters: { id: string; nom: string }[];
+  creator: { pseudo: string; avatarUrl: string | null; clerkUserId: string };
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -45,7 +47,7 @@ const TABS = [
 type Tab = (typeof TABS)[number]["key"];
 
 export default function CreateursPage() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const [data, setData] = useState<CreatorPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("all");
@@ -83,6 +85,11 @@ export default function CreateursPage() {
   }, [isLoaded, isSignedIn]);
 
   const filtered = tab === "all" ? data : data.filter((p) => p.type === tab);
+
+  async function handleDelete(id: string) {
+    setData((prev) => prev.filter((p) => p.id !== id));
+    await deleteCreatorPost(id);
+  }
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
@@ -131,7 +138,7 @@ export default function CreateursPage() {
               "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
               "Les liens partagés doivent pointer vers ton propre contenu",
               "Les comptes de clipfarming ne seront pas acceptés",
-              "Chaque publication est examinée manuellement avant d'apparaître sur la page",
+              "Ton profil créateur est examiné manuellement avant de pouvoir publier",
               "Aucun délai de validation garanti - sois patient",
             ].map((rule, i) => (
               <div
@@ -194,7 +201,12 @@ export default function CreateursPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {filtered.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard
+              key={post.id}
+              post={post}
+              isOwn={!!user && post.creator.clerkUserId === user.id}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
@@ -202,9 +214,25 @@ export default function CreateursPage() {
   );
 }
 
-function PostCard({ post }: { post: CreatorPost }) {
+function PostCard({
+  post,
+  isOwn,
+  onDelete,
+}: {
+  post: CreatorPost;
+  isOwn: boolean;
+  onDelete: (id: string) => void;
+}) {
   return (
-    <div className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-accent/30">
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-accent/30">
+      {isOwn && (
+        <button
+          onClick={() => onDelete(post.id)}
+          className="absolute top-1.5 right-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      )}
       {post.type === "ARTISTE" && post.imageUrl ? (
         <a
           href={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${post.imageUrl}`}
@@ -234,14 +262,19 @@ function PostCard({ post }: { post: CreatorPost }) {
       )}
 
       <div className="flex flex-col gap-1.5 p-2.5">
-        {post.character && (
-          <Link
-            href={`/personnages/${post.character.id}`}
-            className="inline-flex w-fit items-center gap-1 text-[10px] text-accent-light hover:underline"
-          >
-            <UserCircle2 className="h-2.5 w-2.5" />
-            {post.character.nom}
-          </Link>
+        {post.characters.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {post.characters.map((c) => (
+              <Link
+                key={c.id}
+                href={`/personnages/${c.id}`}
+                className="inline-flex w-fit items-center gap-1 text-[10px] text-accent-light hover:underline"
+              >
+                <UserCircle2 className="h-2.5 w-2.5" />
+                {c.nom}
+              </Link>
+            ))}
+          </div>
         )}
         {post.caption && (
           <p className="line-clamp-2 text-[11px] text-text-secondary">
