@@ -61,9 +61,26 @@ model CreatorRole {
   userProfileId String
   userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
   socialLinks   SocialLink[]   // ← déplacé ici
+  posts         CreatorPost[]
 
   @@unique([userProfileId, type])
   @@map("creator_roles")
+}
+
+model CreatorPost {
+  id        String          @id @default(cuid())
+  type      CreatorType
+  status    String          @default("pending")
+  imageUrl  String?
+  linkUrl   String?
+  platform  SocialPlatform?
+  caption   String?
+  createdAt DateTime        @default(now())
+
+  creatorRoleId String
+  creatorRole   CreatorRole @relation(fields: [creatorRoleId], references: [id], onDelete: Cascade)
+
+  @@map("creator_posts")
 }
 
 model SocialLink {
