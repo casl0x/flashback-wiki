@@ -2,28 +2,42 @@
 "use client";
 
 import { BadgePill } from "@/components/user/badges";
+import { PublishCreatorPostButton } from "@/components/user/PublishCreatorPostButton";
 import { useUser } from "@clerk/nextjs";
 import {
   Check,
+  ExternalLink,
   Film,
   Link2,
   Pencil,
   PencilLine,
   Plus,
   Sparkles,
+  Trash2,
   User,
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { updateCreatorProfile } from "../onboarding/action";
+import { deleteCreatorPost } from "./actions";
 
 type SocialLink = { platform: string; url: string };
+type CreatorPost = {
+  id: string;
+  status: string;
+  imageUrl: string | null;
+  linkUrl: string | null;
+  platform: string | null;
+  caption: string | null;
+  createdAt: string;
+};
 type CreatorRole = {
   type: "ARTISTE" | "EDITEUR";
   displayOnWiki: boolean;
   status?: string;
   socialLinks: SocialLink[];
+  posts: CreatorPost[];
 };
 
 type MeData = {
@@ -72,8 +86,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [roles, setRoles] = useState<CreatorRole[]>([]);
 
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+  const loadMe = useCallback(() => {
     fetch("/api/me")
       .then((r) => r.json())
       .then((d) => {
@@ -81,18 +94,30 @@ export default function ProfilePage() {
         setRoles(d.creatorRoles ?? []);
         setFetched(true);
       });
-  }, [isLoaded, isSignedIn]);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    loadMe();
+  }, [isLoaded, isSignedIn, loadMe]);
 
   const loading = isLoaded && isSignedIn && !fetched;
   const totalSuggestions = data
     ? data.stats.pending + data.stats.accepted + data.stats.rejected
     : 0;
 
+  async function handleDeletePost(id: string) {
+    setRoles((prev) =>
+      prev.map((r) => ({ ...r, posts: r.posts.filter((p) => p.id !== id) })),
+    );
+    await deleteCreatorPost(id);
+  }
+
   function toggleRole(type: "ARTISTE" | "EDITEUR") {
     setRoles((prev) =>
       prev.find((r) => r.type === type)
         ? prev.filter((r) => r.type !== type)
-        : [...prev, { type, displayOnWiki: false, socialLinks: [] }],
+        : [...prev, { type, displayOnWiki: false, socialLinks: [], posts: [] }],
     );
   }
 
@@ -416,6 +441,79 @@ export default function ProfilePage() {
                         <Plus className="h-3.5 w-3.5" />
                         Ajouter un lien
                       </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Publications du rôle */}
+                <div className="border-t border-border pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                      {role.type === "ARTISTE" ? (
+                        <Sparkles className="h-2.5 w-2.5" />
+                      ) : (
+                        <Film className="h-2.5 w-2.5" />
+                      )}
+                      Mes publications
+                    </p>
+                    <PublishCreatorPostButton
+                      defaultType={role.type}
+                      onPublished={loadMe}
+                      className="flex items-center gap-1 text-[11px] font-medium text-accent-light hover:text-accent transition-colors"
+                    />
+                  </div>
+
+                  {role.posts.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      Aucune publication pour l&apos;instant.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {role.posts.map((post) => (
+                        <div
+                          key={post.id}
+                          className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-elevated"
+                        >
+                          {post.imageUrl ? (
+                            <Image
+                              src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_200,c_fill/${post.imageUrl}`}
+                              alt={post.caption ?? ""}
+                              fill
+                              unoptimized
+                              className="object-cover"
+                            />
+                          ) : (
+                            <a
+                              href={post.linkUrl ?? "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex h-full w-full flex-col items-center justify-center gap-1 px-1 text-center"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
+                              <span className="text-[9px] text-text-muted">
+                                {post.platform
+                                  ? PLATFORM_LABELS[post.platform]
+                                  : "Lien"}
+                              </span>
+                            </a>
+                          )}
+                          <span
+                            className={`absolute top-1 left-1 text-[8px] px-1.5 py-0.5 rounded-full border ${STATUS_STYLE[post.status] ?? ""}`}
+                          >
+                            {post.status === "pending"
+                              ? "En attente"
+                              : post.status === "approved"
+                                ? "Validé"
+                                : "Refusé"}
+                          </span>
+                          <button
+                            onClick={() => handleDeletePost(post.id)}
+                            className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

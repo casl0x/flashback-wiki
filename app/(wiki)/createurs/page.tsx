@@ -1,19 +1,26 @@
 // app/createurs/page.tsx
 "use client";
 
-import { ChevronDown, ExternalLink, Film, Sparkles, User } from "lucide-react";
+import { PublishCreatorPostButton } from "@/components/user/PublishCreatorPostButton";
+import {
+  ChevronDown,
+  ExternalLink,
+  Film,
+  Sparkles,
+  User,
+} from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-type SocialLink = { platform: string; url: string };
-type CreatorRole = { type: "ARTISTE" | "EDITEUR"; socialLinks: SocialLink[] };
-
-type Creator = {
+type CreatorPost = {
   id: string;
-  types: ("ARTISTE" | "EDITEUR")[];
-  roles: CreatorRole[];
-  pseudo: string;
-  avatarUrl: string | null;
+  type: "ARTISTE" | "EDITEUR";
+  imageUrl: string | null;
+  linkUrl: string | null;
+  platform: string | null;
+  caption: string | null;
+  createdAt: string;
+  creator: { pseudo: string; avatarUrl: string | null };
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -27,20 +34,20 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 const TABS = [
   { key: "all", label: "Tous" },
-  { key: "ARTISTE", label: "Artistes", icon: <Sparkles className="h-3 w-3" /> },
-  { key: "EDITEUR", label: "Edit-makers", icon: <Film className="h-3 w-3" /> },
+  { key: "ARTISTE", label: "Fan art", icon: <Sparkles className="h-3 w-3" /> },
+  { key: "EDITEUR", label: "Edits", icon: <Film className="h-3 w-3" /> },
 ] as const;
 
 type Tab = (typeof TABS)[number]["key"];
 
 export default function CreateursPage() {
-  const [data, setData] = useState<Creator[]>([]);
+  const [data, setData] = useState<CreatorPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("all");
   const [rulesOpen, setRulesOpen] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/creators")
+  const load = useCallback(() => {
+    fetch("/api/creator-posts")
       .then((r) => r.json())
       .then((d) => {
         setData(d);
@@ -48,10 +55,11 @@ export default function CreateursPage() {
       });
   }, []);
 
-  const filtered =
-    tab === "all"
-      ? data
-      : data.filter((c) => c.types.includes(tab as "ARTISTE" | "EDITEUR"));
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const filtered = tab === "all" ? data : data.filter((p) => p.type === tab);
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
@@ -69,6 +77,10 @@ export default function CreateursPage() {
               Fan art, edits et créations de la communauté Flashback WL
             </p>
           </div>
+          <PublishCreatorPostButton
+            onPublished={load}
+            className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-accent/90 transition-colors shrink-0"
+          />
           <button
             onClick={() => setRulesOpen((o) => !o)}
             className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors shrink-0"
@@ -92,7 +104,7 @@ export default function CreateursPage() {
               "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
               "Les liens partagés doivent pointer vers ton propre contenu",
               "Les comptes de clipfarming ne seront pas acceptés",
-              "Chaque demande est examinée manuellement avant d'apparaître sur la page",
+              "Chaque publication est examinée manuellement avant d'apparaître sur la page",
               "Aucun délai de validation garanti - sois patient",
             ].map((rule, i) => (
               <div
@@ -113,7 +125,7 @@ export default function CreateursPage() {
           const count =
             t.key === "all"
               ? data.length
-              : data.filter((c) => c.types.includes(t.key)).length;
+              : data.filter((p) => p.type === t.key).length;
           return (
             <button
               key={t.key}
@@ -138,24 +150,24 @@ export default function CreateursPage() {
 
       {/* Grille */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {Array.from({ length: 8 }).map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="h-36 rounded-xl border border-border bg-card animate-pulse"
+              className="aspect-square rounded-xl border border-border bg-card animate-pulse"
             />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-16 text-muted-foreground">
           <p className="text-sm">
-            Aucun créateur dans cette catégorie pour l&apos;instant.
+            Aucune publication dans cette catégorie pour l&apos;instant.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {filtered.map((c) => (
-            <CreatorCard key={c.id} creator={c} activeTab={tab} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {filtered.map((post) => (
+            <PostCard key={post.id} post={post} />
           ))}
         </div>
       )}
@@ -163,106 +175,62 @@ export default function CreateursPage() {
   );
 }
 
-function CreatorCard({
-  creator,
-  activeTab,
-}: {
-  creator: Creator;
-  activeTab: Tab;
-}) {
-  // Si un filtre est actif, n'affiche que les rôles correspondants
-  const visibleRoles =
-    activeTab === "all"
-      ? creator.roles
-      : creator.roles.filter((r) => r.type === activeTab);
-
+function PostCard({ post }: { post: CreatorPost }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-accent/30">
-      {/* Avatar + nom + badges */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted overflow-hidden">
-          {creator.avatarUrl ? (
-            <Image
-              src={creator.avatarUrl}
-              width={40}
-              height={40}
-              alt={creator.pseudo}
-              className="w-full h-full object-cover"
-              unoptimized
-            />
-          ) : (
-            <User className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-[13px] font-medium text-text-primary mb-1">
-            {creator.pseudo}
-          </p>
-          <div className="flex flex-wrap gap-1">
-            {creator.types.map((type) => (
-              <span
-                key={type}
-                className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${
-                  type === "ARTISTE"
-                    ? "border-violet-500/30 bg-violet-500/10 text-violet-400"
-                    : "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                }`}
-              >
-                {type === "ARTISTE" ? (
-                  <>
-                    <Sparkles className="h-2.5 w-2.5" /> Artiste
-                  </>
-                ) : (
-                  <>
-                    <Film className="h-2.5 w-2.5" /> Edit-maker
-                  </>
-                )}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-accent/30">
+      {post.type === "ARTISTE" && post.imageUrl ? (
+        <a
+          href={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${post.imageUrl}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative block aspect-square w-full overflow-hidden bg-muted"
+        >
+          <img
+            src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_400,c_fill/${post.imageUrl}`}
+            alt={post.caption ?? "Fan art"}
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+          />
+        </a>
+      ) : (
+        <a
+          href={post.linkUrl ?? "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex aspect-square w-full flex-col items-center justify-center gap-2 bg-elevated text-center px-3"
+        >
+          <Film className="h-6 w-6 text-blue-400" />
+          <span className="flex items-center gap-1 text-[11px] font-medium text-text-secondary">
+            {post.platform ? PLATFORM_LABELS[post.platform] : "Voir l'edit"}
+            <ExternalLink className="h-2.5 w-2.5" />
+          </span>
+        </a>
+      )}
 
-      {/* Liens par rôle */}
-      <div className="space-y-2">
-        {visibleRoles.map((role) => (
-          <div key={role.type}>
-            {/* Label du rôle uniquement si les deux sont visibles */}
-            {activeTab === "all" && creator.roles.length > 1 && (
-              <p className="text-[9px] font-medium uppercase tracking-wide text-text-muted mb-1 flex items-center gap-1">
-                {role.type === "ARTISTE" ? (
-                  <>
-                    <Sparkles className="h-2.5 w-2.5" /> Fan art
-                  </>
-                ) : (
-                  <>
-                    <Film className="h-2.5 w-2.5" /> Edits
-                  </>
-                )}
-              </p>
-            )}
-            {role.socialLinks.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {role.socialLinks.map((l, i) => (
-                  <a
-                    key={i}
-                    href={l.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[11px] text-text-muted hover:text-accent-light border border-border bg-elevated rounded-md px-2 py-0.5 transition-colors"
-                  >
-                    {PLATFORM_LABELS[l.platform] ?? l.platform}
-                    <ExternalLink className="h-2.5 w-2.5" />
-                  </a>
-                ))}
-              </div>
+      <div className="flex flex-col gap-1.5 p-2.5">
+        {post.caption && (
+          <p className="line-clamp-2 text-[11px] text-text-secondary">
+            {post.caption}
+          </p>
+        )}
+        <div className="flex items-center gap-1.5">
+          <div className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
+            {post.creator.avatarUrl ? (
+              <Image
+                src={post.creator.avatarUrl}
+                width={16}
+                height={16}
+                alt={post.creator.pseudo}
+                className="h-full w-full object-cover"
+                unoptimized
+              />
             ) : (
-              <p className="text-[11px] text-muted-foreground">
-                Aucun lien renseigné.
-              </p>
+              <User className="h-2.5 w-2.5 text-muted-foreground" />
             )}
           </div>
-        ))}
+          <span className="truncate text-[10px] text-text-muted">
+            {post.creator.pseudo}
+          </span>
+        </div>
       </div>
     </div>
   );

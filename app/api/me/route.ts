@@ -14,7 +14,10 @@ export async function GET() {
       where: { clerkUserId: userId },
       include: {
         creatorRoles: {
-          include: { socialLinks: true }, // ← liens dans le rôle
+          include: {
+            socialLinks: true, // ← liens dans le rôle
+            posts: { orderBy: { createdAt: "desc" } },
+          },
         },
       },
     }),
@@ -45,6 +48,15 @@ export async function GET() {
         socialLinks: r.socialLinks.map((l) => ({
           platform: l.platform,
           url: l.url,
+        })),
+        posts: r.posts.map((p) => ({
+          id: p.id,
+          status: p.status,
+          imageUrl: p.imageUrl,
+          linkUrl: p.linkUrl,
+          platform: p.platform,
+          caption: p.caption,
+          createdAt: p.createdAt,
         })),
       })) ?? [],
   });
