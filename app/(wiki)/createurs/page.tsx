@@ -2,6 +2,7 @@
 "use client";
 
 import { PublishCreatorPostButton } from "@/components/user/PublishCreatorPostButton";
+import { useUser } from "@clerk/nextjs";
 import {
   ChevronDown,
   ExternalLink,
@@ -44,10 +45,14 @@ const TABS = [
 type Tab = (typeof TABS)[number]["key"];
 
 export default function CreateursPage() {
+  const { isLoaded, isSignedIn } = useUser();
   const [data, setData] = useState<CreatorPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("all");
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [approvedTypes, setApprovedTypes] = useState<("ARTISTE" | "EDITEUR")[]>(
+    [],
+  );
 
   const load = useCallback(() => {
     fetch("/api/creator-posts")
@@ -61,6 +66,21 @@ export default function CreateursPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((d) => {
+        const roles = (d?.creatorRoles ?? []) as {
+          type: "ARTISTE" | "EDITEUR";
+          status?: string;
+        }[];
+        setApprovedTypes(
+          roles.filter((r) => r.status === "approved").map((r) => r.type),
+        );
+      });
+  }, [isLoaded, isSignedIn]);
 
   const filtered = tab === "all" ? data : data.filter((p) => p.type === tab);
 
@@ -80,10 +100,14 @@ export default function CreateursPage() {
               Fan art, edits et créations de la communauté Flashback WL
             </p>
           </div>
-          <PublishCreatorPostButton
-            onPublished={load}
-            className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-accent/90 transition-colors shrink-0"
-          />
+          {approvedTypes.length > 0 && (
+            <PublishCreatorPostButton
+              defaultType={approvedTypes[0]}
+              allowedTypes={approvedTypes}
+              onPublished={load}
+              className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-accent/90 transition-colors shrink-0"
+            />
+          )}
           <button
             onClick={() => setRulesOpen((o) => !o)}
             className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors shrink-0"

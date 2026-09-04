@@ -40,10 +40,12 @@ const EMPTY_STATE = {
 
 export function PublishCreatorPostButton({
   defaultType = "ARTISTE",
+  allowedTypes = ["ARTISTE", "EDITEUR"],
   onPublished,
   className,
 }: {
   defaultType?: PostType;
+  allowedTypes?: PostType[];
   onPublished?: () => void;
   className?: string;
 }) {
@@ -51,8 +53,12 @@ export function PublishCreatorPostButton({
   const router = useRouter();
   const pathname = usePathname();
 
+  const initialType = allowedTypes.includes(defaultType)
+    ? defaultType
+    : allowedTypes[0];
+
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState<PostType>(defaultType);
+  const [type, setType] = useState<PostType>(initialType);
   const [form, setForm] = useState(EMPTY_STATE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +86,7 @@ export function PublishCreatorPostButton({
       setSent(false);
       setError(null);
       setForm(EMPTY_STATE);
-      setType(defaultType);
+      setType(initialType);
     }
   }
 
@@ -130,35 +136,38 @@ export function PublishCreatorPostButton({
           {sent ? (
             <div className="py-6 text-center">
               <p className="text-[13px] text-text-secondary">
-                Merci ! Ta publication a été envoyée et sera examinée avant
-                d&apos;apparaître sur la page.
+                Merci ! Ta publication est en ligne sur la page.
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
               {/* Type */}
-              <div className="flex gap-1.5">
-                {(
-                  [
-                    { key: "ARTISTE" as const, label: "Fan art", icon: Sparkles },
-                    { key: "EDITEUR" as const, label: "Edit", icon: Film },
-                  ]
-                ).map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setType(key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border transition-colors ${
-                      type === key
-                        ? "border-accent/40 bg-accent/10 text-accent-light"
-                        : "border-border bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {allowedTypes.length > 1 && (
+                <div className="flex gap-1.5">
+                  {(
+                    [
+                      { key: "ARTISTE" as const, label: "Fan art", icon: Sparkles },
+                      { key: "EDITEUR" as const, label: "Edit", icon: Film },
+                    ] satisfies { key: PostType; label: string; icon: typeof Sparkles }[]
+                  )
+                    .filter(({ key }) => allowedTypes.includes(key))
+                    .map(({ key, label, icon: Icon }) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setType(key)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border transition-colors ${
+                          type === key
+                            ? "border-accent/40 bg-accent/10 text-accent-light"
+                            : "border-border bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <Icon className="h-3 w-3" />
+                        {label}
+                      </button>
+                    ))}
+                </div>
+              )}
 
               {type === "ARTISTE" ? (
                 <div className="flex flex-col gap-1">

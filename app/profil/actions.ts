@@ -22,22 +22,21 @@ export async function createCreatorPost(data: {
     throw new Error("Un lien est requis pour un edit");
   }
 
-  const profile = await prisma.userProfile.upsert({
+  const profile = await prisma.userProfile.findUnique({
     where: { clerkUserId: userId },
-    create: { clerkUserId: userId, onboardingComplete: true },
-    update: {},
   });
 
-  const role = await prisma.creatorRole.upsert({
-    where: { userProfileId_type: { userProfileId: profile.id, type: data.type } },
-    create: {
-      userProfileId: profile.id,
-      type: data.type,
-      status: "pending",
-      displayOnWiki: true,
-    },
-    update: {},
-  });
+  const role = profile
+    ? await prisma.creatorRole.findUnique({
+        where: { userProfileId_type: { userProfileId: profile.id, type: data.type } },
+      })
+    : null;
+
+  if (!role || role.status !== "approved") {
+    throw new Error(
+      "Ton profil créateur doit être validé par un admin avant de pouvoir publier.",
+    );
+  }
 
   await prisma.creatorPost.create({
     data: {

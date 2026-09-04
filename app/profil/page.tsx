@@ -457,17 +457,20 @@ export default function ProfilePage() {
                       )}
                       Mes publications
                     </p>
-                    <PublishCreatorPostButton
-                      defaultType={role.type}
-                      onPublished={loadMe}
-                      className="flex items-center gap-1 text-[11px] font-medium text-accent-light hover:text-accent transition-colors"
-                    />
+                    {role.status === "approved" && (
+                      <PublishCreatorPostButton
+                        defaultType={role.type}
+                        allowedTypes={[role.type]}
+                        onPublished={loadMe}
+                        className="flex items-center gap-1 text-[11px] font-medium text-accent-light hover:text-accent transition-colors"
+                      />
+                    )}
                   </div>
 
                   {role.status !== "approved" && (
                     <p className="text-[11px] text-amber-400 mb-2">
-                      Tes publications seront visibles sur la page dès que ton
-                      profil créateur sera validé par un admin.
+                      Tu pourras publier dès que ton profil créateur sera
+                      validé par un admin.
                     </p>
                   )}
 
