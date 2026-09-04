@@ -1,10 +1,18 @@
 // app/admin/creators/page.tsx
 "use client";
 
-import { Check, ExternalLink, Film, Sparkles, User, X } from "lucide-react";
+import {
+  Check,
+  ExternalLink,
+  Film,
+  Sparkles,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { updateCreatorPostStatus, updateCreatorRoleStatus } from "./actions";
+import { deleteCreatorPostAdmin, updateCreatorRoleStatus } from "./actions";
 
 type SocialLink = { platform: string; url: string };
 
@@ -25,7 +33,6 @@ type CreatorRequest = {
 type CreatorPostRequest = {
   id: string;
   type: "ARTISTE" | "EDITEUR";
-  status: "pending" | "approved" | "rejected";
   imageUrl: string | null;
   linkUrl: string | null;
   platform: string | null;
@@ -91,24 +98,18 @@ export default function AdminCreatorsPage() {
     }
   }
 
-  async function handlePostAction(id: string, status: "approved" | "rejected") {
+  async function handleDeletePost(id: string) {
     setPending((p) => ({ ...p, [id]: true }));
     try {
-      await updateCreatorPostStatus(id, status);
-      setPosts((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status } : r)),
-      );
+      await deleteCreatorPostAdmin(id);
+      setPosts((prev) => prev.filter((p) => p.id !== id));
     } finally {
       setPending((p) => ({ ...p, [id]: false }));
     }
   }
 
   const filtered = data.filter((r) => r.status === tab);
-  const filteredPosts = posts.filter((p) => p.status === tab);
-  const pendingCount =
-    view === "posts"
-      ? posts.filter((p) => p.status === "pending").length
-      : data.filter((r) => r.status === "pending").length;
+  const pendingCount = data.filter((r) => r.status === "pending").length;
 
   return (
     <div className="flex flex-col min-h-0">
@@ -119,12 +120,13 @@ export default function AdminCreatorsPage() {
             Créateurs de contenu
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Validation des publications (fan art / edits) et des comptes créateurs
+            Validation des comptes créateurs — les publications sont visibles
+            dès qu&apos;un compte est validé, sans étape supplémentaire.
           </p>
         </div>
         {pendingCount > 0 && (
           <span className="text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
-            {pendingCount} en attente
+            {pendingCount} compte(s) en attente
           </span>
         )}
       </div>
@@ -146,34 +148,34 @@ export default function AdminCreatorsPage() {
         ))}
       </div>
 
-      {/* Tabs statut */}
-      <div className="flex gap-1 px-6 pt-2">
-        {STATUS_TABS.map((t) => {
-          const count = (view === "posts" ? posts : data).filter(
-            (r) => r.status === t.key,
-          ).length;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-                tab === t.key
-                  ? "bg-accent/10 text-accent-light"
-                  : "text-text-muted hover:text-text-secondary hover:bg-elevated"
-              }`}
-            >
-              {t.label}
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                  tab === t.key ? "bg-accent/20" : "bg-elevated"
+      {/* Tabs statut (comptes uniquement) */}
+      {view === "accounts" && (
+        <div className="flex gap-1 px-6 pt-2">
+          {STATUS_TABS.map((t) => {
+            const count = data.filter((r) => r.status === t.key).length;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+                  tab === t.key
+                    ? "bg-accent/10 text-accent-light"
+                    : "text-text-muted hover:text-text-secondary hover:bg-elevated"
                 }`}
               >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                {t.label}
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    tab === t.key ? "bg-accent/20" : "bg-elevated"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Liste */}
       <div className="flex-1 p-6 space-y-3">
@@ -185,15 +187,12 @@ export default function AdminCreatorsPage() {
             />
           ))
         ) : view === "posts" ? (
-          filteredPosts.length === 0 ? (
+          posts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-text-muted">
-              <p className="text-sm">
-                Aucune publication{" "}
-                {STATUS_TABS.find((t) => t.key === tab)?.label.toLowerCase()}
-              </p>
+              <p className="text-sm">Aucune publication pour l&apos;instant</p>
             </div>
           ) : (
-            filteredPosts.map((p) => (
+            posts.map((p) => (
               <div
                 key={p.id}
                 className="flex items-start gap-4 rounded-xl border border-border bg-card p-4"
@@ -281,52 +280,15 @@ export default function AdminCreatorsPage() {
                 </div>
 
                 {/* Actions */}
-                {tab === "pending" ? (
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => handlePostAction(p.id, "rejected")}
-                      disabled={pending[p.id]}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-muted hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handlePostAction(p.id, "approved")}
-                      disabled={pending[p.id]}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-muted hover:text-green-400 hover:border-green-500/30 transition-colors disabled:opacity-50"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                        p.status === "approved"
-                          ? "border-green-500/30 bg-green-500/10 text-green-400"
-                          : "border-red-500/30 bg-red-500/10 text-red-400"
-                      }`}
-                    >
-                      {p.status === "approved" ? "Approuvé" : "Refusé"}
-                    </span>
-                    <button
-                      onClick={() =>
-                        handlePostAction(
-                          p.id,
-                          p.status === "approved" ? "rejected" : "approved",
-                        )
-                      }
-                      disabled={pending[p.id]}
-                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-text-muted hover:bg-elevated transition-colors disabled:opacity-50"
-                    >
-                      {p.status === "approved" ? (
-                        <X className="h-3 w-3" />
-                      ) : (
-                        <Check className="h-3 w-3" />
-                      )}
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => handleDeletePost(p.id)}
+                    disabled={pending[p.id]}
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-muted hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))
           )

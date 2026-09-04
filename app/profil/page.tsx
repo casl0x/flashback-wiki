@@ -464,6 +464,13 @@ export default function ProfilePage() {
                     />
                   </div>
 
+                  {role.status !== "approved" && (
+                    <p className="text-[11px] text-amber-400 mb-2">
+                      Tes publications seront visibles sur la page dès que ton
+                      profil créateur sera validé par un admin.
+                    </p>
+                  )}
+
                   {role.posts.length === 0 ? (
                     <p className="text-[11px] text-muted-foreground">
                       Aucune publication pour l&apos;instant.
@@ -498,15 +505,6 @@ export default function ProfilePage() {
                               </span>
                             </a>
                           )}
-                          <span
-                            className={`absolute top-1 left-1 text-[8px] px-1.5 py-0.5 rounded-full border ${STATUS_STYLE[post.status] ?? ""}`}
-                          >
-                            {post.status === "pending"
-                              ? "En attente"
-                              : post.status === "approved"
-                                ? "Validé"
-                                : "Refusé"}
-                          </span>
                           <button
                             onClick={() => handleDeletePost(post.id)}
                             className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"

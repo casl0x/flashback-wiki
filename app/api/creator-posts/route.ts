@@ -10,8 +10,13 @@ export async function GET(req: NextRequest) {
       ? (typeParam as CreatorType)
       : undefined;
 
+  // Une publication est visible dès qu'elle existe : seul le profil créateur
+  // (le rôle) est validé par un admin, pas chaque publication individuellement.
   const posts = await prisma.creatorPost.findMany({
-    where: { status: "approved", ...(type ? { type } : {}) },
+    where: {
+      creatorRole: { status: "approved" },
+      ...(type ? { type } : {}),
+    },
     orderBy: { createdAt: "desc" },
     include: {
       creatorRole: { include: { userProfile: true } },

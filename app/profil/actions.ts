@@ -43,7 +43,8 @@ export async function createCreatorPost(data: {
     data: {
       creatorRoleId: role.id,
       type: data.type,
-      status: "pending",
+      // Pas de validation par publication : seul le profil créateur est validé par un admin.
+      status: "approved",
       imageUrl: data.imageUrl,
       linkUrl: data.linkUrl?.trim() || null,
       platform: data.platform,

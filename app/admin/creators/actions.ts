@@ -11,12 +11,6 @@ export async function updateCreatorRoleStatus(
   });
 }
 
-export async function updateCreatorPostStatus(
-  id: string,
-  status: "approved" | "rejected",
-) {
-  await prisma.creatorPost.update({
-    where: { id },
-    data: { status },
-  });
+export async function deleteCreatorPostAdmin(id: string) {
+  await prisma.creatorPost.delete({ where: { id } });
 }
