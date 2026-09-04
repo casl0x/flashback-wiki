@@ -31,6 +31,7 @@ type CreatorPostRequest = {
   platform: string | null;
   caption: string | null;
   createdAt: string;
+  character: { id: string; nom: string } | null;
   user: {
     pseudo: string | null;
     avatarUrl: string | null;
@@ -244,6 +245,11 @@ export default function AdminCreatorsPage() {
                       )}
                       {p.type === "ARTISTE" ? "Fan art" : "Edit-maker"}
                     </span>
+                    {p.character && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-text-muted">
+                        {p.character.nom}
+                      </span>
+                    )}
                   </div>
 
                   {p.caption && (

@@ -10,6 +10,7 @@ export async function createCreatorPost(data: {
   linkUrl?: string;
   platform?: SocialPlatform;
   caption?: string;
+  characterId?: string;
 }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
@@ -47,6 +48,7 @@ export async function createCreatorPost(data: {
       linkUrl: data.linkUrl?.trim() || null,
       platform: data.platform,
       caption: data.caption?.trim() || null,
+      characterId: data.characterId || null,
     },
   });
 }

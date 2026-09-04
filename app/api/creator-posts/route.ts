@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
     include: {
       creatorRole: { include: { userProfile: true } },
+      character: { select: { id: true, nom: true } },
     },
   });
 
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
         platform: p.platform,
         caption: p.caption,
         createdAt: p.createdAt,
+        character: p.character,
         creator: {
           pseudo:
             p.creatorRole.userProfile.pseudo ?? clerkUser?.username ?? "Anonyme",

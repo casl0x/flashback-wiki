@@ -8,8 +8,10 @@ import {
   Film,
   Sparkles,
   User,
+  UserCircle2,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type CreatorPost = {
@@ -20,6 +22,7 @@ type CreatorPost = {
   platform: string | null;
   caption: string | null;
   createdAt: string;
+  character: { id: string; nom: string } | null;
   creator: { pseudo: string; avatarUrl: string | null };
 };
 
@@ -207,6 +210,15 @@ function PostCard({ post }: { post: CreatorPost }) {
       )}
 
       <div className="flex flex-col gap-1.5 p-2.5">
+        {post.character && (
+          <Link
+            href={`/personnages/${post.character.id}`}
+            className="inline-flex w-fit items-center gap-1 text-[10px] text-accent-light hover:underline"
+          >
+            <UserCircle2 className="h-2.5 w-2.5" />
+            {post.character.nom}
+          </Link>
+        )}
         {post.caption && (
           <p className="line-clamp-2 text-[11px] text-text-secondary">
             {post.caption}
