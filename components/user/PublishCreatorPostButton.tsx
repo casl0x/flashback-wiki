@@ -1,6 +1,7 @@
 "use client";
 
 import { createCreatorPost } from "@/app/profil/actions";
+import { CharacterCombobox } from "@/components/admin/CharacterCombobox";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,11 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Character } from "@/lib/db";
 import { useUser } from "@clerk/nextjs";
 import { Film, Sparkles, Upload } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PostType = "ARTISTE" | "EDITEUR";
 
@@ -33,6 +35,7 @@ const EMPTY_STATE = {
   linkUrl: "",
   platform: "TIKTOK",
   caption: "",
+  characterId: "",
 };
 
 export function PublishCreatorPostButton({
@@ -54,6 +57,14 @@ export function PublishCreatorPostButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [characters, setCharacters] = useState<Character[]>([]);
+
+  useEffect(() => {
+    if (!open || characters.length) return;
+    fetch("/api/data")
+      .then((r) => r.json())
+      .then((d) => setCharacters(d.characters ?? []));
+  }, [open, characters.length]);
 
   function handleClick() {
     if (!isSignedIn) {
@@ -92,6 +103,7 @@ export function PublishCreatorPostButton({
         linkUrl: form.linkUrl.trim() || undefined,
         platform: type === "EDITEUR" ? (form.platform as never) : undefined,
         caption: form.caption.trim() || undefined,
+        characterId: form.characterId || undefined,
       });
       setSent(true);
       onPublished?.();
@@ -221,6 +233,19 @@ export function PublishCreatorPostButton({
                   </div>
                 </>
               )}
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                  Personnage lié (optionnel)
+                </label>
+                <CharacterCombobox
+                  characters={characters}
+                  value={form.characterId}
+                  onValueChange={(v) =>
+                    setForm((p) => ({ ...p, characterId: v }))
+                  }
+                />
+              </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">

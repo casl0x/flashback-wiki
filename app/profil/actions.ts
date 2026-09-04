@@ -10,6 +10,7 @@ export async function createCreatorPost(data: {
   linkUrl?: string;
   platform?: SocialPlatform;
   caption?: string;
+  characterId?: string;
 }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
@@ -42,11 +43,13 @@ export async function createCreatorPost(data: {
     data: {
       creatorRoleId: role.id,
       type: data.type,
-      status: "pending",
+      // Pas de validation par publication : seul le profil créateur est validé par un admin.
+      status: "approved",
       imageUrl: data.imageUrl,
       linkUrl: data.linkUrl?.trim() || null,
       platform: data.platform,
       caption: data.caption?.trim() || null,
+      characterId: data.characterId || null,
     },
   });
 }

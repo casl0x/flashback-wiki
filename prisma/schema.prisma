@@ -47,20 +47,20 @@ model UserProfile {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  creatorRoles       CreatorRole[]
+  creatorRoles CreatorRole[]
 }
 
 model CreatorRole {
-  id            String         @id @default(cuid())
+  id            String      @id @default(cuid())
   type          CreatorType
-  displayOnWiki Boolean        @default(false)
-  status        String         @default("pending")
+  displayOnWiki Boolean     @default(false)
+  status        String      @default("pending")
   bio           String?
-  createdAt     DateTime       @default(now())
+  createdAt     DateTime    @default(now())
 
   userProfileId String
-  userProfile   UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  socialLinks   SocialLink[]   // ← déplacé ici
+  userProfile   UserProfile   @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  socialLinks   SocialLink[] // ← déplacé ici
   posts         CreatorPost[]
 
   @@unique([userProfileId, type])
@@ -80,17 +80,20 @@ model CreatorPost {
   creatorRoleId String
   creatorRole   CreatorRole @relation(fields: [creatorRoleId], references: [id], onDelete: Cascade)
 
+  characterId String?
+  character   Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+
   @@map("creator_posts")
 }
 
 model SocialLink {
-  id            String         @id @default(cuid())
-  platform      SocialPlatform
-  url           String
-  createdAt     DateTime       @default(now())
+  id        String         @id @default(cuid())
+  platform  SocialPlatform
+  url       String
+  createdAt DateTime       @default(now())
 
-  creatorRoleId String         // ← lié au rôle, plus au profil
-  creatorRole   CreatorRole    @relation(fields: [creatorRoleId], references: [id], onDelete: Cascade)
+  creatorRoleId String // ← lié au rôle, plus au profil
+  creatorRole   CreatorRole @relation(fields: [creatorRoleId], references: [id], onDelete: Cascade)
 
   @@map("social_links")
 }
@@ -113,7 +116,7 @@ model Player {
   stream     Boolean  @default(false)
   lienChaine String?  @map("lien_chaine")
   reseaux    Json     @default("{}")
-  badges     String[] @default([]) 
+  badges     String[] @default([])
   createdAt  DateTime @default(now()) @map("created_at")
 
   characters Character[]
@@ -132,10 +135,10 @@ model Character {
   createdAt   DateTime @default(now()) @map("created_at")
   etatVie     EtatVie  @default(EN_VIE) @map("etat_vie")
 
-  groupes   Groupe[]  @relation("CharacterGroupes")  // ← garder seulement ça
+  groupes Groupe[] @relation("CharacterGroupes") // ← garder seulement ça
 
-  playerId  String?  @map("player_id")
-  player    Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  playerId String? @map("player_id")
+  player   Player? @relation(fields: [playerId], references: [id], onDelete: SetNull)
 
   versionId String?  @map("version_id")
   version   Version? @relation(fields: [versionId], references: [id], onDelete: SetNull)
@@ -146,16 +149,17 @@ model Character {
   locationX Float? @map("location_x")
   locationY Float? @map("location_y")
 
-  suggestions Suggestion[]
+  suggestions  Suggestion[]
+  creatorPosts CreatorPost[]
 
   @@map("characters")
 }
 
 model Relation {
-  id           String   @id @default(uuid())
-  typeRelation String?  @map("type_relation")
+  id                  String   @id @default(uuid())
+  typeRelation        String?  @map("type_relation")
   typeRelationInverse String?
-  createdAt    DateTime @default(now()) @map("created_at")
+  createdAt           DateTime @default(now()) @map("created_at")
 
   personnageAId String    @map("personnage_a")
   personnageA   Character @relation("PersonnageA", fields: [personnageAId], references: [id], onDelete: Cascade)
@@ -168,21 +172,21 @@ model Relation {
 }
 
 model Groupe {
-  id          String      @id @default(cuid())
-  slug        String      @unique
+  id          String   @id @default(cuid())
+  slug        String   @unique
   nom         String
   description String?
-  imageUrl    String?     @map("image_url")
+  imageUrl    String?  @map("image_url")
   color       String?
-  createdAt   DateTime    @default(now()) @map("created_at")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  characters  Character[] @relation("CharacterGroupes")
+  characters Character[] @relation("CharacterGroupes")
 
   @@map("groupes")
 }
 
 model Suggestion {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   clerkUserId String?
   characterId String?
   character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
@@ -191,15 +195,15 @@ model Suggestion {
   groupe      String?
   description String?
   note        String?
-  status      String   @default("pending") // pending | accepted | rejected
-  createdAt   DateTime @default(now())
+  status      String     @default("pending") // pending | accepted | rejected
+  createdAt   DateTime   @default(now())
 }
 
 model ChangelogEntry {
   id        String   @id @default(uuid())
-  type      String   // "add_global" | "add_relation" | "add_lieu" | "edit_info" | "edit_relation" | "edit_lieu" | "version"
-  label     String   // nom du perso ou de la version
-  detail    String?  // info supplémentaire optionnelle
+  type      String // "add_global" | "add_relation" | "add_lieu" | "edit_info" | "edit_relation" | "edit_lieu" | "version"
+  label     String // nom du perso ou de la version
+  detail    String? // info supplémentaire optionnelle
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("changelog_entries")
@@ -215,10 +219,10 @@ model Poll {
 }
 
 model PollOption {
-  id     String      @id @default(cuid())
+  id     String     @id @default(cuid())
   label  String
   pollId String
-  poll   Poll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes  PollVote[]
 }
 

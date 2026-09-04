@@ -16,7 +16,10 @@ export async function GET() {
         creatorRoles: {
           include: {
             socialLinks: true, // ← liens dans le rôle
-            posts: { orderBy: { createdAt: "desc" } },
+            posts: {
+              orderBy: { createdAt: "desc" },
+              include: { character: { select: { id: true, nom: true } } },
+            },
           },
         },
       },
@@ -57,6 +60,7 @@ export async function GET() {
           platform: p.platform,
           caption: p.caption,
           createdAt: p.createdAt,
+          character: p.character,
         })),
       })) ?? [],
   });
