@@ -10,7 +10,7 @@ export async function createCreatorPost(data: {
   linkUrl?: string;
   platform?: SocialPlatform;
   caption?: string;
-  characterId?: string;
+  characterIds?: string[];
 }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
@@ -22,22 +22,23 @@ export async function createCreatorPost(data: {
     throw new Error("Un lien est requis pour un edit");
   }
 
-  const profile = await prisma.userProfile.upsert({
+  const profile = await prisma.userProfile.findUnique({
     where: { clerkUserId: userId },
-    create: { clerkUserId: userId, onboardingComplete: true },
-    update: {},
   });
 
-  const role = await prisma.creatorRole.upsert({
-    where: { userProfileId_type: { userProfileId: profile.id, type: data.type } },
-    create: {
-      userProfileId: profile.id,
-      type: data.type,
-      status: "pending",
-      displayOnWiki: true,
-    },
-    update: {},
-  });
+  const role = profile
+    ? await prisma.creatorRole.findUnique({
+        where: { userProfileId_type: { userProfileId: profile.id, type: data.type } },
+      })
+    : null;
+
+  if (!role || role.status !== "approved") {
+    throw new Error(
+      "Ton profil créateur doit être validé par un admin avant de pouvoir publier.",
+    );
+  }
+
+  const characterIds = [...new Set(data.characterIds ?? [])];
 
   await prisma.creatorPost.create({
     data: {
@@ -49,7 +50,9 @@ export async function createCreatorPost(data: {
       linkUrl: data.linkUrl?.trim() || null,
       platform: data.platform,
       caption: data.caption?.trim() || null,
-      characterId: data.characterId || null,
+      characters: characterIds.length
+        ? { createMany: { data: characterIds.map((characterId) => ({ characterId })) } }
+        : undefined,
     },
   });
 }

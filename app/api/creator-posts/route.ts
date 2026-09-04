@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
     include: {
       creatorRole: { include: { userProfile: true } },
-      character: { select: { id: true, nom: true } },
+      characters: { include: { character: { select: { id: true, nom: true } } } },
     },
   });
 
@@ -44,11 +44,12 @@ export async function GET(req: NextRequest) {
         platform: p.platform,
         caption: p.caption,
         createdAt: p.createdAt,
-        character: p.character,
+        characters: p.characters.map((c) => c.character),
         creator: {
           pseudo:
             p.creatorRole.userProfile.pseudo ?? clerkUser?.username ?? "Anonyme",
           avatarUrl: clerkUser?.imageUrl ?? null,
+          clerkUserId: p.creatorRole.userProfile.clerkUserId,
         },
       };
     }),

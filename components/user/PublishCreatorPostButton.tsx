@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Character } from "@/lib/db";
 import { useUser } from "@clerk/nextjs";
-import { Film, Sparkles, Upload } from "lucide-react";
+import { Film, Sparkles, Upload, X } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,20 +30,28 @@ const PLATFORM_LABELS: Record<string, string> = {
   AUTRE: "Autre",
 };
 
-const EMPTY_STATE = {
+const EMPTY_STATE: {
+  imageUrl: string;
+  linkUrl: string;
+  platform: string;
+  caption: string;
+  characterIds: string[];
+} = {
   imageUrl: "",
   linkUrl: "",
   platform: "TIKTOK",
   caption: "",
-  characterId: "",
+  characterIds: [],
 };
 
 export function PublishCreatorPostButton({
   defaultType = "ARTISTE",
+  allowedTypes = ["ARTISTE", "EDITEUR"],
   onPublished,
   className,
 }: {
   defaultType?: PostType;
+  allowedTypes?: PostType[];
   onPublished?: () => void;
   className?: string;
 }) {
@@ -51,13 +59,18 @@ export function PublishCreatorPostButton({
   const router = useRouter();
   const pathname = usePathname();
 
+  const initialType = allowedTypes.includes(defaultType)
+    ? defaultType
+    : allowedTypes[0];
+
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState<PostType>(defaultType);
+  const [type, setType] = useState<PostType>(initialType);
   const [form, setForm] = useState(EMPTY_STATE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [characterPicker, setCharacterPicker] = useState("");
 
   useEffect(() => {
     if (!open || characters.length) return;
@@ -80,8 +93,25 @@ export function PublishCreatorPostButton({
       setSent(false);
       setError(null);
       setForm(EMPTY_STATE);
-      setType(defaultType);
+      setType(initialType);
+      setCharacterPicker("");
     }
+  }
+
+  function addCharacter(id: string) {
+    setForm((p) =>
+      p.characterIds.includes(id)
+        ? p
+        : { ...p, characterIds: [...p.characterIds, id] },
+    );
+    setCharacterPicker("");
+  }
+
+  function removeCharacter(id: string) {
+    setForm((p) => ({
+      ...p,
+      characterIds: p.characterIds.filter((c) => c !== id),
+    }));
   }
 
   async function submit() {
@@ -103,7 +133,7 @@ export function PublishCreatorPostButton({
         linkUrl: form.linkUrl.trim() || undefined,
         platform: type === "EDITEUR" ? (form.platform as never) : undefined,
         caption: form.caption.trim() || undefined,
-        characterId: form.characterId || undefined,
+        characterIds: form.characterIds,
       });
       setSent(true);
       onPublished?.();
@@ -130,35 +160,38 @@ export function PublishCreatorPostButton({
           {sent ? (
             <div className="py-6 text-center">
               <p className="text-[13px] text-text-secondary">
-                Merci ! Ta publication a été envoyée et sera examinée avant
-                d&apos;apparaître sur la page.
+                Merci ! Ta publication est en ligne sur la page.
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
               {/* Type */}
-              <div className="flex gap-1.5">
-                {(
-                  [
-                    { key: "ARTISTE" as const, label: "Fan art", icon: Sparkles },
-                    { key: "EDITEUR" as const, label: "Edit", icon: Film },
-                  ]
-                ).map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setType(key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border transition-colors ${
-                      type === key
-                        ? "border-accent/40 bg-accent/10 text-accent-light"
-                        : "border-border bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {allowedTypes.length > 1 && (
+                <div className="flex gap-1.5">
+                  {(
+                    [
+                      { key: "ARTISTE" as const, label: "Fan art", icon: Sparkles },
+                      { key: "EDITEUR" as const, label: "Edit", icon: Film },
+                    ] satisfies { key: PostType; label: string; icon: typeof Sparkles }[]
+                  )
+                    .filter(({ key }) => allowedTypes.includes(key))
+                    .map(({ key, label, icon: Icon }) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setType(key)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border transition-colors ${
+                          type === key
+                            ? "border-accent/40 bg-accent/10 text-accent-light"
+                            : "border-border bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <Icon className="h-3 w-3" />
+                        {label}
+                      </button>
+                    ))}
+                </div>
+              )}
 
               {type === "ARTISTE" ? (
                 <div className="flex flex-col gap-1">
@@ -236,14 +269,36 @@ export function PublishCreatorPostButton({
 
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Personnage lié (optionnel)
+                  Personnages liés (optionnel)
                 </label>
+                {form.characterIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-1">
+                    {form.characterIds.map((id) => {
+                      const c = characters.find((ch) => ch.id === id);
+                      return (
+                        <span
+                          key={id}
+                          className="flex items-center gap-1 text-[11px] text-text-secondary border border-border bg-elevated rounded-md pl-2 pr-1 py-0.5"
+                        >
+                          {c?.nom ?? id}
+                          <button
+                            type="button"
+                            onClick={() => removeCharacter(id)}
+                            className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-border text-text-muted hover:text-text-primary transition-colors"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
                 <CharacterCombobox
-                  characters={characters}
-                  value={form.characterId}
-                  onValueChange={(v) =>
-                    setForm((p) => ({ ...p, characterId: v }))
-                  }
+                  characters={characters.filter(
+                    (c) => !form.characterIds.includes(c.id),
+                  )}
+                  value={characterPicker}
+                  onValueChange={addCharacter}
                 />
               </div>
 

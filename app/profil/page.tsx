@@ -31,7 +31,7 @@ type CreatorPost = {
   platform: string | null;
   caption: string | null;
   createdAt: string;
-  character: { id: string; nom: string } | null;
+  characters: { id: string; nom: string }[];
 };
 type CreatorRole = {
   type: "ARTISTE" | "EDITEUR";
@@ -457,17 +457,20 @@ export default function ProfilePage() {
                       )}
                       Mes publications
                     </p>
-                    <PublishCreatorPostButton
-                      defaultType={role.type}
-                      onPublished={loadMe}
-                      className="flex items-center gap-1 text-[11px] font-medium text-accent-light hover:text-accent transition-colors"
-                    />
+                    {role.status === "approved" && (
+                      <PublishCreatorPostButton
+                        defaultType={role.type}
+                        allowedTypes={[role.type]}
+                        onPublished={loadMe}
+                        className="flex items-center gap-1 text-[11px] font-medium text-accent-light hover:text-accent transition-colors"
+                      />
+                    )}
                   </div>
 
                   {role.status !== "approved" && (
                     <p className="text-[11px] text-amber-400 mb-2">
-                      Tes publications seront visibles sur la page dès que ton
-                      profil créateur sera validé par un admin.
+                      Tu pourras publier dès que ton profil créateur sera
+                      validé par un admin.
                     </p>
                   )}
 
@@ -511,9 +514,9 @@ export default function ProfilePage() {
                           >
                             <Trash2 className="h-2.5 w-2.5" />
                           </button>
-                          {post.character && (
+                          {post.characters.length > 0 && (
                             <span className="absolute bottom-1 left-1 right-1 truncate rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] text-white">
-                              {post.character.nom}
+                              {post.characters.map((c) => c.nom).join(", ")}
                             </span>
                           )}
                         </div>
