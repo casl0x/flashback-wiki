@@ -7,6 +7,7 @@ export type TwitchLiveStatus = {
   viewerCount: number;
   gameName: string | null;
   thumbnailUrl: string | null;
+  avatarUrl: string | null;
 };
 
 // Cache en mémoire du token App Access — évite de régénérer un token à
@@ -54,15 +55,32 @@ async function getAppAccessToken() {
   return cachedToken.value;
 }
 
-async function fetchLiveStreams(usernames: string[], retry = true) {
+type TwitchStream = {
+  user_login: string;
+  viewer_count: number;
+  game_name: string | null;
+  thumbnail_url: string | null;
+};
+
+type TwitchUser = {
+  login: string;
+  profile_image_url: string | null;
+};
+
+async function twitchHelixGet<T>(
+  endpoint: "streams" | "users",
+  usernames: string[],
+  retry = true,
+): Promise<{ data?: T[] }> {
   const clientId = process.env.TWITCH_CLIENT_ID!;
   const token = await getAppAccessToken();
 
+  const paramName = endpoint === "streams" ? "user_login" : "login";
   const params = new URLSearchParams();
-  usernames.forEach((u) => params.append("user_login", u));
+  usernames.forEach((u) => params.append(paramName, u));
 
   const res = await fetch(
-    `https://api.twitch.tv/helix/streams?${params.toString()}`,
+    `https://api.twitch.tv/helix/${endpoint}?${params.toString()}`,
     {
       headers: {
         "Client-Id": clientId,
@@ -74,11 +92,11 @@ async function fetchLiveStreams(usernames: string[], retry = true) {
 
   if (res.status === 401 && retry) {
     cachedToken = null;
-    return fetchLiveStreams(usernames, false);
+    return twitchHelixGet<T>(endpoint, usernames, false);
   }
 
   if (!res.ok) {
-    throw new Error(`Twitch streams error (${res.status})`);
+    throw new Error(`Twitch ${endpoint} error (${res.status})`);
   }
 
   return res.json();
@@ -113,10 +131,15 @@ export async function GET() {
       string,
       { viewerCount: number; gameName: string | null; thumbnailUrl: string | null }
     >();
+    const avatarByUsername = new Map<string, string | null>();
 
     for (const chunk of chunks) {
-      const data = await fetchLiveStreams(chunk);
-      for (const stream of data.data ?? []) {
+      const [streamsData, usersData] = await Promise.all([
+        twitchHelixGet<TwitchStream>("streams", chunk),
+        twitchHelixGet<TwitchUser>("users", chunk),
+      ]);
+
+      for (const stream of streamsData.data ?? []) {
         liveByUsername.set(stream.user_login.toLowerCase(), {
           viewerCount: stream.viewer_count,
           gameName: stream.game_name || null,
@@ -125,6 +148,13 @@ export async function GET() {
               ?.replace("{width}", "320")
               .replace("{height}", "180") || null,
         });
+      }
+
+      for (const user of usersData.data ?? []) {
+        avatarByUsername.set(
+          user.login.toLowerCase(),
+          user.profile_image_url || null,
+        );
       }
     }
 
@@ -136,6 +166,7 @@ export async function GET() {
         viewerCount: live?.viewerCount ?? 0,
         gameName: live?.gameName ?? null,
         thumbnailUrl: live?.thumbnailUrl ?? null,
+        avatarUrl: avatarByUsername.get(username) ?? null,
       };
     });
 

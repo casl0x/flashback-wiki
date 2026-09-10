@@ -19,6 +19,7 @@ type TwitchLiveStatus = {
   viewerCount: number;
   gameName: string | null;
   thumbnailUrl: string | null;
+  avatarUrl: string | null;
 };
 
 function extractTwitchUsername(url: string | null) {
@@ -213,8 +214,17 @@ function StreamerCard({
       ) : null}
 
       <div className="flex items-center gap-3 p-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[12px] font-bold bg-elevated border border-border text-text-secondary shrink-0">
-          {playerName.slice(0, 2).toUpperCase()}
+        <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center text-[12px] font-bold bg-elevated border border-border text-text-secondary shrink-0">
+          {status?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={status.avatarUrl}
+              alt={playerName}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            playerName.slice(0, 2).toUpperCase()
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
