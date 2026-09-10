@@ -33,6 +33,7 @@ export default function JoueursPage() {
     new Map(),
   );
   const [loading, setLoading] = useState(true);
+  const [liveError, setLiveError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/data", { cache: "no-store" })
@@ -45,10 +46,14 @@ export default function JoueursPage() {
     fetch("/api/twitch-live", { cache: "no-store" })
       .then((r) => r.json())
       .then((data: TwitchLiveStatus[] | { error: string }) => {
-        if (!Array.isArray(data)) return;
+        if (!Array.isArray(data)) {
+          setLiveError(data.error ?? "Erreur inconnue");
+          return;
+        }
+        setLiveError(null);
         setLiveStatus(new Map(data.map((s) => [s.username, s])));
       })
-      .catch(() => {});
+      .catch(() => setLiveError("Impossible de contacter le serveur"));
   }, []);
 
   useEffect(() => {
@@ -98,6 +103,13 @@ export default function JoueursPage() {
               </p>
             </div>
           </div>
+
+          {liveError && (
+            <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-400">
+              Statut Twitch indisponible ({liveError}) — les joueurs
+              affichés ci-dessous peuvent ne pas refléter leur état réel.
+            </div>
+          )}
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
