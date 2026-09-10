@@ -58,6 +58,7 @@ export default function JoueursPage() {
   }, [refreshLiveStatus]);
 
   const streamers = players
+    .filter((p) => p.badges?.includes("streamer"))
     .map((p) => ({ player: p, username: extractTwitchUsername(p.lienChaine) }))
     .filter(
       (entry): entry is { player: WikiPlayer; username: string } =>

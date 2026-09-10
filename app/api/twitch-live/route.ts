@@ -87,7 +87,7 @@ async function fetchLiveStreams(usernames: string[], retry = true) {
 export async function GET() {
   try {
     const players = await prisma.player.findMany({
-      where: { lienChaine: { not: null } },
+      where: { lienChaine: { not: null }, badges: { has: "streamer" } },
       select: { lienChaine: true },
     });
 
