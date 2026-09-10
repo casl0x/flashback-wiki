@@ -1,7 +1,7 @@
 "use client";
 
 import { PlayerBadges } from "@/components/admin/PlayerBadges";
-import { Radio, Users } from "lucide-react";
+import { Circle, Radio, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 const REFRESH_INTERVAL_MS = 60_000;
@@ -199,7 +199,8 @@ function StreamerCard({
             <span className="absolute -left-0.5 -top-0.5 flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
             </span>
-            🔴 LIVE
+            <Circle className="h-2 w-2 fill-red-400 text-red-400" />
+            LIVE
             {status && status.viewerCount > 0 && (
               <span className="text-red-400/80">
                 · {status.viewerCount.toLocaleString("fr-FR")}
@@ -208,7 +209,8 @@ function StreamerCard({
           </span>
         ) : (
           <span className="flex items-center gap-1 shrink-0 rounded-full bg-elevated px-2 py-1 text-[10px] font-medium text-text-faint">
-            ⚫ Offline
+            <Circle className="h-2 w-2 fill-text-faint text-text-faint" />
+            Offline
           </span>
         )}
       </div>
