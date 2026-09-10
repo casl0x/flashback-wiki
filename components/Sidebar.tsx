@@ -62,6 +62,28 @@ export default function Sidebar({ open, onClose }: Props) {
       </Link>
 
       <Link
+        href="/joueurs"
+        onClick={onClose}
+        className={cn(
+          "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition-all",
+          isActive("/joueurs")
+            ? "bg-active border-border-accent"
+            : "hover:bg-elevated",
+        )}
+      >
+        <span
+          className={cn(
+            "text-[13px]",
+            isActive("/joueurs")
+              ? "text-accent-light font-medium"
+              : "text-text-secondary",
+          )}
+        >
+          Joueurs
+        </span>
+      </Link>
+
+      <Link
         href="/musiques"
         onClick={onClose}
         className={cn(
