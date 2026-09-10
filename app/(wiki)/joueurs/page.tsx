@@ -74,13 +74,10 @@ export default function JoueursPage() {
       username,
       status: liveStatus.get(username) ?? null,
     }))
-    .sort((a, b) => {
-      const liveDiff = Number(!!b.status?.isLive) - Number(!!a.status?.isLive);
-      if (liveDiff !== 0) return liveDiff;
-      return a.player.pseudo.localeCompare(b.player.pseudo);
-    });
+    .sort((a, b) => a.player.pseudo.localeCompare(b.player.pseudo));
 
-  const liveCount = streamers.filter((s) => s.status?.isLive).length;
+  const liveStreamers = streamers.filter((s) => s.status?.isLive);
+  const offlineStreamers = streamers.filter((s) => !s.status?.isLive);
 
   return (
     <main>
@@ -94,10 +91,10 @@ export default function JoueursPage() {
               <p className="text-base font-medium">Joueurs</p>
               <p className="text-xs text-muted-foreground">
                 {streamers.length} streamer{streamers.length > 1 ? "s" : ""}
-                {liveCount > 0 && (
+                {liveStreamers.length > 0 && (
                   <span className="text-red-400">
                     {" "}
-                    · {liveCount} en live
+                    · {liveStreamers.length} en live
                   </span>
                 )}
               </p>
@@ -127,15 +124,44 @@ export default function JoueursPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {streamers.map(({ player, username, status }) => (
-                <StreamerCard
-                  key={player.id}
-                  player={player}
-                  username={username}
-                  status={status}
-                />
-              ))}
+            <div className="space-y-8">
+              {liveStreamers.length > 0 && (
+                <div>
+                  <p className="flex items-center gap-1.5 mb-3 text-[11px] font-semibold uppercase tracking-wide text-text-faint">
+                    <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
+                    En live ({liveStreamers.length})
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {liveStreamers.map(({ player, username, status }) => (
+                      <StreamerCard
+                        key={player.id}
+                        player={player}
+                        username={username}
+                        status={status}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {offlineStreamers.length > 0 && (
+                <div>
+                  <p className="flex items-center gap-1.5 mb-3 text-[11px] font-semibold uppercase tracking-wide text-text-faint">
+                    <span className="inline-block h-2 w-2 rounded-full bg-text-faint" />
+                    Hors ligne ({offlineStreamers.length})
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {offlineStreamers.map(({ player, username, status }) => (
+                      <StreamerCard
+                        key={player.id}
+                        player={player}
+                        username={username}
+                        status={status}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -155,6 +181,7 @@ function StreamerCard({
 }) {
   const isLive = !!status?.isLive;
   const playerName = player.pseudo.trim() || "Joueur";
+  const otherBadges = (player.badges ?? []).filter((b) => b !== "streamer");
 
   return (
     <a
@@ -199,9 +226,9 @@ function StreamerCard({
           <p className="text-[11px] text-text-muted truncate">
             @{username}
           </p>
-          {player.badges?.length > 0 && (
+          {otherBadges.length > 0 && (
             <div className="mt-1">
-              <PlayerBadges badges={player.badges} size="sm" />
+              <PlayerBadges badges={otherBadges} size="sm" />
             </div>
           )}
         </div>
