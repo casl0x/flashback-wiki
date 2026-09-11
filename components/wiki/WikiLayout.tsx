@@ -3,8 +3,12 @@
 import NavBar from "@/components/NavBar";
 import Sidebar from "@/components/Sidebar";
 import { Version } from "@/lib/db";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { SearchProvider } from "./SearchContext";
+
+// Pages où la barre de recherche du header n'a aucun effet
+const SEARCH_HIDDEN_ROUTES = ["/", "/musiques"];
 
 type Props = {
   totalChars: number;
@@ -28,6 +32,8 @@ export default function WikiLayout({
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const pathname = usePathname();
+  const showSearch = !SEARCH_HIDDEN_ROUTES.includes(pathname);
 
   return (
     <SearchProvider value={{ query, setQuery }}>
@@ -40,6 +46,7 @@ export default function WikiLayout({
           onQueryChange={setQuery}
           onMenuToggle={() => setMenuOpen((o) => !o)}
           menuOpen={menuOpen}
+          showSearch={showSearch}
         />
         <div className="flex flex-1">
           <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />

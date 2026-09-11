@@ -12,6 +12,7 @@ type Props = {
   onQueryChange?: (q: string) => void;
   onMenuToggle?: () => void;
   menuOpen?: boolean;
+  showSearch?: boolean;
 };
 
 export default function NavBar({
@@ -22,6 +23,7 @@ export default function NavBar({
   onQueryChange,
   onMenuToggle,
   menuOpen,
+  showSearch = true,
 }: Props) {
   const isControlled = query !== undefined && onQueryChange !== undefined;
   const currentQuery = query ?? "";
@@ -51,20 +53,22 @@ export default function NavBar({
 
         {/* Search + badges */}
         <div className="flex flex-1 items-center justify-end gap-2">
-          <input
-            type="text"
-            placeholder="Rechercher…"
-            value={currentQuery}
-            onChange={(e) => {
-              const value = e.target.value;
+          {showSearch && (
+            <input
+              type="text"
+              placeholder="Rechercher…"
+              value={currentQuery}
+              onChange={(e) => {
+                const value = e.target.value;
 
-              if (isControlled) {
-                onQueryChange(value);
-              }
-            }}
-            className="h-8 w-full max-w-45 rounded-lg border border-border-mid bg-elevated px-3 text-xs outline-none placeholder:text-text-faint sm:max-w-xs lg:max-w-md"
-            suppressHydrationWarning
-          />
+                if (isControlled) {
+                  onQueryChange(value);
+                }
+              }}
+              className="h-8 w-full max-w-45 rounded-lg border border-border-mid bg-elevated px-3 text-xs outline-none placeholder:text-text-faint sm:max-w-xs lg:max-w-md"
+              suppressHydrationWarning
+            />
+          )}
 
           {/* Badges — masqués sur petit mobile */}
           <div className="hidden items-center gap-1.5 sm:flex">
