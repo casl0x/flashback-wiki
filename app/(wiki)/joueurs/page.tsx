@@ -1,6 +1,7 @@
 "use client";
 
 import { PlayerBadges } from "@/components/admin/PlayerBadges";
+import { useSearch } from "@/components/wiki/SearchContext";
 import { Circle, Radio, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -29,6 +30,8 @@ function extractTwitchUsername(url: string | null) {
 }
 
 export default function JoueursPage() {
+  const ctx = useSearch();
+  const query = ctx?.query ?? "";
   const [players, setPlayers] = useState<WikiPlayer[]>([]);
   const [liveStatus, setLiveStatus] = useState<Map<string, TwitchLiveStatus>>(
     new Map(),
@@ -65,6 +68,7 @@ export default function JoueursPage() {
 
   const streamers = players
     .filter((p) => p.badges?.includes("streamer"))
+    .filter((p) => p.pseudo.toLowerCase().includes(query.toLowerCase()))
     .map((p) => ({ player: p, username: extractTwitchUsername(p.lienChaine) }))
     .filter(
       (entry): entry is { player: WikiPlayer; username: string } =>
@@ -121,7 +125,9 @@ export default function JoueursPage() {
           ) : streamers.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-16 text-muted-foreground">
               <p className="text-sm">
-                Aucun joueur avec une chaîne Twitch pour l&apos;instant.
+                {query
+                  ? `Aucun streamer ne correspond à "${query}".`
+                  : "Aucun joueur avec une chaîne Twitch pour l'instant."}
               </p>
             </div>
           ) : (
