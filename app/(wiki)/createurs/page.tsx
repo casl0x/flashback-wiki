@@ -3,6 +3,7 @@
 
 import { deleteCreatorPost } from "@/app/profil/actions";
 import { PublishCreatorPostButton } from "@/components/user/PublishCreatorPostButton";
+import { useSearch } from "@/components/wiki/SearchContext";
 import { useUser } from "@clerk/nextjs";
 import {
   ChevronDown,
@@ -48,6 +49,8 @@ const TABS = [
 type Tab = (typeof TABS)[number]["key"];
 
 export default function CreateursPage() {
+  const ctx = useSearch();
+  const query = ctx?.query ?? "";
   const { isLoaded, isSignedIn, user } = useUser();
   const [data, setData] = useState<CreatorPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +100,17 @@ export default function CreateursPage() {
       });
   }, [isLoaded, isSignedIn]);
 
-  const filtered = tab === "all" ? data : data.filter((p) => p.type === tab);
+  const filtered = data.filter((p) => {
+    const matchTab = tab === "all" || p.type === tab;
+    const q = query.toLowerCase();
+    const matchSearch =
+      !q ||
+      p.creator.pseudo.toLowerCase().includes(q) ||
+      p.caption?.toLowerCase().includes(q) ||
+      p.characters.some((c) => c.nom.toLowerCase().includes(q));
+
+    return matchTab && matchSearch;
+  });
 
   async function handleDelete(id: string) {
     setData((prev) => prev.filter((p) => p.id !== id));
@@ -209,7 +222,9 @@ export default function CreateursPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-16 text-muted-foreground">
             <p className="text-sm">
-              Aucune publication dans cette catégorie pour l&apos;instant.
+              {query
+                ? `Aucune publication ne correspond à "${query}".`
+                : "Aucune publication dans cette catégorie pour l'instant."}
             </p>
           </div>
         ) : (
