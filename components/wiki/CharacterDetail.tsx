@@ -113,8 +113,12 @@ export default function CharacterDetail({
                 )}
                 <LifeStateIcon
                   etat={
-                    (c.etatVie as "EN_VIE" | "MORT" | "PARTI" | "DISPARU") ??
-                    "EN_VIE"
+                    (c.etatVie as
+                      | "EN_VIE"
+                      | "MORT"
+                      | "PARTI"
+                      | "DISPARU"
+                      | "PRISON") ?? "EN_VIE"
                   }
                 />
               </div>

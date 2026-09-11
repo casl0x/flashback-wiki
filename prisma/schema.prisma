@@ -15,6 +15,7 @@ enum EtatVie {
   MORT
   PARTI
   DISPARU
+  PRISON
 }
 
 enum Role {
