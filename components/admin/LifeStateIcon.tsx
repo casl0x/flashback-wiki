@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Heart, Meh, Plane, Skull } from "lucide-react";
+import { Heart, Lock, Meh, Plane, Skull } from "lucide-react";
 import { ComponentType } from "react";
 
 type EtatVieConfig = {
@@ -33,6 +33,12 @@ const ETAT_VIE_CONFIG: EtatVieConfig[] = [
     label: "Disparu",
     description: "Ce personnage a disparu.",
     icon: Meh,
+  },
+  {
+    key: "PRISON",
+    label: "En prison",
+    description: "Ce personnage est actuellement incarcéré.",
+    icon: Lock,
   },
 ];
 
