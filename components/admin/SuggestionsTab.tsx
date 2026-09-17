@@ -10,9 +10,27 @@ type Suggestion = {
   nom: string | null;
   metier: string | null;
   groupe: string | null;
+  role: string | null;
+  etatVie: string | null;
+  joueur: string | null;
+  versionId: string | null;
+  lienReddif: string | null;
   description: string | null;
   note: string | null;
   createdAt: string;
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  civil: "Civil",
+  illegal: "Illégal",
+};
+
+const ETAT_VIE_LABELS: Record<string, string> = {
+  EN_VIE: "En vie",
+  MORT: "Mort",
+  PARTI: "Parti",
+  DISPARU: "Disparu",
+  PRISON: "En prison",
 };
 
 export function SuggestionsTab() {
@@ -53,6 +71,14 @@ export function SuggestionsTab() {
                 { label: "Nom", value: s.nom },
                 { label: "Métier", value: s.metier },
                 { label: "Groupe", value: s.groupe },
+                { label: "Rôle", value: s.role ? ROLE_LABELS[s.role] : null },
+                {
+                  label: "État de vie",
+                  value: s.etatVie ? ETAT_VIE_LABELS[s.etatVie] : null,
+                },
+                { label: "Joueur", value: s.joueur },
+                { label: "Version", value: s.versionId },
+                { label: "Lien Reddif", value: s.lienReddif },
                 { label: "Description", value: s.description },
                 { label: "Note", value: s.note },
               ]

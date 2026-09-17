@@ -116,7 +116,8 @@ model Version {
   color       String   @default("#8880a8")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  characters Character[]
+  characters  Character[]
+  suggestions Suggestion[]
 
   @@map("versions")
 }
@@ -206,6 +207,12 @@ model Suggestion {
   groupe      String?
   description String?
   note        String?
+  role        Role?
+  etatVie     EtatVie?   @map("etat_vie")
+  joueur      String?
+  versionId   String?    @map("version_id")
+  version     Version?   @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  lienReddif  String?    @map("lien_reddif")
   status      String     @default("pending") // pending | accepted | rejected
   createdAt   DateTime   @default(now())
 }
