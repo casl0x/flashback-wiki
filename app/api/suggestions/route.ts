@@ -34,6 +34,26 @@ export async function PATCH(req: Request) {
     data: { status },
   });
 
+  if (status === "accepted" && suggestion.characterId) {
+    const groupe = suggestion.groupe
+      ? await prisma.groupe.findFirst({
+          where: { nom: { equals: suggestion.groupe, mode: "insensitive" } },
+        })
+      : null;
+
+    await prisma.character.update({
+      where: { id: suggestion.characterId },
+      data: {
+        ...(suggestion.nom ? { nom: suggestion.nom } : {}),
+        ...(suggestion.metier ? { metier: suggestion.metier } : {}),
+        ...(suggestion.description
+          ? { description: suggestion.description }
+          : {}),
+        ...(groupe ? { groupes: { connect: { id: groupe.id } } } : {}),
+      },
+    });
+  }
+
   if (status === "accepted" && suggestion.clerkUserId) {
     const updated = await prisma.userProfile.upsert({
       where: { clerkUserId: suggestion.clerkUserId },
