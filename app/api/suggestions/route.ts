@@ -1,7 +1,19 @@
+import { invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+
+async function isAdmin(userId: string | null) {
+  if (!userId) return false;
+  const client = await clerkClient();
+  const memberships = await client.users.getOrganizationMembershipList({
+    userId,
+  });
+  return memberships.data.some(
+    (m) => m.organization.id === process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID,
+  );
+}
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -26,50 +38,61 @@ export async function GET() {
   return NextResponse.json(suggestions);
 }
 
-export async function PATCH(req: Request) {
-  const { id, status } = await req.json();
+type AcceptedSuggestion = NonNullable<
+  Awaited<ReturnType<typeof prisma.suggestion.update>>
+>;
 
-  const suggestion = await prisma.suggestion.update({
-    where: { id },
-    data: { status },
-  });
-
-  if (status === "accepted") {
-    const groupe = suggestion.groupe
-      ? await prisma.groupe.findFirst({
+// Applique une suggestion acceptée : écrit ses champs sur le personnage
+// (visé, ou nouvellement créé) et attribue les points à son auteur.
+// Isolée de PATCH pour rester testable sans le contexte Clerk.
+export async function applyAcceptedSuggestion(suggestion: AcceptedSuggestion) {
+  const [groupe, joueur] = await Promise.all([
+    suggestion.groupe
+      ? prisma.groupe.findFirst({
           where: { nom: { equals: suggestion.groupe, mode: "insensitive" } },
         })
-      : null;
+      : null,
+    suggestion.joueur
+      ? prisma.player.findFirst({
+          where: { pseudo: { equals: suggestion.joueur, mode: "insensitive" } },
+        })
+      : null,
+  ]);
 
-    if (suggestion.characterId) {
-      await prisma.character.update({
-        where: { id: suggestion.characterId },
-        data: {
-          ...(suggestion.nom ? { nom: suggestion.nom } : {}),
-          ...(suggestion.metier ? { metier: suggestion.metier } : {}),
-          ...(suggestion.description
-            ? { description: suggestion.description }
-            : {}),
-          ...(groupe ? { groupes: { connect: { id: groupe.id } } } : {}),
-        },
-      });
-    } else if (suggestion.nom) {
-      const character = await prisma.character.create({
-        data: {
-          nom: suggestion.nom,
-          metier: suggestion.metier || null,
-          description: suggestion.description || null,
-          ...(groupe ? { groupes: { connect: { id: groupe.id } } } : {}),
-        },
-      });
-      await prisma.suggestion.update({
-        where: { id: suggestion.id },
-        data: { characterId: character.id },
-      });
-    }
+  const fieldUpdates = {
+    ...(suggestion.metier ? { metier: suggestion.metier } : {}),
+    ...(suggestion.description ? { description: suggestion.description } : {}),
+    ...(suggestion.lienReddif ? { lienReddif: suggestion.lienReddif } : {}),
+    ...(suggestion.role ? { role: suggestion.role } : {}),
+    ...(suggestion.etatVie ? { etatVie: suggestion.etatVie } : {}),
+    ...(suggestion.versionId ? { versionId: suggestion.versionId } : {}),
+    ...(groupe ? { groupes: { connect: { id: groupe.id } } } : {}),
+    ...(joueur ? { playerId: joueur.id } : {}),
+  };
+
+  let characterMutated = false;
+
+  if (suggestion.characterId) {
+    await prisma.character.update({
+      where: { id: suggestion.characterId },
+      data: {
+        ...(suggestion.nom ? { nom: suggestion.nom } : {}),
+        ...fieldUpdates,
+      },
+    });
+    characterMutated = true;
+  } else if (suggestion.nom) {
+    const character = await prisma.character.create({
+      data: { nom: suggestion.nom, ...fieldUpdates },
+    });
+    await prisma.suggestion.update({
+      where: { id: suggestion.id },
+      data: { characterId: character.id },
+    });
+    characterMutated = true;
   }
 
-  if (status === "accepted" && suggestion.clerkUserId) {
+  if (suggestion.clerkUserId) {
     const updated = await prisma.userProfile.upsert({
       where: { clerkUserId: suggestion.clerkUserId },
       create: {
@@ -92,6 +115,25 @@ export async function PATCH(req: Request) {
         ),
       },
     });
+  }
+
+  if (characterMutated) await invalidateWikiCache();
+}
+
+export async function PATCH(req: Request) {
+  const { userId } = await auth();
+  if (!(await isAdmin(userId)))
+    return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+
+  const { id, status } = await req.json();
+
+  const suggestion = await prisma.suggestion.update({
+    where: { id },
+    data: { status },
+  });
+
+  if (status === "accepted") {
+    await applyAcceptedSuggestion(suggestion);
   }
 
   return NextResponse.json(suggestion);

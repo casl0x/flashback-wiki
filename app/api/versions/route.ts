@@ -4,6 +4,11 @@ import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function GET() {
+  const versions = await prisma.version.findMany({ orderBy: { id: "asc" } });
+  return NextResponse.json(versions);
+}
+
 export async function POST(request: NextRequest) {
   const { id, label, description, color } = await request.json();
 

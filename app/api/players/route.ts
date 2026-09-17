@@ -2,6 +2,14 @@ import { invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function GET() {
+  const players = await prisma.player.findMany({
+    orderBy: { pseudo: "asc" },
+    select: { id: true, pseudo: true },
+  });
+  return NextResponse.json(players);
+}
+
 export async function POST(request: NextRequest) {
   const { pseudo, stream, lienChaine, reseaux, badges } = await request.json();
 
