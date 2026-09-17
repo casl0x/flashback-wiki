@@ -34,24 +34,39 @@ export async function PATCH(req: Request) {
     data: { status },
   });
 
-  if (status === "accepted" && suggestion.characterId) {
+  if (status === "accepted") {
     const groupe = suggestion.groupe
       ? await prisma.groupe.findFirst({
           where: { nom: { equals: suggestion.groupe, mode: "insensitive" } },
         })
       : null;
 
-    await prisma.character.update({
-      where: { id: suggestion.characterId },
-      data: {
-        ...(suggestion.nom ? { nom: suggestion.nom } : {}),
-        ...(suggestion.metier ? { metier: suggestion.metier } : {}),
-        ...(suggestion.description
-          ? { description: suggestion.description }
-          : {}),
-        ...(groupe ? { groupes: { connect: { id: groupe.id } } } : {}),
-      },
-    });
+    if (suggestion.characterId) {
+      await prisma.character.update({
+        where: { id: suggestion.characterId },
+        data: {
+          ...(suggestion.nom ? { nom: suggestion.nom } : {}),
+          ...(suggestion.metier ? { metier: suggestion.metier } : {}),
+          ...(suggestion.description
+            ? { description: suggestion.description }
+            : {}),
+          ...(groupe ? { groupes: { connect: { id: groupe.id } } } : {}),
+        },
+      });
+    } else if (suggestion.nom) {
+      const character = await prisma.character.create({
+        data: {
+          nom: suggestion.nom,
+          metier: suggestion.metier || null,
+          description: suggestion.description || null,
+          ...(groupe ? { groupes: { connect: { id: groupe.id } } } : {}),
+        },
+      });
+      await prisma.suggestion.update({
+        where: { id: suggestion.id },
+        data: { characterId: character.id },
+      });
+    }
   }
 
   if (status === "accepted" && suggestion.clerkUserId) {
