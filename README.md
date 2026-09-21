@@ -25,7 +25,7 @@ On y trouve :
 | Page | Description |
 |---|---|
 | `/` | Accueil — top personnages, présentation |
-| `/personnages` | Liste complète des personnages (755+, paginée 20/page) |
+| `/personnages` | Liste complète des personnages (paginée 20/page) |
 | `/versions/:id` | Personnages filtrés par version |
 | `/musiques` | Playlists musicales |
 | `/createurs` | Créateurs de la communauté |
@@ -38,24 +38,6 @@ On y trouve :
 - **Framework :** [Next.js](https://nextjs.org/) (React)
 - **Déploiement :** [Vercel](https://vercel.com/)
 - **Analytics :** Vercel Web Analytics (stats de consultation, mises à jour toutes les heures)
-
----
-
-## 📦 Installation locale
-
-```bash
-# Cloner le dépôt
-git clone <url-du-repo>
-cd flashback-wiki
-
-# Installer les dépendances
-npm install
-
-# Lancer le serveur de développement
-npm run dev
-```
-
-Le site sera disponible sur `http://localhost:3000`.
 
 ---
 
