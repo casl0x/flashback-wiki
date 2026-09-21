@@ -2,7 +2,7 @@
 
 > Wiki communautaire **non officiel** dédié à l'univers de **Flashback WL** : personnages, joueurs, versions, musiques et créations de la communauté.
 
-🌐 **Site en ligne :** [flashback-wiki.vercel.app](https://flashback-wiki.vercel.app)
+🌐 **Site en ligne :** [flashbackwiki](https://flashbackwiki.bycaslox.com/)
 
 ---
 
