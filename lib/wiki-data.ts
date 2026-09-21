@@ -43,16 +43,131 @@ const normalizeGroupes = (
 ) =>
   groupes.map((g) => ({ id: g.id, slug: g.slug, nom: g.nom, color: g.color }));
 
-export async function fetchWikiData(): Promise<WikiData> {
-  const emptyWikiData: WikiData = {
-    versions: [],
-    players: [],
-    characters: [],
-    groupes: [],
-    counts: {},
-    totalRelations: 0,
-  };
+const buildPlayerSummary = (
+  player: {
+    id: string;
+    pseudo: string;
+    stream: boolean;
+    lienChaine: string | null;
+    reseaux: Prisma.JsonValue;
+    badges: string[];
+  } | null,
+) =>
+  player
+    ? {
+        id: player.id,
+        pseudo: player.pseudo,
+        stream: player.stream,
+        lienChaine: player.lienChaine,
+        reseaux: normalizeReseaux(player.reseaux),
+        badges: player.badges,
+      }
+    : null;
 
+const buildVersionSummary = (
+  version: {
+    id: string;
+    label: string;
+    color: string | null;
+    description: string | null;
+  } | null,
+) =>
+  version
+    ? {
+        id: version.id,
+        label: version.label,
+        color: version.color,
+        description: version.description,
+      }
+    : null;
+
+const emptyWikiData: WikiData = {
+  versions: [],
+  players: [],
+  characters: [],
+  groupes: [],
+  counts: {},
+  totalRelations: 0,
+};
+
+// Payload léger (sans le détail des relations) utilisé par les pages publiques :
+// avec le détail complet, le JSON dépasse la limite de 2 Mo du data cache de
+// Next.js et unstable_cache refuse silencieusement de le mettre en cache.
+export async function fetchWikiData(): Promise<WikiData> {
+  try {
+    const [versions, players, characters, groupes] = await Promise.all([
+      prisma.version.findMany({ orderBy: { id: "asc" } }),
+      prisma.player.findMany({ orderBy: { pseudo: "asc" } }),
+      prisma.character.findMany({
+        orderBy: { nom: "asc" },
+        include: {
+          player: true,
+          version: true,
+          groupes: true,
+          _count: { select: { relationsA: true, relationsB: true } },
+        },
+      }),
+      prisma.groupe.findMany({ orderBy: { nom: "asc" } }),
+    ]);
+
+    const normalizedVersions = versions.map((version) => ({
+      ...version,
+      createdAt: version.createdAt.toISOString(),
+    }));
+
+    const normalizedPlayers = players.map((player) => ({
+      ...player,
+      createdAt: player.createdAt.toISOString(),
+      reseaux: normalizeReseaux(player.reseaux),
+    }));
+
+    const enrichedCharacters = characters.map((character) => ({
+      ...character,
+      createdAt: character.createdAt.toISOString(),
+      player: buildPlayerSummary(character.player),
+      version: buildVersionSummary(character.version),
+      groupes: normalizeGroupes(character.groupes),
+      relations: [],
+      imageUrl: character.imageUrl,
+    })) as Character[];
+
+    const counts: Record<string, number> = {};
+    enrichedCharacters.forEach((character) => {
+      if (character.versionId) {
+        counts[character.versionId] = (counts[character.versionId] || 0) + 1;
+      }
+    });
+
+    const totalRelations = characters.reduce(
+      (accumulator, character) =>
+        accumulator +
+        character._count.relationsA +
+        character._count.relationsB,
+      0,
+    );
+
+    return {
+      versions: normalizedVersions,
+      players: normalizedPlayers,
+      characters: enrichedCharacters,
+      groupes: groupes.map((g) => ({
+        ...g,
+        createdAt: g.createdAt.toISOString(),
+      })),
+      counts,
+      totalRelations,
+    };
+  } catch (error) {
+    console.error("Failed to load wiki data", error);
+    return emptyWikiData;
+  }
+}
+
+// Payload complet (avec le détail des relations par personnage), utilisé
+// uniquement par l'admin. Non mis en cache via unstable_cache pour ne pas
+// heurter la même limite de taille : /api/data est déjà appelée sans cache
+// HTTP (cache: "no-store") et sert un usage à faible trafic.
+export async function fetchWikiDataWithRelations(): Promise<WikiData> {
   try {
     const [versions, players, characters, groupes] = await Promise.all([
       prisma.version.findMany({ orderBy: { id: "asc" } }),
@@ -120,31 +235,11 @@ export async function fetchWikiData(): Promise<WikiData> {
           })),
         ];
 
-        const player = character.player
-          ? {
-              id: character.player.id,
-              pseudo: character.player.pseudo,
-              stream: character.player.stream,
-              lienChaine: character.player.lienChaine,
-              reseaux: normalizeReseaux(character.player.reseaux),
-              badges: character.player.badges,
-            }
-          : null;
-
-        const version = character.version
-          ? {
-              id: character.version.id,
-              label: character.version.label,
-              color: character.version.color,
-              description: character.version.description,
-            }
-          : null;
-
         return {
           ...character,
           createdAt: character.createdAt.toISOString(),
-          player,
-          version,
+          player: buildPlayerSummary(character.player),
+          version: buildVersionSummary(character.version),
           groupes: normalizeGroupes(character.groupes),
           relations,
           imageUrl: character.imageUrl,
@@ -208,24 +303,8 @@ export const getCharacterById = unstable_cache(
     return {
       ...character,
       createdAt: character.createdAt.toISOString(),
-      player: character.player
-        ? {
-            id: character.player.id,
-            pseudo: character.player.pseudo,
-            stream: character.player.stream,
-            lienChaine: character.player.lienChaine,
-            reseaux: normalizeReseaux(character.player.reseaux),
-            badges: character.player.badges,
-          }
-        : null,
-      version: character.version
-        ? {
-            id: character.version.id,
-            label: character.version.label,
-            color: character.version.color,
-            description: character.version.description,
-          }
-        : null,
+      player: buildPlayerSummary(character.player),
+      version: buildVersionSummary(character.version),
       groupes: normalizeGroupes(character.groupes),
       relations: [
         ...character.relationsA.map((r) => ({
@@ -272,24 +351,8 @@ export const getCharactersByPlayerId = unstable_cache(
     return chars.map((c) => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
-      player: c.player
-        ? {
-            id: c.player.id,
-            pseudo: c.player.pseudo,
-            stream: c.player.stream,
-            lienChaine: c.player.lienChaine,
-            reseaux: normalizeReseaux(c.player.reseaux),
-            badges: c.player.badges,
-          }
-        : null,
-      version: c.version
-        ? {
-            id: c.version.id,
-            label: c.version.label,
-            color: c.version.color,
-            description: c.version.description,
-          }
-        : null,
+      player: buildPlayerSummary(c.player),
+      version: buildVersionSummary(c.version),
       groupes: normalizeGroupes(c.groupes),
       relations: [],
     })) as Character[];
