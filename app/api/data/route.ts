@@ -1,9 +1,9 @@
-import { getWikiData } from "@/lib/wiki-data";
+import { fetchWikiDataWithRelations } from "@/lib/wiki-data";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const data = await getWikiData();
+    const data = await fetchWikiDataWithRelations();
 
     return NextResponse.json(data, {
       headers: { "Cache-Control": "no-store" },
