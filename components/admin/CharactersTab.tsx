@@ -913,7 +913,7 @@ export function CharactersTab({ players, versions, groupes }: Props) {
                     )}
                     {c.groupes.length > 0 && (
                       <span className="text-[11px] text-text-secondary truncate">
-                        {c.groupes[0].nom}
+                        {c.groupes.map((g) => g.nom).join(", ")}
                       </span>
                     )}
 
