@@ -75,22 +75,27 @@ export default function CharacterDetail({
                 </p>
               )}
               {c.groupes.length > 0 && (
-                <a
-                  href={`/groupes/${c.groupes[0].slug}`}
-                  className="inline-flex items-center gap-1.5 text-[13px] text-text-muted hover:text-accent transition-colors mb-1 group"
-                >
-                  {c.groupes[0].color && (
-                    <span
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: c.groupes[0].color }}
-                    />
-                  )}
-                  Groupe :
-                  <span className="group-hover:underline">
-                    {c.groupes[0].nom}
+                <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mb-1">
+                  <span className="text-[13px] text-text-muted">
+                    {c.groupes.length > 1 ? "Groupes :" : "Groupe :"}
                   </span>
-                  <i className="ti ti-arrow-right text-[11px] opacity-0 group-hover:opacity-100 transition-opacity" />
-                </a>
+                  {c.groupes.map((g) => (
+                    <a
+                      key={g.id}
+                      href={`/groupes/${g.slug}`}
+                      className="inline-flex items-center gap-1.5 text-[13px] text-text-muted hover:text-accent transition-colors group"
+                    >
+                      {g.color && (
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: g.color }}
+                        />
+                      )}
+                      <span className="group-hover:underline">{g.nom}</span>
+                      <i className="ti ti-arrow-right text-[11px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </a>
+                  ))}
+                </div>
               )}
               {/* Badges version + role */}
               <div className="flex items-center gap-1.5 flex-wrap pt-3">
