@@ -109,8 +109,8 @@ export default function CharacterCard({
                 </span>
               )}
               {character.groupes.length > 0 && (
-                <p className="text-[12px] text-(--text-secondary) mb-1">
-                  {character.groupes[0].nom}
+                <p className="text-[12px] text-(--text-secondary) mb-1 truncate">
+                  {character.groupes.map((g) => g.nom).join(", ")}
                 </p>
               )}
             </div>

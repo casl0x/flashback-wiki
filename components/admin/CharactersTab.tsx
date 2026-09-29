@@ -155,6 +155,7 @@ export function CharactersTab({ players, versions, groupes }: Props) {
   const [newRelTypeInverse, setNewRelTypeInverse] = useState("");
   const [relLoading, setRelLoading] = useState(false);
   const [editingRelId, setEditingRelId] = useState<string | null>(null);
+  const [groupeSearch, setGroupeSearch] = useState("");
 
   // Filtres + pagination
   const [search, setSearch] = useState("");
@@ -263,6 +264,7 @@ export function CharactersTab({ players, versions, groupes }: Props) {
     setForm(EMPTY_FORM);
     resetRel();
     setModalTab("infos");
+    setGroupeSearch("");
     setModal("form");
   }
   function openEdit(c: Character) {
@@ -272,6 +274,7 @@ export function CharactersTab({ players, versions, groupes }: Props) {
     setForm(charToForm(c));
     resetRel();
     setModalTab("infos");
+    setGroupeSearch("");
     setModal("form");
   }
   function openDelete(c: Character) {
@@ -285,6 +288,7 @@ export function CharactersTab({ players, versions, groupes }: Props) {
     setActiveRelations([]);
     resetRel();
     setModalTab("infos");
+    setGroupeSearch("");
   }
 
   // ─── Actions ───────────────────────────────────────────────────────────────
@@ -385,6 +389,10 @@ export function CharactersTab({ players, versions, groupes }: Props) {
 
   const otherPerso = chars.find((c) => c.id === newRelPerso);
 
+  const filteredGroupes = groupes.filter((g) =>
+    g.nom.toLowerCase().includes(groupeSearch.trim().toLowerCase()),
+  );
+
   const infosTab = (
     <div className="flex flex-col gap-3">
       <Field label="Nom">
@@ -398,39 +406,90 @@ export function CharactersTab({ players, versions, groupes }: Props) {
         />
       </Field>
       <Field label="Groupes">
-        <div className="flex flex-col gap-1 rounded-md border border-border bg-input p-2 max-h-36 overflow-y-auto">
-          {groupes.map((g) => (
-            <label
-              key={g.id}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                checked={form.groupeIds.includes(g.id)}
-                onChange={(e) =>
-                  setForm((p) => ({
-                    ...p,
-                    groupeIds: e.target.checked
-                      ? [...p.groupeIds, g.id]
-                      : p.groupeIds.filter((id) => id !== g.id),
-                  }))
-                }
-                className="accent-accent"
-              />
-              {g.color && (
-                <span
-                  className="h-2 w-2 rounded-full shrink-0"
-                  style={{ backgroundColor: g.color }}
-                />
-              )}
-              <span className="text-[12px] text-text-secondary">{g.nom}</span>
-            </label>
-          ))}
-          {groupes.length === 0 && (
-            <p className="text-[11px] text-text-muted">
-              Aucun groupe disponible
-            </p>
+        <div className="flex flex-col gap-1.5">
+          {form.groupeIds.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {form.groupeIds.map((id) => {
+                const g = groupes.find((x) => x.id === id);
+                if (!g) return null;
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1 text-[10px] pl-1.5 pr-1 py-0.5 rounded-full border border-border-mid bg-elevated text-text-secondary"
+                  >
+                    {g.color && (
+                      <span
+                        className="h-1.5 w-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: g.color }}
+                      />
+                    )}
+                    {g.nom}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((p) => ({
+                          ...p,
+                          groupeIds: p.groupeIds.filter((gid) => gid !== id),
+                        }))
+                      }
+                      className="text-text-muted hover:text-[#f87171] px-0.5 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
           )}
+          {groupes.length > 5 && (
+            <Input
+              value={groupeSearch}
+              onChange={(e) => setGroupeSearch(e.target.value)}
+              placeholder="Rechercher un groupe…"
+              className="h-7 text-[11px]"
+            />
+          )}
+          <div className="flex flex-col gap-1 rounded-md border border-border bg-input p-2 max-h-36 overflow-y-auto">
+            {filteredGroupes.map((g) => (
+              <label
+                key={g.id}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.groupeIds.includes(g.id)}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      groupeIds: e.target.checked
+                        ? [...p.groupeIds, g.id]
+                        : p.groupeIds.filter((id) => id !== g.id),
+                    }))
+                  }
+                  className="accent-accent"
+                />
+                {g.color && (
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: g.color }}
+                  />
+                )}
+                <span className="text-[12px] text-text-secondary">
+                  {g.nom}
+                </span>
+              </label>
+            ))}
+            {groupes.length === 0 && (
+              <p className="text-[11px] text-text-muted">
+                Aucun groupe disponible
+              </p>
+            )}
+            {groupes.length > 0 && filteredGroupes.length === 0 && (
+              <p className="text-[11px] text-text-muted">
+                Aucun groupe ne correspond à « {groupeSearch} »
+              </p>
+            )}
+          </div>
         </div>
       </Field>
       <div className="grid grid-cols-2 gap-3">
@@ -854,7 +913,7 @@ export function CharactersTab({ players, versions, groupes }: Props) {
                     )}
                     {c.groupes.length > 0 && (
                       <span className="text-[11px] text-text-secondary truncate">
-                        {c.groupes[0].nom}
+                        {c.groupes.map((g) => g.nom).join(", ")}
                       </span>
                     )}
 
