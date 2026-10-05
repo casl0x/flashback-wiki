@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { matchesSearch } from "@/lib/utils";
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -104,9 +105,7 @@ export function PlayersTab() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const filtered = players.filter((p) =>
-    p.pseudo.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = players.filter((p) => matchesSearch(p.pseudo, search));
 
   // Remettre à la page 1 quand la recherche change
   function handleSearch(value: string) {

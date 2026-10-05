@@ -4,6 +4,7 @@
 import { deleteCreatorPost } from "@/app/profil/actions";
 import { PublishCreatorPostButton } from "@/components/user/PublishCreatorPostButton";
 import { useSearch } from "@/components/wiki/SearchContext";
+import { matchesSearch } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import {
   ChevronDown,
@@ -102,12 +103,10 @@ export default function CreateursPage() {
 
   const filtered = data.filter((p) => {
     const matchTab = tab === "all" || p.type === tab;
-    const q = query.toLowerCase();
     const matchSearch =
-      !q ||
-      p.creator.pseudo.toLowerCase().includes(q) ||
-      p.caption?.toLowerCase().includes(q) ||
-      p.characters.some((c) => c.nom.toLowerCase().includes(q));
+      matchesSearch(p.creator.pseudo, query) ||
+      matchesSearch(p.caption, query) ||
+      p.characters.some((c) => matchesSearch(c.nom, query));
 
     return matchTab && matchSearch;
   });

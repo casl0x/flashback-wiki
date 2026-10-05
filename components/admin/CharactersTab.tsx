@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Character, Groupe, Player, Version } from "@/lib/db";
-import { statusBadgeClass } from "@/lib/utils";
+import { matchesSearch, statusBadgeClass } from "@/lib/utils";
 import { MapPin, Users } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import dynamic from "next/dynamic";
@@ -169,9 +169,11 @@ export function CharactersTab({ players, versions, groupes }: Props) {
     selected ?? (createdId ? chars.find((c) => c.id === createdId) : null);
 
   const filtered = chars.filter((c) => {
-    const matchSearch = [c.nom, c.metier, c.player?.pseudo]
-      .filter(Boolean)
-      .some((s) => s!.toLowerCase().includes(search.toLowerCase()));
+    const matchSearch =
+      matchesSearch(c.nom, search) ||
+      matchesSearch(c.metier, search) ||
+      matchesSearch(c.player?.pseudo, search) ||
+      c.groupes.some((g) => matchesSearch(g.nom, search));
     const matchVersion =
       filterVersion === "all" || c.versionId === filterVersion;
     const matchRole = filterRole === "all" || c.role === filterRole;
@@ -390,7 +392,7 @@ export function CharactersTab({ players, versions, groupes }: Props) {
   const otherPerso = chars.find((c) => c.id === newRelPerso);
 
   const filteredGroupes = groupes.filter((g) =>
-    g.nom.toLowerCase().includes(groupeSearch.trim().toLowerCase()),
+    matchesSearch(g.nom, groupeSearch),
   );
 
   const infosTab = (

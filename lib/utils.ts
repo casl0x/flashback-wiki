@@ -5,6 +5,30 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Normalise une chaîne pour la recherche : enlève les accents, met en
+// minuscule et retire les espaces superflus, pour que "etienne" trouve
+// "Étienne" et que "  Tony  " se comporte comme "Tony".
+export function normalizeSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+// Vrai si `haystack` contient `query` une fois les deux normalisés
+// (insensible aux accents, à la casse et aux espaces superflus).
+// Une query vide matche toujours.
+export function matchesSearch(
+  haystack: string | null | undefined,
+  query: string,
+): boolean {
+  const q = normalizeSearch(query);
+  if (!q) return true;
+  if (!haystack) return false;
+  return normalizeSearch(haystack).includes(q);
+}
+
 export function statusBorderClass(status: string | null | undefined) {
   return (
     {

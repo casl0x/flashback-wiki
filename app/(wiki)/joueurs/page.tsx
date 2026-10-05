@@ -2,6 +2,7 @@
 
 import { PlayerBadges } from "@/components/admin/PlayerBadges";
 import { useSearch } from "@/components/wiki/SearchContext";
+import { matchesSearch } from "@/lib/utils";
 import { Circle, Radio, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -68,7 +69,7 @@ export default function JoueursPage() {
 
   const streamers = players
     .filter((p) => p.badges?.includes("streamer"))
-    .filter((p) => p.pseudo.toLowerCase().includes(query.toLowerCase()))
+    .filter((p) => matchesSearch(p.pseudo, query))
     .map((p) => ({ player: p, username: extractTwitchUsername(p.lienChaine) }))
     .filter(
       (entry): entry is { player: WikiPlayer; username: string } =>
