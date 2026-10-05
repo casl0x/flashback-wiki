@@ -7,6 +7,7 @@ import EmptyState from "@/components/wiki/EmptyState";
 import HeaderBlock from "@/components/wiki/HeaderBlock";
 import { useSearch } from "@/components/wiki/SearchContext";
 import { Character } from "@/lib/db";
+import { matchesSearch } from "@/lib/utils";
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -168,12 +169,11 @@ export default function CharactersClient({ characters }: Props) {
   ] as string[];
 
   const filtered = characters.filter((c) => {
-    const q = query.toLowerCase();
     const matchSearch =
-      !q ||
-      c.nom.toLowerCase().includes(q) ||
-      c.player?.pseudo?.toLowerCase().includes(q) ||
-      c.metier?.toLowerCase().includes(q);
+      matchesSearch(c.nom, query) ||
+      matchesSearch(c.player?.pseudo, query) ||
+      matchesSearch(c.metier, query) ||
+      c.groupes.some((g) => matchesSearch(g.nom, query));
 
     return (
       matchSearch &&

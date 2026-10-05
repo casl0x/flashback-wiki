@@ -1,6 +1,7 @@
 "use client";
 
 import { Character } from "@/lib/db";
+import { matchesSearch } from "@/lib/utils";
 import { useState } from "react";
 import {
   Combobox,
@@ -30,8 +31,7 @@ export function CharacterCombobox({
     .filter((c) => c.nom !== excludeId)
     .filter(
       (c) =>
-        c.nom.toLowerCase().includes(search.toLowerCase()) ||
-        c.player?.pseudo?.toLowerCase().includes(search.toLowerCase()),
+        matchesSearch(c.nom, search) || matchesSearch(c.player?.pseudo, search),
     );
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { Player } from "@/lib/db";
+import { matchesSearch, normalizeSearch } from "@/lib/utils";
 import { useState } from "react";
 import {
   Combobox,
@@ -21,11 +22,9 @@ export function PlayerCombobox({ players, value, onValueChange }: Props) {
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const filtered = players.filter((p) =>
-    p.pseudo.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = players.filter((p) => matchesSearch(p.pseudo, search));
   const exactMatch = players.some(
-    (p) => p.pseudo.toLowerCase() === search.toLowerCase(),
+    (p) => normalizeSearch(p.pseudo) === normalizeSearch(search),
   );
   const canCreate = search.trim().length > 0 && !exactMatch;
 

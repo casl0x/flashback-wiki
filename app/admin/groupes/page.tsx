@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Groupe } from "@/lib/db";
+import { matchesSearch } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 type GroupeForm = {
@@ -150,9 +151,7 @@ export default function GroupesPage() {
     closeModal();
   }
 
-  const filtered = groupes.filter((g) =>
-    g.nom.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = groupes.filter((g) => matchesSearch(g.nom, search));
 
   return (
     <>
