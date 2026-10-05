@@ -28,7 +28,7 @@ export function CharacterCombobox({
   const [search, setSearch] = useState("");
 
   const filtered = characters
-    .filter((c) => c.nom !== excludeId)
+    .filter((c) => c.id !== excludeId)
     .filter(
       (c) =>
         matchesSearch(c.nom, search) || matchesSearch(c.player?.pseudo, search),
