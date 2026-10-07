@@ -28,7 +28,9 @@ export async function createCreatorPost(data: {
 
   const role = profile
     ? await prisma.creatorRole.findUnique({
-        where: { userProfileId_type: { userProfileId: profile.id, type: data.type } },
+        where: {
+          userProfileId_type: { userProfileId: profile.id, type: data.type },
+        },
       })
     : null;
 
@@ -51,10 +53,44 @@ export async function createCreatorPost(data: {
       platform: data.platform,
       caption: data.caption?.trim() || null,
       characters: characterIds.length
-        ? { createMany: { data: characterIds.map((characterId) => ({ characterId })) } }
+        ? {
+            createMany: {
+              data: characterIds.map((characterId) => ({ characterId })),
+            },
+          }
         : undefined,
     },
   });
+
+  const posts = await prisma.creatorPost.findMany({
+    where: { creatorRole: { userProfileId: profile!.id }, status: "approved" },
+    select: { type: true },
+  });
+  const newBadges = computeCreatorBadges(posts.map((p) => p.type));
+  if (newBadges.length) {
+    const current = await prisma.userProfile.findUnique({
+      where: { id: profile!.id },
+      select: { badges: true },
+    });
+    const merged = [...new Set([...(current?.badges ?? []), ...newBadges])];
+    await prisma.userProfile.update({
+      where: { id: profile!.id },
+      data: { badges: merged },
+    });
+  }
+}
+
+function computeCreatorBadges(types: CreatorType[]): string[] {
+  const badges: string[] = [];
+
+  if (types.length >= 1) badges.push("first-creation");
+  if (types.length >= 5) badges.push("active-creator");
+  if (types.length >= 15) badges.push("prolific-creator");
+  if (types.includes("ARTISTE") && types.includes("EDITEUR")) {
+    badges.push("versatile-creator");
+  }
+
+  return badges;
 }
 
 export async function deleteCreatorPost(id: string) {

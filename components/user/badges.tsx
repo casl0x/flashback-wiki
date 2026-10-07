@@ -35,6 +35,42 @@ export const BADGES_CONFIG = [
     bg: "rgba(225,29,72,0.12)",
     border: "rgba(225,29,72,0.3)",
   },
+  {
+    key: "first-creation",
+    label: "Première création",
+    description: "Première publication (fan art ou edit)",
+    icon: "🎨",
+    color: "#ec4899",
+    bg: "rgba(236,72,153,0.12)",
+    border: "rgba(236,72,153,0.3)",
+  },
+  {
+    key: "active-creator",
+    label: "Créateur actif",
+    description: "5 publications",
+    icon: "🖌️",
+    color: "#06b6d4",
+    bg: "rgba(6,182,212,0.12)",
+    border: "rgba(6,182,212,0.3)",
+  },
+  {
+    key: "prolific-creator",
+    label: "Créateur prolifique",
+    description: "15 publications",
+    icon: "🌟",
+    color: "#eab308",
+    bg: "rgba(234,179,8,0.12)",
+    border: "rgba(234,179,8,0.3)",
+  },
+  {
+    key: "versatile-creator",
+    label: "Polyvalent",
+    description: "A publié un fan art et un edit",
+    icon: "🎭",
+    color: "#f97316",
+    bg: "rgba(249,115,22,0.12)",
+    border: "rgba(249,115,22,0.3)",
+  },
 ] as const;
 
 export type BadgeKey = (typeof BADGES_CONFIG)[number]["key"];
