@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { notifyBadgesEarned } from "@/lib/notifications";
 import { auth } from "@clerk/nextjs/server";
 import { CreatorType, SocialPlatform } from "@prisma/client";
 
@@ -28,7 +29,9 @@ export async function createCreatorPost(data: {
 
   const role = profile
     ? await prisma.creatorRole.findUnique({
-        where: { userProfileId_type: { userProfileId: profile.id, type: data.type } },
+        where: {
+          userProfileId_type: { userProfileId: profile.id, type: data.type },
+        },
       })
     : null;
 
@@ -51,10 +54,48 @@ export async function createCreatorPost(data: {
       platform: data.platform,
       caption: data.caption?.trim() || null,
       characters: characterIds.length
-        ? { createMany: { data: characterIds.map((characterId) => ({ characterId })) } }
+        ? {
+            createMany: {
+              data: characterIds.map((characterId) => ({ characterId })),
+            },
+          }
         : undefined,
     },
   });
+
+  const posts = await prisma.creatorPost.findMany({
+    where: { creatorRole: { userProfileId: profile!.id }, status: "approved" },
+    select: { type: true },
+  });
+  const computedBadges = computeCreatorBadges(posts.map((p) => p.type));
+  if (computedBadges.length) {
+    const current = await prisma.userProfile.findUnique({
+      where: { id: profile!.id },
+      select: { badges: true },
+    });
+    const existing = current?.badges ?? [];
+    const merged = [...new Set([...existing, ...computedBadges])];
+    await prisma.userProfile.update({
+      where: { id: profile!.id },
+      data: { badges: merged },
+    });
+
+    const earned = computedBadges.filter((b) => !existing.includes(b));
+    if (earned.length) await notifyBadgesEarned(userId, earned);
+  }
+}
+
+function computeCreatorBadges(types: CreatorType[]): string[] {
+  const badges: string[] = [];
+
+  if (types.length >= 1) badges.push("first-creation");
+  if (types.length >= 5) badges.push("active-creator");
+  if (types.length >= 15) badges.push("prolific-creator");
+  if (types.includes("ARTISTE") && types.includes("EDITEUR")) {
+    badges.push("versatile-creator");
+  }
+
+  return badges;
 }
 
 export async function deleteCreatorPost(id: string) {
