@@ -1,5 +1,6 @@
 import { invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
+import { notifyUser } from "@/lib/notifications";
 import { NextResponse } from "next/server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -134,6 +135,19 @@ export async function PATCH(req: Request) {
 
   if (status === "accepted") {
     await applyAcceptedSuggestion(suggestion);
+  }
+
+  if (
+    suggestion.clerkUserId &&
+    (status === "accepted" || status === "rejected")
+  ) {
+    await notifyUser(
+      suggestion.clerkUserId,
+      status === "accepted" ? "suggestion_accepted" : "suggestion_rejected",
+      status === "accepted"
+        ? `Ta proposition${suggestion.nom ? ` pour "${suggestion.nom}"` : ""} a été acceptée !`
+        : `Ta proposition${suggestion.nom ? ` pour "${suggestion.nom}"` : ""} a été refusée.`,
+    );
   }
 
   return NextResponse.json(suggestion);

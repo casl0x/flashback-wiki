@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { NotificationPopup } from "@/components/user/NotificationPopup";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -31,6 +32,7 @@ export default async function RootLayout({
         </head>
         <body>
           {children}
+          <NotificationPopup />
           <Analytics />
         </body>
       </html>
