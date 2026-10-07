@@ -1,6 +1,6 @@
 import { invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
-import { notifyUser } from "@/lib/notifications";
+import { notifyBadgesEarned, notifyUser } from "@/lib/notifications";
 import { NextResponse } from "next/server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -94,28 +94,39 @@ export async function applyAcceptedSuggestion(suggestion: AcceptedSuggestion) {
   }
 
   if (suggestion.clerkUserId) {
+    const before = await prisma.userProfile.findUnique({
+      where: { clerkUserId: suggestion.clerkUserId },
+      select: { badges: true },
+    });
+
     const updated = await prisma.userProfile.upsert({
       where: { clerkUserId: suggestion.clerkUserId },
       create: {
         clerkUserId: suggestion.clerkUserId,
         totalPoints: 10,
         acceptedCount: 1,
-        badges: computeBadges(1, 10),
       },
       update: {
         totalPoints: { increment: 10 },
         acceptedCount: { increment: 1 },
       },
     });
+
+    const existing = before?.badges ?? [];
+    const computedBadges = computeBadges(
+      updated.acceptedCount,
+      updated.totalPoints,
+    );
+    const merged = [...new Set([...existing, ...computedBadges])];
     await prisma.userProfile.update({
       where: { clerkUserId: suggestion.clerkUserId },
-      data: {
-        badges: computeBadges(
-          updated.acceptedCount + 1,
-          updated.totalPoints + 10,
-        ),
-      },
+      data: { badges: merged },
     });
+
+    const earned = computedBadges.filter((b) => !existing.includes(b));
+    if (earned.length) {
+      await notifyBadgesEarned(suggestion.clerkUserId, earned);
+    }
   }
 
   if (characterMutated) await invalidateWikiCache();

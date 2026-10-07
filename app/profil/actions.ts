@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { notifyBadgesEarned } from "@/lib/notifications";
 import { auth } from "@clerk/nextjs/server";
 import { CreatorType, SocialPlatform } from "@prisma/client";
 
@@ -66,17 +67,21 @@ export async function createCreatorPost(data: {
     where: { creatorRole: { userProfileId: profile!.id }, status: "approved" },
     select: { type: true },
   });
-  const newBadges = computeCreatorBadges(posts.map((p) => p.type));
-  if (newBadges.length) {
+  const computedBadges = computeCreatorBadges(posts.map((p) => p.type));
+  if (computedBadges.length) {
     const current = await prisma.userProfile.findUnique({
       where: { id: profile!.id },
       select: { badges: true },
     });
-    const merged = [...new Set([...(current?.badges ?? []), ...newBadges])];
+    const existing = current?.badges ?? [];
+    const merged = [...new Set([...existing, ...computedBadges])];
     await prisma.userProfile.update({
       where: { id: profile!.id },
       data: { badges: merged },
     });
+
+    const earned = computedBadges.filter((b) => !existing.includes(b));
+    if (earned.length) await notifyBadgesEarned(userId, earned);
   }
 }
 
