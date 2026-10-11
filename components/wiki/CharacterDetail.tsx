@@ -10,6 +10,7 @@ import { LifeStateIcon } from "../admin/LifeStateIcon";
 import BackButton from "../BackButton";
 import { SuggestButton } from "../user/SuggestEditButton";
 import CharacterCard from "./CharacterCard";
+import { MentionText } from "./MentionText";
 
 const CharacterMapWidget = dynamic(
   () => import("@/components/wiki/CharacterMapWidget"),
@@ -169,7 +170,7 @@ export default function CharacterDetail({
 
           {c.description && (
             <p className="text-[13px] text-text-secondary leading-relaxed mb-3 whitespace-pre-line">
-              {c.description}
+              <MentionText text={c.description} />
             </p>
           )}
 

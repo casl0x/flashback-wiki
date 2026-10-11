@@ -59,3 +59,14 @@ export function getAvatarColors(color: string) {
 export function authHeaders(token: string) {
   return { "Content-Type": "application/json", "x-admin-token": token };
 }
+
+// Mentions de personnages dans un texte libre (ex. description), au
+// format @[Nom](id) — le nom est stocké dans le texte lui-même pour ne
+// nécessiter aucune résolution supplémentaire à l'affichage.
+export const MENTION_PATTERN = /@\[([^\]]+)\]\(([a-zA-Z0-9_-]+)\)/g;
+
+// Remplace chaque mention par son nom en clair, sans lien — pour les
+// aperçus en texte brut (ex. carte personnage) où un lien n'a pas sa place.
+export function stripMentions(text: string): string {
+  return text.replace(MENTION_PATTERN, "$1");
+}

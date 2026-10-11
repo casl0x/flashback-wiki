@@ -28,6 +28,7 @@ import {
 } from "../ui/select";
 import { getAvatarStyle, getInitials } from "../wiki/CharacterCard";
 import { CharacterCombobox } from "./CharacterCombobox";
+import { MentionTextarea } from "./MentionTextarea";
 import { PlayerCombobox } from "./PlayerCombobox";
 
 const AdminLocationPicker = dynamic(
@@ -551,10 +552,11 @@ export function CharactersTab({ players, versions, groupes }: Props) {
         </SimpleSelect>
       </Field>
       <Field label="Description">
-        <textarea
+        <MentionTextarea
           className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
           value={form.description}
-          onChange={f("description")}
+          onChange={(v) => setForm((p) => ({ ...p, description: v }))}
+          characters={chars}
           placeholder="Courte biographie…"
         />
       </Field>
