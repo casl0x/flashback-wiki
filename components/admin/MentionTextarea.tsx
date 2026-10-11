@@ -1,7 +1,7 @@
 "use client";
 
 import { Character } from "@/lib/db";
-import { matchesSearch } from "@/lib/utils";
+import { cn, matchesSearch } from "@/lib/utils";
 import { useRef, useState } from "react";
 import { MentionText } from "../wiki/MentionText";
 
@@ -99,11 +99,11 @@ export function MentionTextarea({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="relative">
+    <div className="flex w-full flex-col gap-1.5">
+      <div className="relative w-full">
         <textarea
           ref={textareaRef}
-          className={className}
+          className={cn("w-full", className)}
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
