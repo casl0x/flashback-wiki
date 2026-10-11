@@ -1,6 +1,7 @@
 "use client";
 
 import { Character } from "@/lib/db";
+import { stripMentions } from "@/lib/utils";
 import Image from "next/image";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
@@ -122,7 +123,7 @@ export default function CharacterCard({
       {character.description && (
         <CardContent>
           <p className="text-[12px] text-(--text-secondary) leading-relaxed line-clamp-2">
-            {character.description}
+            {stripMentions(character.description)}
           </p>
         </CardContent>
       )}
