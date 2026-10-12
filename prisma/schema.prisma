@@ -38,15 +38,16 @@ enum SocialPlatform {
 }
 
 model UserProfile {
-  id                 String   @id @default(cuid())
-  clerkUserId        String   @unique
-  pseudo             String?
-  onboardingComplete Boolean  @default(false)
-  totalPoints        Int      @default(0)
-  acceptedCount      Int      @default(0)
-  badges             String[] @default([])
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                     String    @id @default(cuid())
+  clerkUserId            String    @unique
+  pseudo                 String?
+  onboardingComplete     Boolean   @default(false)
+  totalPoints            Int       @default(0)
+  acceptedCount          Int       @default(0)
+  badges                 String[]  @default([])
+  lastSeenAnnouncementAt DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   creatorRoles  CreatorRole[]
   notifications Notification[]
@@ -63,6 +64,15 @@ model Notification {
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  message   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("announcements")
 }
 
 model CreatorRole {

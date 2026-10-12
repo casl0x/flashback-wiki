@@ -1,7 +1,14 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { CheckCircle2, Sparkles, X, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Mail,
+  Megaphone,
+  Sparkles,
+  X,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Notif = {
@@ -16,6 +23,8 @@ const ICONS: Record<string, { icon: typeof Sparkles; color: string }> = {
   suggestion_rejected: { icon: XCircle, color: "text-red-400" },
   creator_role_approved: { icon: Sparkles, color: "text-accent-light" },
   creator_role_rejected: { icon: XCircle, color: "text-red-400" },
+  announcement: { icon: Megaphone, color: "text-blue-400" },
+  admin_message: { icon: Mail, color: "text-purple-400" },
 };
 
 export function NotificationPopup() {
