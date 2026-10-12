@@ -6,15 +6,25 @@ export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json([]);
 
-  const profile = await prisma.userProfile.findUnique({
+  const profile = await prisma.userProfile.upsert({
     where: { clerkUserId: userId },
+    create: { clerkUserId: userId },
+    update: {},
   });
-  if (!profile) return NextResponse.json([]);
 
-  const unread = await prisma.notification.findMany({
-    where: { userProfileId: profile.id, read: false },
-    orderBy: { createdAt: "asc" },
-  });
+  const [unread, unseenAnnouncements] = await Promise.all([
+    prisma.notification.findMany({
+      where: { userProfileId: profile.id, read: false },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.announcement.findMany({
+      where: {
+        active: true,
+        createdAt: { gt: profile.lastSeenAnnouncementAt ?? new Date(0) },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   if (unread.length) {
     await prisma.notification.updateMany({
@@ -23,12 +33,28 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json(
-    unread.map((n) => ({
+  if (unseenAnnouncements.length) {
+    await prisma.userProfile.update({
+      where: { id: profile.id },
+      data: {
+        lastSeenAnnouncementAt:
+          unseenAnnouncements[unseenAnnouncements.length - 1].createdAt,
+      },
+    });
+  }
+
+  return NextResponse.json([
+    ...unread.map((n) => ({
       id: n.id,
       type: n.type,
       message: n.message,
       createdAt: n.createdAt,
     })),
-  );
+    ...unseenAnnouncements.map((a) => ({
+      id: `ann-${a.id}`,
+      type: "announcement",
+      message: a.message,
+      createdAt: a.createdAt,
+    })),
+  ]);
 }
