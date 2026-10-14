@@ -33,11 +33,20 @@ export function NotificationPopup() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
-    fetch("/api/notifications")
-      .then((r) => r.json())
-      .then((d) => {
-        if (Array.isArray(d) && d.length) setQueue(d);
-      });
+
+    function check() {
+      fetch("/api/notifications")
+        .then((r) => r.json())
+        .then((d) => {
+          if (Array.isArray(d) && d.length) {
+            setQueue((q) => [...q, ...d]);
+          }
+        });
+    }
+
+    check();
+    const interval = setInterval(check, 45000);
+    return () => clearInterval(interval);
   }, [isLoaded, isSignedIn]);
 
   function dismiss(id: string) {
