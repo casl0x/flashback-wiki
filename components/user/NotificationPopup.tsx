@@ -27,14 +27,17 @@ const ICONS: Record<string, { icon: typeof Sparkles; color: string }> = {
   admin_message: { icon: Mail, color: "text-purple-400" },
 };
 
+const SEEN_ANNOUNCEMENT_KEY = "flashback-last-seen-announcement";
+
 export function NotificationPopup() {
   const { isLoaded, isSignedIn } = useUser();
   const [queue, setQueue] = useState<Notif[]>([]);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded) return;
 
-    function check() {
+    // Connecté : notifications perso + annonces, "déjà vu" suivi côté serveur.
+    function checkSignedIn() {
       fetch("/api/notifications")
         .then((r) => r.json())
         .then((d) => {
@@ -44,6 +47,54 @@ export function NotificationPopup() {
         });
     }
 
+    // Visiteur anonyme : pas de profil en base, donc "déjà vu" suivi dans
+    // le navigateur. Seules les annonces publiques peuvent le concerner.
+    function checkAnonymous() {
+      fetch("/api/announcements/active")
+        .then((r) => r.json())
+        .then(
+          (
+            announcements: { id: string; message: string; createdAt: string }[],
+          ) => {
+            if (!Array.isArray(announcements) || !announcements.length) return;
+
+            let lastSeen = 0;
+            try {
+              lastSeen = Number(
+                localStorage.getItem(SEEN_ANNOUNCEMENT_KEY) ?? 0,
+              );
+            } catch {
+              // localStorage indisponible (navigation privée, etc.)
+            }
+
+            const unseen = announcements.filter(
+              (a) => new Date(a.createdAt).getTime() > lastSeen,
+            );
+            if (!unseen.length) return;
+
+            setQueue((q) => [
+              ...q,
+              ...unseen.map((a) => ({
+                id: `ann-${a.id}`,
+                type: "announcement",
+                message: a.message,
+                createdAt: a.createdAt,
+              })),
+            ]);
+
+            const latest = Math.max(
+              ...announcements.map((a) => new Date(a.createdAt).getTime()),
+            );
+            try {
+              localStorage.setItem(SEEN_ANNOUNCEMENT_KEY, String(latest));
+            } catch {
+              // idem
+            }
+          },
+        );
+    }
+
+    const check = isSignedIn ? checkSignedIn : checkAnonymous;
     check();
     const interval = setInterval(check, 45000);
     return () => clearInterval(interval);
