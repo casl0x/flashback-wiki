@@ -1,6 +1,7 @@
 // app/onboarding/page.tsx
 "use client";
 
+import Image from "next/image";
 import { useSession } from "@clerk/nextjs";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -150,9 +151,7 @@ async function handleSubmitDirect() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-6">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-white text-sm shrink-0">
-            ⚡
-          </div>
+          <Image src="/brand/logo-icon.svg" alt="" aria-hidden width={32} height={32} className="rounded-lg shrink-0" />
           <span className="font-display font-bold text-[17px] tracking-widest text-text-primary">
             FLASH<span className="text-accent-light">BACK</span>
           </span>
