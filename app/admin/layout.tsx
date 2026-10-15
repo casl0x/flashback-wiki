@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -183,9 +184,7 @@ export default function AdminLayout({
       {/* Topbar mobile uniquement */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center text-white text-sm shrink-0">
-            ⚡
-          </div>
+          <Image src="/brand/logo-icon.svg" alt="" aria-hidden width={28} height={28} className="rounded-lg shrink-0" />
           <span className="font-display font-bold text-[15px] tracking-widest text-text-primary">
             FLASH<span className="text-accent-light">BACK</span>
           </span>
@@ -219,9 +218,7 @@ export default function AdminLayout({
       >
         {/* Logo (desktop uniquement) */}
         <div className="hidden lg:flex px-4 py-3.5 border-b border-border items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center text-white text-sm shrink-0">
-            ⚡
-          </div>
+          <Image src="/brand/logo-icon.svg" alt="" aria-hidden width={28} height={28} className="rounded-lg shrink-0" />
           <span className="font-display font-bold text-[15px] tracking-widest text-text-primary">
             FLASH<span className="text-accent-light">BACK</span>
           </span>

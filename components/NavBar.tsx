@@ -43,11 +43,11 @@ export default function NavBar({
         {/* Logo */}
         <div className="flex items-center gap-2">
           <Image
-            src="/icon.png"
-            alt="Logo"
-            width={48}
-            height={48}
-            className="rounded-full"
+            src="/brand/logo-navbar.svg"
+            alt="Flashback Wiki"
+            width={148}
+            height={36}
+            priority
           />
         </div>
 
