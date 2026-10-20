@@ -8,6 +8,8 @@ export function PollAdmin() {
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [endsAt, setEndsAt] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
+  const [allowProposals, setAllowProposals] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -28,8 +30,8 @@ export function PollAdmin() {
 
   async function handleSubmit() {
     const cleanOptions = options.map((o) => o.trim()).filter(Boolean);
-    if (!question.trim() || cleanOptions.length < 2) {
-      setMessage({ text: "Question et au moins 2 options requises.", ok: false });
+    if (!question.trim() || (!allowProposals && cleanOptions.length < 2)) {
+      setMessage({ text: "Question et au moins 2 options requises (sauf si les propositions sont autorisées).", ok: false });
       return;
     }
     setLoading(true);
@@ -41,6 +43,8 @@ export function PollAdmin() {
         question: question.trim(),
         options: cleanOptions,
         endsAt: endsAt || null,
+        isPublic,
+        allowProposals,
       }),
     });
     if (res.ok) {
@@ -48,6 +52,8 @@ export function PollAdmin() {
       setQuestion("");
       setOptions(["", ""]);
       setEndsAt("");
+      setIsPublic(false);
+      setAllowProposals(false);
     } else {
       const data = await res.json();
       setMessage({ text: data.error ?? "Erreur inconnue", ok: false });
@@ -80,7 +86,7 @@ export function PollAdmin() {
         {/* Options */}
         <div className="flex flex-col gap-1">
           <label className="text-[10px] uppercase tracking-widest text-text-muted">
-            Options
+            Options{allowProposals ? " (facultatif)" : ""}
           </label>
           <div className="space-y-2">
             {options.map((opt, i) => (
@@ -111,6 +117,49 @@ export function PollAdmin() {
             </button>
           )}
         </div>
+
+        {/* Visibilité */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest text-text-muted">
+            Qui peut répondre ?
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { value: false, label: "Privé", hint: "Membres connectés" },
+              { value: true, label: "Public", hint: "Tout le monde" },
+            ].map((opt) => (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => setIsPublic(opt.value)}
+                className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                  isPublic === opt.value
+                    ? "border-accent-light text-text-primary bg-muted"
+                    : "border-border text-text-muted hover:border-border-mid"
+                }`}
+              >
+                <span className="block text-[13px] font-medium">{opt.label}</span>
+                <span className="block text-[11px]">{opt.hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Propositions */}
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={allowProposals}
+            onChange={(e) => setAllowProposals(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span className="text-[12px] text-text-secondary">
+            Autoriser les votants à proposer leurs propres options
+            <span className="block text-[11px] text-text-muted">
+              Les options ci-dessus deviennent facultatives.
+            </span>
+          </span>
+        </label>
 
         {/* Date de fin */}
         <div className="flex flex-col gap-1">

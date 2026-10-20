@@ -257,6 +257,10 @@ model Poll {
   active    Boolean      @default(true)
   createdAt DateTime     @default(now())
   endsAt    DateTime?
+  // Public : les visiteurs non connectés peuvent aussi voter / proposer
+  isPublic  Boolean      @default(false)
+  // Les votants peuvent ajouter leurs propres options
+  allowProposals Boolean @default(false)
   options   PollOption[]
 }
 
@@ -264,6 +268,8 @@ model PollOption {
   id     String     @id @default(cuid())
   label  String
   pollId String
+  // Auteur de la proposition (null = option créée par l'admin)
+  proposedBy String?
   poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes  PollVote[]
 }
