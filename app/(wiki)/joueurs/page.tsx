@@ -1,6 +1,7 @@
 "use client";
 
 import { PlayerBadges } from "@/components/admin/PlayerBadges";
+import { KickIcon, TwitchIcon } from "@/components/wiki/PlatformIcons";
 import { useSearch } from "@/components/wiki/SearchContext";
 import { matchesSearch } from "@/lib/utils";
 import { Circle, Radio, Users } from "lucide-react";
@@ -12,10 +13,11 @@ type WikiPlayer = {
   id: string;
   pseudo: string;
   lienChaine: string | null;
+  reseaux: Record<string, string>;
   badges: string[];
 };
 
-type TwitchLiveStatus = {
+type LiveStatus = {
   username: string;
   isLive: boolean;
   viewerCount: number;
@@ -24,9 +26,17 @@ type TwitchLiveStatus = {
   avatarUrl: string | null;
 };
 
+type Platform = "twitch" | "kick";
+
 function extractTwitchUsername(url: string | null) {
   if (!url) return null;
   const username = url.split("twitch.tv/")[1]?.split("/")[0]?.split("?")[0];
+  return username?.trim().toLowerCase() || null;
+}
+
+function extractKickUsername(url: string | null | undefined) {
+  if (!url) return null;
+  const username = url.split("kick.com/")[1]?.split("/")[0]?.split("?")[0];
   return username?.trim().toLowerCase() || null;
 }
 
@@ -34,11 +44,17 @@ export default function JoueursPage() {
   const ctx = useSearch();
   const query = ctx?.query ?? "";
   const [players, setPlayers] = useState<WikiPlayer[]>([]);
-  const [liveStatus, setLiveStatus] = useState<Map<string, TwitchLiveStatus>>(
+  const [twitchStatus, setTwitchStatus] = useState<Map<string, LiveStatus>>(
+    new Map(),
+  );
+  const [kickStatus, setKickStatus] = useState<Map<string, LiveStatus>>(
     new Map(),
   );
   const [loading, setLoading] = useState(true);
-  const [liveError, setLiveError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{
+    twitch: string | null;
+    kick: string | null;
+  }>({ twitch: null, kick: null });
 
   useEffect(() => {
     fetch("/api/data", { cache: "no-store" })
@@ -50,15 +66,37 @@ export default function JoueursPage() {
   const refreshLiveStatus = useCallback(() => {
     fetch("/api/twitch-live", { cache: "no-store" })
       .then((r) => r.json())
-      .then((data: TwitchLiveStatus[] | { error: string }) => {
+      .then((data: LiveStatus[] | { error: string }) => {
         if (!Array.isArray(data)) {
-          setLiveError(data.error ?? "Erreur inconnue");
+          setErrors((e) => ({ ...e, twitch: data.error ?? "Erreur inconnue" }));
           return;
         }
-        setLiveError(null);
-        setLiveStatus(new Map(data.map((s) => [s.username, s])));
+        setErrors((e) => ({ ...e, twitch: null }));
+        setTwitchStatus(new Map(data.map((s) => [s.username, s])));
       })
-      .catch(() => setLiveError("Impossible de contacter le serveur"));
+      .catch(() =>
+        setErrors((e) => ({
+          ...e,
+          twitch: "Impossible de contacter le serveur",
+        })),
+      );
+
+    fetch("/api/kick-live", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: LiveStatus[] | { error: string }) => {
+        if (!Array.isArray(data)) {
+          setErrors((e) => ({ ...e, kick: data.error ?? "Erreur inconnue" }));
+          return;
+        }
+        setErrors((e) => ({ ...e, kick: null }));
+        setKickStatus(new Map(data.map((s) => [s.username, s])));
+      })
+      .catch(() =>
+        setErrors((e) => ({
+          ...e,
+          kick: "Impossible de contacter le serveur",
+        })),
+      );
   }, []);
 
   useEffect(() => {
@@ -67,20 +105,43 @@ export default function JoueursPage() {
     return () => clearInterval(interval);
   }, [refreshLiveStatus]);
 
-  const streamers = players
-    .filter((p) => p.badges?.includes("streamer"))
-    .filter((p) => matchesSearch(p.pseudo, query))
-    .map((p) => ({ player: p, username: extractTwitchUsername(p.lienChaine) }))
-    .filter(
-      (entry): entry is { player: WikiPlayer; username: string } =>
-        !!entry.username,
-    )
-    .map(({ player, username }) => ({
-      player,
-      username,
-      status: liveStatus.get(username) ?? null,
+  const streamerBadged = players.filter((p) => p.badges?.includes("streamer"));
+
+  const twitchEntries = streamerBadged
+    .map((p) => ({
+      player: p,
+      platform: "twitch" as Platform,
+      username: extractTwitchUsername(p.lienChaine),
     }))
-    .sort((a, b) => a.player.pseudo.localeCompare(b.player.pseudo));
+    .filter(
+      (e): e is { player: WikiPlayer; platform: Platform; username: string } =>
+        !!e.username,
+    );
+
+  const kickEntries = streamerBadged
+    .map((p) => ({
+      player: p,
+      platform: "kick" as Platform,
+      username: extractKickUsername(p.reseaux?.kick),
+    }))
+    .filter(
+      (e): e is { player: WikiPlayer; platform: Platform; username: string } =>
+        !!e.username,
+    );
+
+  const streamers = [...twitchEntries, ...kickEntries]
+    .filter((e) => matchesSearch(e.player.pseudo, query))
+    .map((e) => ({
+      ...e,
+      status:
+        (e.platform === "twitch" ? twitchStatus : kickStatus).get(e.username) ??
+        null,
+    }))
+    .sort(
+      (a, b) =>
+        a.player.pseudo.localeCompare(b.player.pseudo) ||
+        a.platform.localeCompare(b.platform),
+    );
 
   const liveStreamers = streamers.filter((s) => s.status?.isLive);
   const offlineStreamers = streamers.filter((s) => !s.status?.isLive);
@@ -107,10 +168,20 @@ export default function JoueursPage() {
             </div>
           </div>
 
-          {liveError && (
-            <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-400">
-              Statut Twitch indisponible ({liveError}) — les joueurs
-              affichés ci-dessous peuvent ne pas refléter leur état réel.
+          {(errors.twitch || errors.kick) && (
+            <div className="mb-4 space-y-2">
+              {errors.twitch && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-400">
+                  Statut Twitch indisponible ({errors.twitch}) — les joueurs
+                  Twitch ci-dessous peuvent ne pas refléter leur état réel.
+                </div>
+              )}
+              {errors.kick && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-400">
+                  Statut Kick indisponible ({errors.kick}) — les joueurs Kick
+                  ci-dessous peuvent ne pas refléter leur état réel.
+                </div>
+              )}
             </div>
           )}
 
@@ -128,7 +199,7 @@ export default function JoueursPage() {
               <p className="text-sm">
                 {query
                   ? `Aucun streamer ne correspond à "${query}".`
-                  : "Aucun joueur avec une chaîne Twitch pour l'instant."}
+                  : "Aucun joueur avec une chaîne Twitch ou Kick pour l'instant."}
               </p>
             </div>
           ) : (
@@ -140,14 +211,17 @@ export default function JoueursPage() {
                     En live ({liveStreamers.length})
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {liveStreamers.map(({ player, username, status }) => (
-                      <StreamerCard
-                        key={player.id}
-                        player={player}
-                        username={username}
-                        status={status}
-                      />
-                    ))}
+                    {liveStreamers.map(
+                      ({ player, platform, username, status }) => (
+                        <StreamerCard
+                          key={`${player.id}-${platform}`}
+                          player={player}
+                          platform={platform}
+                          username={username}
+                          status={status}
+                        />
+                      ),
+                    )}
                   </div>
                 </div>
               )}
@@ -159,14 +233,17 @@ export default function JoueursPage() {
                     Hors ligne ({offlineStreamers.length})
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {offlineStreamers.map(({ player, username, status }) => (
-                      <StreamerCard
-                        key={player.id}
-                        player={player}
-                        username={username}
-                        status={status}
-                      />
-                    ))}
+                    {offlineStreamers.map(
+                      ({ player, platform, username, status }) => (
+                        <StreamerCard
+                          key={`${player.id}-${platform}`}
+                          player={player}
+                          platform={platform}
+                          username={username}
+                          status={status}
+                        />
+                      ),
+                    )}
                   </div>
                 </div>
               )}
@@ -180,20 +257,27 @@ export default function JoueursPage() {
 
 function StreamerCard({
   player,
+  platform,
   username,
   status,
 }: {
   player: WikiPlayer;
+  platform: Platform;
   username: string;
-  status: TwitchLiveStatus | null;
+  status: LiveStatus | null;
 }) {
   const isLive = !!status?.isLive;
   const playerName = player.pseudo.trim() || "Joueur";
   const otherBadges = (player.badges ?? []).filter((b) => b !== "streamer");
+  const profileUrl =
+    platform === "twitch"
+      ? `https://twitch.tv/${username}`
+      : `https://kick.com/${username}`;
+  const PlatformIcon = platform === "twitch" ? TwitchIcon : KickIcon;
 
   return (
     <a
-      href={`https://twitch.tv/${username}`}
+      href={profileUrl}
       target="_blank"
       rel="noopener noreferrer"
       className={`group flex flex-col overflow-hidden rounded-xl border bg-card transition-colors ${
@@ -240,8 +324,8 @@ function StreamerCard({
               {playerName}
             </p>
           </div>
-          <p className="text-[11px] text-text-muted truncate">
-            @{username}
+          <p className="flex items-center gap-1 text-[11px] text-text-muted truncate">
+            <PlatformIcon className="h-2.5 w-2.5 shrink-0" />@{username}
           </p>
           {otherBadges.length > 0 && (
             <div className="mt-1">
