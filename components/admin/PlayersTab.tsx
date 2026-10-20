@@ -15,6 +15,7 @@ import { matchesSearch } from "@/lib/utils";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getAvatarStyle, getInitials } from "../wiki/CharacterCard";
+import { KickIcon } from "../wiki/PlatformIcons";
 import { BadgeKey, BADGES_CONFIG, PlayerBadges } from "./PlayerBadges";
 
 const PER_PAGE = 15;
@@ -72,6 +73,12 @@ export const RESEAUX_OPTIONS = [
       </svg>
     ),
     color: "#1da1f2",
+  },
+  {
+    key: "kick",
+    label: "Kick",
+    icon: <KickIcon className="w-3.5 h-3.5" />,
+    color: "#53FC18",
   },
 ] as const;
 
