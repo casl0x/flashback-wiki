@@ -120,13 +120,13 @@ export default function CharacterCard({
       </CardHeader>
 
       {/* Description */}
-      {character.description && (
+      {/* {character.description && (
         <CardContent>
           <p className="text-[12px] text-(--text-secondary) leading-relaxed line-clamp-2">
             {stripMentions(character.description)}
           </p>
         </CardContent>
-      )}
+      )} */}
       {!hidePlayer && character.player?.pseudo && (
         <CardFooter>
           <span className="flex items-end gap-1 text-[11px] text-(--text-secondary) pr-0.75">
