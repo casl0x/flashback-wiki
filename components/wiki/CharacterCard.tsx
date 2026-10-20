@@ -1,7 +1,7 @@
 "use client";
 
 import { Character } from "@/lib/db";
-import { stripMentions } from "@/lib/utils";
+import { detectStreamPlatform, stripMentions } from "@/lib/utils";
 import Image from "next/image";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
@@ -134,20 +134,12 @@ export default function CharacterCard({
             Joué par {character.player.pseudo}
           </span>
 
-          {character.player.stream && (
-            <span className="flex items-center gap-1">
-              {character.player.lienChaine && (
-                <TwitchIcon className="w-3 h-3" />
-              )}
-              {character.player.reseaux?.kick && (
-                <KickIcon className="w-3 h-3" />
-              )}
-              {!character.player.lienChaine &&
-                !character.player.reseaux?.kick && (
-                  <TwitchIcon className="w-3 h-3" />
-                )}
-            </span>
-          )}
+          {character.player.stream &&
+            (detectStreamPlatform(character.player.lienChaine) === "kick" ? (
+              <KickIcon className="w-3 h-3" />
+            ) : (
+              <TwitchIcon className="w-3 h-3" />
+            ))}
         </CardFooter>
       )}
     </Card>
