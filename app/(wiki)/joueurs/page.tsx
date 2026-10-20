@@ -3,7 +3,12 @@
 import { PlayerBadges } from "@/components/admin/PlayerBadges";
 import { KickIcon, TwitchIcon } from "@/components/wiki/PlatformIcons";
 import { useSearch } from "@/components/wiki/SearchContext";
-import { matchesSearch } from "@/lib/utils";
+import {
+  detectStreamPlatform,
+  extractStreamUsername,
+  matchesSearch,
+  type StreamPlatform,
+} from "@/lib/utils";
 import { Circle, Radio, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -13,7 +18,6 @@ type WikiPlayer = {
   id: string;
   pseudo: string;
   lienChaine: string | null;
-  reseaux: Record<string, string>;
   badges: string[];
 };
 
@@ -25,20 +29,6 @@ type LiveStatus = {
   thumbnailUrl: string | null;
   avatarUrl: string | null;
 };
-
-type Platform = "twitch" | "kick";
-
-function extractTwitchUsername(url: string | null) {
-  if (!url) return null;
-  const username = url.split("twitch.tv/")[1]?.split("/")[0]?.split("?")[0];
-  return username?.trim().toLowerCase() || null;
-}
-
-function extractKickUsername(url: string | null | undefined) {
-  if (!url) return null;
-  const username = url.split("kick.com/")[1]?.split("/")[0]?.split("?")[0];
-  return username?.trim().toLowerCase() || null;
-}
 
 export default function JoueursPage() {
   const ctx = useSearch();
@@ -105,31 +95,22 @@ export default function JoueursPage() {
     return () => clearInterval(interval);
   }, [refreshLiveStatus]);
 
-  const streamerBadged = players.filter((p) => p.badges?.includes("streamer"));
-
-  const twitchEntries = streamerBadged
+  const streamers = players
+    .filter((p) => p.badges?.includes("streamer"))
     .map((p) => ({
       player: p,
-      platform: "twitch" as Platform,
-      username: extractTwitchUsername(p.lienChaine),
+      platform: detectStreamPlatform(p.lienChaine),
+      username: extractStreamUsername(p.lienChaine),
     }))
     .filter(
-      (e): e is { player: WikiPlayer; platform: Platform; username: string } =>
-        !!e.username,
-    );
-
-  const kickEntries = streamerBadged
-    .map((p) => ({
-      player: p,
-      platform: "kick" as Platform,
-      username: extractKickUsername(p.reseaux?.kick),
-    }))
-    .filter(
-      (e): e is { player: WikiPlayer; platform: Platform; username: string } =>
-        !!e.username,
-    );
-
-  const streamers = [...twitchEntries, ...kickEntries]
+      (
+        e,
+      ): e is {
+        player: WikiPlayer;
+        platform: StreamPlatform;
+        username: string;
+      } => !!e.platform && !!e.username,
+    )
     .filter((e) => matchesSearch(e.player.pseudo, query))
     .map((e) => ({
       ...e,
@@ -137,11 +118,7 @@ export default function JoueursPage() {
         (e.platform === "twitch" ? twitchStatus : kickStatus).get(e.username) ??
         null,
     }))
-    .sort(
-      (a, b) =>
-        a.player.pseudo.localeCompare(b.player.pseudo) ||
-        a.platform.localeCompare(b.platform),
-    );
+    .sort((a, b) => a.player.pseudo.localeCompare(b.player.pseudo));
 
   const liveStreamers = streamers.filter((s) => s.status?.isLive);
   const offlineStreamers = streamers.filter((s) => !s.status?.isLive);
@@ -262,7 +239,7 @@ function StreamerCard({
   status,
 }: {
   player: WikiPlayer;
-  platform: Platform;
+  platform: StreamPlatform;
   username: string;
   status: LiveStatus | null;
 }) {

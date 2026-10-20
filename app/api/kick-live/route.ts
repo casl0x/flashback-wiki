@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 export type KickLiveStatus = {
@@ -15,9 +16,9 @@ export type KickLiveStatus = {
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 function extractKickUsername(url: string | null | undefined) {
-  if (!url) return null;
-  const username = url.split("kick.com/")[1]?.split("/")[0]?.split("?")[0];
-  return username?.trim().toLowerCase() || null;
+  return detectStreamPlatform(url) === "kick"
+    ? extractStreamUsername(url)
+    : null;
 }
 
 async function getAppAccessToken() {
@@ -101,22 +102,13 @@ export async function GET() {
   try {
     const players = await prisma.player.findMany({
       where: { badges: { has: "streamer" } },
-      select: { reseaux: true },
+      select: { lienChaine: true },
     });
 
     const slugs = Array.from(
       new Set(
         players
-          .map((p) => {
-            const reseaux = p.reseaux;
-            const kickUrl =
-              reseaux && typeof reseaux === "object" && !Array.isArray(reseaux)
-                ? (reseaux as Record<string, unknown>).kick
-                : null;
-            return extractKickUsername(
-              typeof kickUrl === "string" ? kickUrl : null,
-            );
-          })
+          .map((p) => extractKickUsername(p.lienChaine))
           .filter((s): s is string => !!s),
       ),
     );

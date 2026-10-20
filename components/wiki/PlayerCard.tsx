@@ -1,11 +1,17 @@
 "use client";
 
 import { Character } from "@/lib/db";
+import { detectStreamPlatform } from "@/lib/utils";
 import { Player } from "@prisma/client";
 import { PlayerBadges } from "../admin/PlayerBadges";
 import { RESEAUX_OPTIONS } from "../admin/PlayersTab";
 import CharacterCard from "./CharacterCard";
-import { TwitchIcon } from "./PlatformIcons";
+import {
+  KickIcon,
+  KICK_COLOR,
+  TwitchIcon,
+  TWITCH_COLOR,
+} from "./PlatformIcons";
 import SocialRow from "./SocialRow";
 
 type PartialPlayer = Pick<
@@ -29,6 +35,7 @@ export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
   const reseaux = Object.entries(reseauxMap);
   const totalChars = others.length + 1;
   const hasSocials = pl.lienChaine || reseaux.length > 0;
+  const streamPlatform = detectStreamPlatform(pl.lienChaine);
 
   return (
     <div className="bg-card border border-border rounded-xl p-5">
@@ -65,9 +72,17 @@ export default function PlayerCard({ player: pl, others, onNavigate }: Props) {
             {pl.lienChaine && (
               <SocialRow
                 href={pl.lienChaine}
-                icon={<TwitchIcon className="w-[13px] h-[13px]" />}
-                iconBg="#9146ff18"
-                label="Chaîne Twitch"
+                icon={
+                  streamPlatform === "kick" ? (
+                    <KickIcon className="w-[13px] h-[13px]" />
+                  ) : (
+                    <TwitchIcon className="w-[13px] h-[13px]" />
+                  )
+                }
+                iconBg={`${streamPlatform === "kick" ? KICK_COLOR : TWITCH_COLOR}18`}
+                label={
+                  streamPlatform === "kick" ? "Chaîne Kick" : "Chaîne Twitch"
+                }
               />
             )}
             {RESEAUX_OPTIONS.map((opt) => {
