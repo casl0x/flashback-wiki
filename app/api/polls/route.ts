@@ -15,10 +15,15 @@ export async function GET() {
 
 // POST /api/polls → créer un sondage (protégé par middleware Clerk orga)
 export async function POST(req: Request) {
-  const { question, options, endsAt } = await req.json();
+  const { question, options = [], endsAt, isPublic, allowProposals } = await req.json();
 
-  if (!question || !options || options.length < 2) {
-    return NextResponse.json({ error: "Question et au moins 2 options requises" }, { status: 400 });
+  if (!question || !Array.isArray(options)) {
+    return NextResponse.json({ error: "Question requise" }, { status: 400 });
+  }
+
+  // Sans propositions des votants, il faut au moins 2 choix prédéfinis
+  if (!allowProposals && options.length < 2) {
+    return NextResponse.json({ error: "Au moins 2 options requises" }, { status: 400 });
   }
 
   // Désactive les anciens sondages actifs
@@ -31,6 +36,8 @@ export async function POST(req: Request) {
     data: {
       question,
       endsAt: endsAt ? new Date(endsAt) : null,
+      isPublic: !!isPublic,
+      allowProposals: !!allowProposals,
       options: {
         create: options.map((label: string) => ({ label })),
       },

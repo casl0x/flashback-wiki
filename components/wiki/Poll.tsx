@@ -15,6 +15,9 @@ type PollData = {
   question: string;
   active: boolean;
   endsAt: string | null;
+  isPublic: boolean;
+  allowProposals: boolean;
+  hasProposed: boolean;
   totalVotes: number;
   userVotedOptionId: string | null;
   options: PollOption[];
@@ -27,6 +30,7 @@ export function Poll() {
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [proposal, setProposal] = useState("");
 
   useEffect(() => {
     fetch("/api/polls")
@@ -51,7 +55,7 @@ export function Poll() {
   }
 
   async function handleVote(optionId: string) {
-    if (!isSignedIn) return;
+    if (!canParticipate) return;
     setVoting(true);
     setError(null);
     const res = await fetch(`/api/polls/${pollId}/vote`, {
@@ -62,6 +66,25 @@ export function Poll() {
     const data = await res.json();
     if (!res.ok) setError(data.error);
     else await fetchPoll();
+    setVoting(false);
+  }
+
+  async function handlePropose() {
+    const label = proposal.trim();
+    if (!label || !canParticipate) return;
+    setVoting(true);
+    setError(null);
+    const res = await fetch(`/api/polls/${pollId}/options`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label }),
+    });
+    const data = await res.json();
+    if (!res.ok) setError(data.error);
+    else {
+      setProposal("");
+      await fetchPoll();
+    }
     setVoting(false);
   }
 
@@ -81,6 +104,7 @@ export function Poll() {
 
   if (!poll) return null;
 
+  const canParticipate = !!poll && (poll.isPublic || !!isSignedIn);
   const hasVoted = !!poll.userVotedOptionId;
   const isExpired = poll.endsAt ? new Date() > new Date(poll.endsAt) : false;
   const showResults = hasVoted || !poll.active || isExpired;
@@ -92,6 +116,11 @@ export function Poll() {
         <span className="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5 rounded-full border border-border bg-muted text-text-muted">
           Sondage
         </span>
+        {poll.isPublic && (
+          <span className="text-[10px] uppercase tracking-widest text-text-muted">
+            Public
+          </span>
+        )}
         {poll.endsAt && !isExpired && (
           <span className="text-[11px] text-text-muted">
             Jusqu'au {new Date(poll.endsAt).toLocaleDateString("fr-FR")}
@@ -144,7 +173,7 @@ export function Poll() {
             <button
               key={option.id}
               onClick={() => handleVote(option.id)}
-              disabled={voting || !isSignedIn}
+              disabled={voting || !canParticipate}
               className="w-full text-left cursor-pointer px-4 py-2.5 rounded-lg border border-border bg-muted text-[13px] font-medium text-text-secondary hover:border-border-mid hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {option.label}
@@ -153,16 +182,42 @@ export function Poll() {
         })}
       </div>
 
+      {/* Proposition */}
+      {poll.allowProposals && !poll.hasProposed && !poll.userVotedOptionId && !(!poll.active || isExpired) && canParticipate && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handlePropose();
+          }}
+          className="flex gap-2"
+        >
+          <input
+            value={proposal}
+            onChange={(e) => setProposal(e.target.value)}
+            maxLength={80}
+            placeholder="Proposer une option…"
+            className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-border bg-muted text-[13px] text-text-primary placeholder:text-text-faint"
+          />
+          <button
+            type="submit"
+            disabled={voting || !proposal.trim()}
+            className="px-3 py-2 rounded-lg border border-border bg-muted text-[13px] font-medium text-text-secondary hover:border-border-mid disabled:opacity-50"
+          >
+            Ajouter
+          </button>
+        </form>
+      )}
+
       {/* Footer */}
       <div className="flex items-center justify-between pt-1">
         <span className="text-[11px] text-text-faint">
           {poll.totalVotes} vote{poll.totalVotes !== 1 ? "s" : ""}
         </span>
 
-        {!isSignedIn && !showResults && (
+        {!canParticipate && !showResults && (
           <SignInButton mode="modal">
             <button className="text-[11px] font-medium text-accent-light hover:underline">
-              Se connecter pour voter →
+              Se connecter pour participer →
             </button>
           </SignInButton>
         )}
