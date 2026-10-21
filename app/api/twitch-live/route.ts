@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 export type TwitchLiveStatus = {
@@ -16,9 +17,9 @@ export type TwitchLiveStatus = {
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 function extractTwitchUsername(url: string | null | undefined) {
-  if (!url) return null;
-  const username = url.split("twitch.tv/")[1]?.split("/")[0]?.split("?")[0];
-  return username?.trim().toLowerCase() || null;
+  return detectStreamPlatform(url) === "twitch"
+    ? extractStreamUsername(url)
+    : null;
 }
 
 async function getAppAccessToken() {
@@ -118,7 +119,9 @@ export async function GET() {
     );
 
     if (usernames.length === 0) {
-      return NextResponse.json([], { headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json([], {
+        headers: { "Cache-Control": "no-store" },
+      });
     }
 
     // L'API Helix accepte jusqu'à 100 user_login par requête
@@ -129,7 +132,11 @@ export async function GET() {
 
     const liveByUsername = new Map<
       string,
-      { viewerCount: number; gameName: string | null; thumbnailUrl: string | null }
+      {
+        viewerCount: number;
+        gameName: string | null;
+        thumbnailUrl: string | null;
+      }
     >();
     const avatarByUsername = new Map<string, string | null>();
 

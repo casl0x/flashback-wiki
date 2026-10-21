@@ -56,6 +56,29 @@ export function getAvatarColors(color: string) {
   };
 }
 
+export type StreamPlatform = "twitch" | "kick";
+
+// Un seul champ (lien chaîne) sert pour Twitch ou Kick — la plateforme
+// se déduit du domaine présent dans l'URL stockée.
+export function detectStreamPlatform(
+  url: string | null | undefined,
+): StreamPlatform | null {
+  if (!url) return null;
+  if (url.includes("twitch.tv")) return "twitch";
+  if (url.includes("kick.com")) return "kick";
+  return null;
+}
+
+export function extractStreamUsername(
+  url: string | null | undefined,
+): string | null {
+  const platform = detectStreamPlatform(url);
+  if (!platform || !url) return null;
+  const marker = platform === "twitch" ? "twitch.tv/" : "kick.com/";
+  const username = url.split(marker)[1]?.split("/")[0]?.split("?")[0];
+  return username?.trim().toLowerCase() || null;
+}
+
 export function authHeaders(token: string) {
   return { "Content-Type": "application/json", "x-admin-token": token };
 }

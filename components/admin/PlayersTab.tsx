@@ -438,7 +438,7 @@ export function PlayersTab() {
             {/* Lien chaîne */}
             <div className="flex flex-col gap-1">
               <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                Lien chaîne (stream)
+                Lien chaîne (Twitch ou Kick)
               </label>
               <Input
                 className={inputCls}
@@ -446,7 +446,7 @@ export function PlayersTab() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, lienChaine: e.target.value }))
                 }
-                placeholder="https://twitch.tv/..."
+                placeholder="https://twitch.tv/... ou https://kick.com/..."
               />
             </div>
 

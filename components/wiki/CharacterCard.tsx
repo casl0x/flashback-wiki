@@ -1,10 +1,11 @@
 "use client";
 
 import { Character } from "@/lib/db";
-import { stripMentions } from "@/lib/utils";
+import { detectStreamPlatform, stripMentions } from "@/lib/utils";
 import Image from "next/image";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
+import { KickIcon, TwitchIcon } from "./PlatformIcons";
 
 type Props = {
   character: Character;
@@ -133,17 +134,12 @@ export default function CharacterCard({
             Joué par {character.player.pseudo}
           </span>
 
-          {character.player.stream && (
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="#9146ff"
-              aria-hidden="true"
-            >
-              <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
-            </svg>
-          )}
+          {character.player.stream &&
+            (detectStreamPlatform(character.player.lienChaine) === "kick" ? (
+              <KickIcon className="w-3 h-3" />
+            ) : (
+              <TwitchIcon className="w-3 h-3" />
+            ))}
         </CardFooter>
       )}
     </Card>
