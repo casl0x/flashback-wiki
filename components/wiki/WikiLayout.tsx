@@ -1,11 +1,7 @@
 "use client";
 
-import NavBar from "@/components/NavBar";
-import Sidebar from "@/components/Sidebar";
+import Header from "@/app/_composents/ui/Header";
 import { Version } from "@/lib/db";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { SearchProvider } from "./SearchContext";
 
 // Pages où la barre de recherche du header n'a aucun effet
 const SEARCH_HIDDEN_ROUTES = ["/", "/musiques"];
@@ -24,35 +20,13 @@ type Props = {
  * Wrapper utilisé par les pages Server (HomePage, CharacterPage)
  * pour gérer l'état du menu mobile côté client.
  */
-export default function WikiLayout({
-  totalChars,
-  totalPlayers,
-  totalVersions,
-  children,
-}: Props) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const pathname = usePathname();
-  const showSearch = !SEARCH_HIDDEN_ROUTES.includes(pathname);
-
+export default function WikiLayout({ children }: Props) {
   return (
-    <SearchProvider value={{ query, setQuery }}>
+    <body>
+      <Header />
       <main className="flex min-h-screen flex-col bg-background text-text-primary">
-        <NavBar
-          totalChars={totalChars}
-          totalPlayers={totalPlayers}
-          totalVersions={totalVersions}
-          query={query}
-          onQueryChange={setQuery}
-          onMenuToggle={() => setMenuOpen((o) => !o)}
-          menuOpen={menuOpen}
-          showSearch={showSearch}
-        />
-        <div className="flex flex-1">
-          <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
-          <div className="flex-1 min-w-0">{children}</div>
-        </div>
+        {children}
       </main>
-    </SearchProvider>
+    </body>
   );
 }
