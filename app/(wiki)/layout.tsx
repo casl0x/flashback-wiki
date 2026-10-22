@@ -1,4 +1,3 @@
-import WikiLayout from "@/components/wiki/WikiLayout";
 import { getWikiData } from "@/lib/wiki-data";
 import type { Metadata } from "next";
 
@@ -20,16 +19,5 @@ export default async function WikiRouteLayout({
     0,
   );
 
-  return (
-    <WikiLayout
-      totalChars={characters.length}
-      totalPlayers={players.length}
-      totalVersions={versions.length}
-      versions={versions}
-      counts={counts}
-      totalRels={totalRels}
-    >
-      {children}
-    </WikiLayout>
-  );
+  return <main>{children}</main>;
 }

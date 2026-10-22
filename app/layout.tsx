@@ -1,12 +1,13 @@
+import { NotificationPopup } from "@/components/user/NotificationPopup";
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { NotificationPopup } from "@/components/user/NotificationPopup";
+import { Archivo } from "next/font/google";
+import Header from "./_composents/ui/Header";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
   title: "Flashback WL - Wiki",
@@ -21,7 +22,7 @@ export default async function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="fr" className={cn("font-sans", inter.variable)}>
+      <html lang="fr" className={cn("font-serif", archivo.variable)}>
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link
@@ -31,7 +32,10 @@ export default async function RootLayout({
           />
         </head>
         <body>
+          <Header />
+
           {children}
+
           <NotificationPopup />
           <Analytics />
         </body>

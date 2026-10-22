@@ -51,6 +51,29 @@ model UserProfile {
 
   creatorRoles  CreatorRole[]
   notifications Notification[]
+
+  // Fiche joueur liée à ce compte (validée par un admin)
+  playerId           String?             @unique @map("player_id")
+  player             Player?             @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  playerLinkRequests PlayerLinkRequest[]
+}
+
+// Demande d'un utilisateur pour lier son compte à une fiche joueur
+model PlayerLinkRequest {
+  id         String    @id @default(cuid())
+  status     String    @default("pending") // pending | accepted | rejected
+  message    String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  reviewedAt DateTime? @map("reviewed_at")
+
+  userProfileId String      @map("user_profile_id")
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  playerId String @map("player_id")
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, playerId])
+  @@map("player_link_requests")
 }
 
 model Notification {
@@ -140,8 +163,15 @@ model Version {
   color       String   @default("#8880a8")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  characters  Character[]
-  suggestions Suggestion[]
+  ordre     Int       @default(0) // ordre des bandes sur l'accueil
+  dateDebut DateTime? @map("date_debut")
+  dateFin   DateTime? @map("date_fin")
+  imageUrl  String?   @map("image_url") // image d'ambiance
+  enCours   Boolean   @default(false) @map("en_cours")
+
+  characters       Character[]       @relation("CharacterVersions")
+  characterGroupes CharacterGroupe[]
+  suggestions      Suggestion[]
 
   @@map("versions")
 }
@@ -155,7 +185,9 @@ model Player {
   badges     String[] @default([])
   createdAt  DateTime @default(now()) @map("created_at")
 
-  characters Character[]
+  characters   Character[]
+  userProfile  UserProfile?
+  linkRequests PlayerLinkRequest[]
 
   @@map("players")
 }
@@ -171,13 +203,17 @@ model Character {
   createdAt   DateTime @default(now()) @map("created_at")
   etatVie     EtatVie  @default(EN_VIE) @map("etat_vie")
 
-  groupes Groupe[] @relation("CharacterGroupes") // ← garder seulement ça
+  // Appartenances aux groupes, dans l'ordre chronologique (le plus grand ordre = l'actuel).
+  // Remplace l'ancienne relation implicite "CharacterGroupes" : voir la note de migration.
+  groupes CharacterGroupe[]
+
+  sounds Sound[]
 
   playerId String? @map("player_id")
   player   Player? @relation(fields: [playerId], references: [id], onDelete: SetNull)
 
-  versionId String?  @map("version_id")
-  version   Version? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  // Un perso peut apparaître dans plusieurs versions (remplace l'ancienne version "Multiverse").
+  versions Version[] @relation("CharacterVersions")
 
   relationsA Relation[] @relation("PersonnageA")
   relationsB Relation[] @relation("PersonnageB")
@@ -216,9 +252,66 @@ model Groupe {
   color       String?
   createdAt   DateTime @default(now()) @map("created_at")
 
-  characters Character[] @relation("CharacterGroupes")
+  members CharacterGroupe[]
+  grades  GroupeGrade[]
 
   @@map("groupes")
+}
+
+// Grades d'un groupe, du plus haut (ordre 0) au plus bas
+model GroupeGrade {
+  id      String  @id @default(cuid())
+  nom     String
+  ordre   Int     @default(0)
+  niveau  String? // "commandement" | "encadrement" | "agents" (couleur sur la page groupe)
+
+  groupeId String @map("groupe_id")
+  groupe   Groupe @relation(fields: [groupeId], references: [id], onDelete: Cascade)
+
+  members CharacterGroupe[]
+
+  @@unique([groupeId, nom])
+  @@map("groupe_grades")
+}
+
+// Appartenance d'un perso à un groupe, avec son grade et son matricule dans ce groupe
+model CharacterGroupe {
+  id        String  @id @default(uuid())
+  ordre     Int     @default(0) // ordre chronologique pour ce perso
+  matricule String?
+
+  characterId String    @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  groupeId String @map("groupe_id")
+  groupe   Groupe @relation(fields: [groupeId], references: [id], onDelete: Cascade)
+
+  gradeId String?      @map("grade_id")
+  grade   GroupeGrade? @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+
+  // Version pendant laquelle le perso était dans ce groupe (ex. SASP en V5, BCSO en V6).
+  versionId String?  @map("version_id")
+  version   Version? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+
+  @@unique([characterId, groupeId, versionId])
+  @@index([groupeId])
+  @@map("character_groupes")
+}
+
+// Sons associés à un perso (page Musiques « par personnage » + éditeur de fiche)
+model Sound {
+  id        String   @id @default(cuid())
+  titre     String
+  artiste   String?
+  url       String
+  platform  String? // "spotify" | "youtube" | "autre"
+  ordre     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  characterId String    @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@map("sounds")
 }
 
 model Suggestion {
@@ -239,6 +332,11 @@ model Suggestion {
   lienReddif  String?    @map("lien_reddif")
   status      String     @default("pending") // pending | accepted | rejected
   createdAt   DateTime   @default(now())
+
+  // Refus : motif court (liste fixe côté admin) + message envoyé à l'auteur en Notification
+  rejectReason     String?   @map("reject_reason")
+  moderatorMessage String?   @map("moderator_message")
+  reviewedAt       DateTime? @map("reviewed_at")
 }
 
 model ChangelogEntry {
