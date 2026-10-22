@@ -66,8 +66,6 @@ export async function applyAcceptedSuggestion(suggestion: AcceptedSuggestion) {
     ...(suggestion.lienReddif ? { lienReddif: suggestion.lienReddif } : {}),
     ...(suggestion.role ? { role: suggestion.role } : {}),
     ...(suggestion.etatVie ? { etatVie: suggestion.etatVie } : {}),
-    ...(suggestion.versionId ? { versionId: suggestion.versionId } : {}),
-    ...(groupe ? { groupes: { connect: { id: groupe.id } } } : {}),
     ...(joueur ? { playerId: joueur.id } : {}),
   };
 
@@ -79,12 +77,27 @@ export async function applyAcceptedSuggestion(suggestion: AcceptedSuggestion) {
       data: {
         ...(suggestion.nom ? { nom: suggestion.nom } : {}),
         ...fieldUpdates,
+        ...(suggestion.versionId
+          ? { versions: { set: [{ id: suggestion.versionId }] } }
+          : {}),
+        ...(groupe
+          ? { groupes: { create: { groupeId: groupe.id } } }
+          : {}),
       },
     });
     characterMutated = true;
   } else if (suggestion.nom) {
     const character = await prisma.character.create({
-      data: { nom: suggestion.nom, ...fieldUpdates },
+      data: {
+        nom: suggestion.nom,
+        ...fieldUpdates,
+        ...(suggestion.versionId
+          ? { versions: { connect: [{ id: suggestion.versionId }] } }
+          : {}),
+        ...(groupe
+          ? { groupes: { create: { groupeId: groupe.id } } }
+          : {}),
+      },
     });
     await prisma.suggestion.update({
       where: { id: suggestion.id },

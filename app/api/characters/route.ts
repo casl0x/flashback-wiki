@@ -29,17 +29,22 @@ export async function POST(request: NextRequest) {
         role: role ?? null,
         description: description ?? null,
         playerId: player_id ?? null,
-        versionId: version_id ?? null,
+        versions: version_id ? { connect: [{ id: version_id }] } : undefined,
         metier: metier ?? null,
         groupes: groupe_ids?.length
-          ? { connect: groupe_ids.map((id: string) => ({ id })) }
+          ? {
+              create: groupe_ids.map((id: string, ordre: number) => ({
+                groupeId: id,
+                ordre,
+              })),
+            }
           : undefined,
         lienReddif: lien_reddif ?? null,
         imageUrl: image_url ?? null,
         etatVie: etat_vie ?? null,
       },
     });
-    await logChange("add_global", char.nom, char.versionId ?? undefined);
+    await logChange("add_global", char.nom, version_id ?? undefined);
     await invalidateWikiCache();
     return NextResponse.json(char, { status: 201 });
   } catch (err: unknown) {
@@ -75,15 +80,23 @@ export async function PATCH(request: NextRequest) {
         role: role ?? null,
         description: description ?? null,
         ...(player_id !== undefined && { playerId: player_id ?? null }),
-        ...(version_id !== undefined && { versionId: version_id ?? null }),
+        ...(version_id !== undefined && {
+          versions: { set: version_id ? [{ id: version_id }] : [] },
+        }),
         metier: metier ?? null,
-        groupes: { set: (groupe_ids ?? []).map((id: string) => ({ id })) },
+        groupes: {
+          deleteMany: {},
+          create: (groupe_ids ?? []).map((id: string, ordre: number) => ({
+            groupeId: id,
+            ordre,
+          })),
+        },
         lienReddif: lien_reddif ?? null,
         imageUrl: image_url ?? null,
         etatVie: etat_vie ?? null,
       },
     });
-    await logChange("edit_info", char.nom, char.versionId ?? undefined);
+    await logChange("edit_info", char.nom, version_id ?? undefined);
     await invalidateWikiCache();
     return NextResponse.json(char);
   } catch (err: unknown) {

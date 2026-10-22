@@ -77,7 +77,7 @@ function FilterDropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1.5 min-w-[160px] rounded-lg border border-border bg-card shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-1.5 min-w-40 rounded-lg border border-border bg-card shadow-lg">
           {/* Option "Tous" */}
           <button
             onClick={() => {
@@ -158,14 +158,6 @@ export default function CharactersClient({ characters }: Props) {
 
   const etatsVie = [
     ...new Set(characters.map((c) => c.etatVie).filter(Boolean)),
-  ] as string[];
-  const groupes = [
-    ...new Map(
-      characters.flatMap((c) => c.groupes).map((g) => [g.id, g]),
-    ).values(),
-  ];
-  const metiers = [
-    ...new Set(characters.map((c) => c.metier).filter(Boolean)),
   ] as string[];
 
   const filtered = characters.filter((c) => {

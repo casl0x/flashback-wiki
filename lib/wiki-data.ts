@@ -2,19 +2,27 @@ import { Character, Groupe, Player, Version, prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 
+const characterGroupesInclude = {
+  include: { groupe: true },
+} satisfies Prisma.Character$groupesArgs;
+
 type CharacterWithRelations = Prisma.CharacterGetPayload<{
   include: {
     player: true;
-    version: true;
-    groupes: true;
+    versions: true;
+    groupes: typeof characterGroupesInclude;
     relationsA: {
       include: {
-        personnageB: { include: { player: true; groupes: true } };
+        personnageB: {
+          include: { player: true; groupes: typeof characterGroupesInclude };
+        };
       };
     };
     relationsB: {
       include: {
-        personnageA: { include: { player: true; groupes: true } };
+        personnageA: {
+          include: { player: true; groupes: typeof characterGroupesInclude };
+        };
       };
     };
   };
@@ -38,10 +46,38 @@ const normalizeReseaux = (value: Prisma.JsonValue): Record<string, string> => {
   );
 };
 
-const normalizeGroupes = (
-  groupes: { id: string; slug: string; nom: string; color: string | null }[],
-) =>
-  groupes.map((g) => ({ id: g.id, slug: g.slug, nom: g.nom, color: g.color }));
+// Une appartenance par groupe (le plus grand "ordre" = l'appartenance actuelle).
+export const buildCurrentGroupes = (
+  groupes: {
+    ordre: number;
+    groupeId: string;
+    groupe: { id: string; slug: string; nom: string; color: string | null };
+  }[],
+) => {
+  const byGroupe = new Map<string, (typeof groupes)[number]>();
+  for (const g of groupes) {
+    const existing = byGroupe.get(g.groupeId);
+    if (!existing || g.ordre > existing.ordre) byGroupe.set(g.groupeId, g);
+  }
+  return Array.from(byGroupe.values()).map((g) => ({
+    id: g.groupe.id,
+    slug: g.groupe.slug,
+    nom: g.groupe.nom,
+    color: g.groupe.color,
+  }));
+};
+
+// Un perso peut désormais appartenir à plusieurs versions ; l'UI (publique et
+// admin) ne gère encore qu'une version "courante" par perso, donc on prend la
+// première. À revoir si l'admin gagne un vrai sélecteur multi-versions.
+export const buildCurrentVersion = (
+  versions: {
+    id: string;
+    label: string;
+    color: string | null;
+    description: string | null;
+  }[],
+) => versions[0] ?? null;
 
 const buildPlayerSummary = (
   player: {
@@ -96,14 +132,14 @@ const emptyWikiData: WikiData = {
 export async function fetchWikiData(): Promise<WikiData> {
   try {
     const [versions, players, characters, groupes] = await Promise.all([
-      prisma.version.findMany({ orderBy: { id: "asc" } }),
+      prisma.version.findMany({ orderBy: [{ ordre: "asc" }] }),
       prisma.player.findMany({ orderBy: { pseudo: "asc" } }),
       prisma.character.findMany({
         orderBy: { nom: "asc" },
         include: {
           player: true,
-          version: true,
-          groupes: true,
+          versions: true,
+          groupes: characterGroupesInclude,
           _count: { select: { relationsA: true, relationsB: true } },
         },
       }),
@@ -113,6 +149,8 @@ export async function fetchWikiData(): Promise<WikiData> {
     const normalizedVersions = versions.map((version) => ({
       ...version,
       createdAt: version.createdAt.toISOString(),
+      dateDebut: version.dateDebut?.toISOString() ?? null,
+      dateFin: version.dateFin?.toISOString() ?? null,
     }));
 
     const normalizedPlayers = players.map((player) => ({
@@ -121,15 +159,19 @@ export async function fetchWikiData(): Promise<WikiData> {
       reseaux: normalizeReseaux(player.reseaux),
     }));
 
-    const enrichedCharacters = characters.map((character) => ({
-      ...character,
-      createdAt: character.createdAt.toISOString(),
-      player: buildPlayerSummary(character.player),
-      version: buildVersionSummary(character.version),
-      groupes: normalizeGroupes(character.groupes),
-      relations: [],
-      imageUrl: character.imageUrl,
-    })) as Character[];
+    const enrichedCharacters = characters.map((character) => {
+      const version = buildCurrentVersion(character.versions);
+      return {
+        ...character,
+        createdAt: character.createdAt.toISOString(),
+        player: buildPlayerSummary(character.player),
+        version: buildVersionSummary(version),
+        versionId: version?.id ?? null,
+        groupes: buildCurrentGroupes(character.groupes),
+        relations: [],
+        imageUrl: character.imageUrl,
+      };
+    }) as Character[];
 
     const counts: Record<string, number> = {};
     enrichedCharacters.forEach((character) => {
@@ -140,9 +182,7 @@ export async function fetchWikiData(): Promise<WikiData> {
 
     const totalRelations = characters.reduce(
       (accumulator, character) =>
-        accumulator +
-        character._count.relationsA +
-        character._count.relationsB,
+        accumulator + character._count.relationsA + character._count.relationsB,
       0,
     );
 
@@ -170,22 +210,26 @@ export async function fetchWikiData(): Promise<WikiData> {
 export async function fetchWikiDataWithRelations(): Promise<WikiData> {
   try {
     const [versions, players, characters, groupes] = await Promise.all([
-      prisma.version.findMany({ orderBy: { id: "asc" } }),
+      prisma.version.findMany({ orderBy: [{ ordre: "asc" }] }),
       prisma.player.findMany({ orderBy: { pseudo: "asc" } }),
       prisma.character.findMany({
         orderBy: { nom: "asc" },
         include: {
           player: true,
-          version: true,
-          groupes: true,
+          versions: true,
+          groupes: characterGroupesInclude,
           relationsA: {
             include: {
-              personnageB: { include: { player: true, groupes: true } },
+              personnageB: {
+                include: { player: true, groupes: characterGroupesInclude },
+              },
             },
           },
           relationsB: {
             include: {
-              personnageA: { include: { player: true, groupes: true } },
+              personnageA: {
+                include: { player: true, groupes: characterGroupesInclude },
+              },
             },
           },
         },
@@ -196,6 +240,8 @@ export async function fetchWikiDataWithRelations(): Promise<WikiData> {
     const normalizedVersions = versions.map((version) => ({
       ...version,
       createdAt: version.createdAt.toISOString(),
+      dateDebut: version.dateDebut?.toISOString() ?? null,
+      dateFin: version.dateFin?.toISOString() ?? null,
     }));
 
     const normalizedPlayers = players.map((player) => ({
@@ -215,7 +261,7 @@ export async function fetchWikiDataWithRelations(): Promise<WikiData> {
               nom: relation.personnageB.nom,
               role: relation.personnageB.role,
               metier: relation.personnageB.metier,
-              groupes: normalizeGroupes(relation.personnageB.groupes),
+              groupes: buildCurrentGroupes(relation.personnageB.groupes),
               imageUrl: relation.personnageB.imageUrl,
               player_pseudo: relation.personnageB.player?.pseudo ?? null,
             },
@@ -228,19 +274,22 @@ export async function fetchWikiDataWithRelations(): Promise<WikiData> {
               nom: relation.personnageA.nom,
               role: relation.personnageA.role,
               metier: relation.personnageA.metier,
-              groupes: normalizeGroupes(relation.personnageA.groupes),
+              groupes: buildCurrentGroupes(relation.personnageA.groupes),
               imageUrl: relation.personnageA.imageUrl,
               player_pseudo: relation.personnageA.player?.pseudo ?? null,
             },
           })),
         ];
 
+        const version = buildCurrentVersion(character.versions);
+
         return {
           ...character,
           createdAt: character.createdAt.toISOString(),
           player: buildPlayerSummary(character.player),
-          version: buildVersionSummary(character.version),
-          groupes: normalizeGroupes(character.groupes),
+          version: buildVersionSummary(version),
+          versionId: version?.id ?? null,
+          groupes: buildCurrentGroupes(character.groupes),
           relations,
           imageUrl: character.imageUrl,
         } as Character;
@@ -283,16 +332,20 @@ export const getCharacterById = unstable_cache(
       where: { id },
       include: {
         player: true,
-        version: true,
-        groupes: true,
+        versions: true,
+        groupes: characterGroupesInclude,
         relationsA: {
           include: {
-            personnageB: { include: { player: true, groupes: true } },
+            personnageB: {
+              include: { player: true, groupes: characterGroupesInclude },
+            },
           },
         },
         relationsB: {
           include: {
-            personnageA: { include: { player: true, groupes: true } },
+            personnageA: {
+              include: { player: true, groupes: characterGroupesInclude },
+            },
           },
         },
       },
@@ -300,12 +353,15 @@ export const getCharacterById = unstable_cache(
 
     if (!character) return null;
 
+    const version = buildCurrentVersion(character.versions);
+
     return {
       ...character,
       createdAt: character.createdAt.toISOString(),
       player: buildPlayerSummary(character.player),
-      version: buildVersionSummary(character.version),
-      groupes: normalizeGroupes(character.groupes),
+      version: buildVersionSummary(version),
+      versionId: version?.id ?? null,
+      groupes: buildCurrentGroupes(character.groupes),
       relations: [
         ...character.relationsA.map((r) => ({
           id: r.id,
@@ -315,7 +371,7 @@ export const getCharacterById = unstable_cache(
             nom: r.personnageB.nom,
             role: r.personnageB.role,
             metier: r.personnageB.metier,
-            groupes: normalizeGroupes(r.personnageB.groupes),
+            groupes: buildCurrentGroupes(r.personnageB.groupes),
             player_pseudo: r.personnageB.player?.pseudo ?? null,
             imageUrl: r.personnageB.imageUrl ?? null,
           },
@@ -328,7 +384,7 @@ export const getCharacterById = unstable_cache(
             nom: r.personnageA.nom,
             role: r.personnageA.role,
             metier: r.personnageA.metier,
-            groupes: normalizeGroupes(r.personnageA.groupes),
+            groupes: buildCurrentGroupes(r.personnageA.groupes),
             player_pseudo: r.personnageA.player?.pseudo ?? null,
             imageUrl: r.personnageA.imageUrl ?? null,
           },
@@ -344,18 +400,26 @@ export const getCharactersByPlayerId = unstable_cache(
   async (playerId: string) => {
     const chars = await prisma.character.findMany({
       where: { playerId },
-      include: { player: true, version: true, groupes: true },
+      include: {
+        player: true,
+        versions: true,
+        groupes: characterGroupesInclude,
+      },
       orderBy: { nom: "asc" },
     });
 
-    return chars.map((c) => ({
-      ...c,
-      createdAt: c.createdAt.toISOString(),
-      player: buildPlayerSummary(c.player),
-      version: buildVersionSummary(c.version),
-      groupes: normalizeGroupes(c.groupes),
-      relations: [],
-    })) as Character[];
+    return chars.map((c) => {
+      const version = buildCurrentVersion(c.versions);
+      return {
+        ...c,
+        createdAt: c.createdAt.toISOString(),
+        player: buildPlayerSummary(c.player),
+        version: buildVersionSummary(version),
+        versionId: version?.id ?? null,
+        groupes: buildCurrentGroupes(c.groupes),
+        relations: [],
+      };
+    }) as Character[];
   },
   ["characters-by-player"],
   { revalidate: 300, tags: ["wiki-data"] },

@@ -5,7 +5,9 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const versions = await prisma.version.findMany({ orderBy: { id: "asc" } });
+  const versions = await prisma.version.findMany({
+    orderBy: [{ ordre: "asc" }],
+  });
   return NextResponse.json(versions);
 }
 

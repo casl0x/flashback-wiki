@@ -1,6 +1,7 @@
 import BackButton from "@/components/BackButton";
 import CharactersGrid from "@/components/wiki/CharactersGrid";
 import { Character, prisma } from "@/lib/db";
+import { buildCurrentGroupes, buildCurrentVersion } from "@/lib/wiki-data";
 import { notFound } from "next/navigation";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -11,22 +12,43 @@ export default async function GroupePage({ params }: Props) {
   const groupe = await prisma.groupe.findUnique({
     where: { slug },
     include: {
-      characters: {
-        include: { player: true, version: true, groupes: true },
-        orderBy: { nom: "asc" },
+      members: {
+        include: {
+          character: {
+            include: {
+              player: true,
+              versions: true,
+              groupes: { include: { groupe: true } },
+            },
+          },
+        },
+        orderBy: { character: { nom: "asc" } },
       },
     },
   });
 
   if (!groupe) notFound();
 
+  const characters = groupe.members.map((m) => {
+    const version = buildCurrentVersion(m.character.versions);
+    return {
+      ...m.character,
+      createdAt: m.character.createdAt.toISOString(),
+      player: m.character.player,
+      version,
+      versionId: version?.id ?? null,
+      groupes: buildCurrentGroupes(m.character.groupes),
+      relations: [],
+    } as unknown as Character;
+  });
+
   type VersionGroup = {
     version: { id: string; label: string; color: string | null } | null;
-    chars: typeof groupe.characters;
+    chars: typeof characters;
   };
 
   const byVersion: Record<string, VersionGroup> = {};
-  for (const c of groupe.characters) {
+  for (const c of characters) {
     const key = c.versionId ?? "__none__";
     if (!byVersion[key])
       byVersion[key] = { version: c.version ?? null, chars: [] };
@@ -40,7 +62,7 @@ export default async function GroupePage({ params }: Props) {
   });
 
   const totalPlayers = new Set(
-    groupe.characters.map((c) => c.playerId).filter(Boolean),
+    characters.map((c) => c.playerId).filter(Boolean),
   ).size;
 
   return (
@@ -92,7 +114,7 @@ export default async function GroupePage({ params }: Props) {
                   )}
                 </div>
 
-                <CharactersGrid chars={chars as unknown as Character[]} />
+                <CharactersGrid chars={chars} />
               </div>
             ))}
           </div>

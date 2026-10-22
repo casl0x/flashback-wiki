@@ -3,11 +3,16 @@ import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
-import { Archivo } from "next/font/google";
+import { Anton, Archivo } from "next/font/google";
 import Header from "./_composents/ui/Header";
 import "./globals.css";
 
 const archivo = Archivo({ subsets: ["latin"], variable: "--font-serif" });
+const anton = Anton({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Flashback WL - Wiki",
@@ -22,7 +27,14 @@ export default async function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="fr" className={cn("font-serif", archivo.variable)}>
+      <html
+        lang="fr"
+        className={
+          cn("font-serif", archivo.variable) +
+          " " +
+          cn("font-sans", anton.variable)
+        }
+      >
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link

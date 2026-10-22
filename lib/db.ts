@@ -24,6 +24,11 @@ export type Version = {
   description: string | null;
   color: string | null;
   createdAt: string;
+  ordre: number;
+  dateDebut: string | null;
+  dateFin: string | null;
+  imageUrl: string | null;
+  enCours: boolean;
 };
 
 // ─── Groupe ───────────────────────────────────────────────────────────────────
