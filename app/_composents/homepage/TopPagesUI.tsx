@@ -95,7 +95,7 @@ export default function TopPagesUI({
                 style={{
                   backgroundColor: page.versionColor,
                   color: "white",
-                  opacity: 0.8,
+                  opacity: 0.9,
                 }}
               >
                 <a

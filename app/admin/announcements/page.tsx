@@ -1,7 +1,7 @@
-// app/admin/announcements/page.tsx
 "use client";
 
-import { Megaphone, Plus, Trash2, User, X } from "lucide-react";
+import { PageHeader } from "@/app/_composents/admin/ui";
+import { Plus, Trash2, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   createAnnouncement,
@@ -105,18 +105,11 @@ export default function AdminAnnouncementsPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-0">
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-border">
-        <h1 className="text-[15px] font-semibold text-text-primary flex items-center gap-2">
-          <Megaphone className="h-4 w-4 text-accent" />
-          Annonces
-        </h1>
-        <p className="text-xs text-text-muted mt-0.5">
-          Envoie une notification pop-up publique, ou un message privé à un seul
-          utilisateur.
-        </p>
-      </div>
+    <div className="flex flex-col gap-4 min-h-0">
+      <PageHeader
+        title="Annonces"
+        meta="Envoie une notification pop-up publique, ou un message privé à un seul utilisateur."
+      />
 
       <div className="p-6 space-y-6">
         {/* Formulaire */}

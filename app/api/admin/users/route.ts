@@ -1,9 +1,10 @@
+import { isAdminUser } from "@/lib/admin/auth";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json(null, { status: 401 });
+  if (!(await isAdminUser(userId))) return NextResponse.json(null, { status: 403 });
 
   const q = req.nextUrl.searchParams.get("q")?.trim();
   if (!q) return NextResponse.json([]);

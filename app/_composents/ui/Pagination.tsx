@@ -24,7 +24,7 @@ export default function Pagination({
   return (
     <div className="flex items-center gap-1.5 py-4 text-[13px]">
       <button
-        className="flex h-8 min-w-8 items-center justify-center rounded-lg border border-border bg-card px-2 text-text-primary hover:bg-surface disabled:opacity-35"
+        className="flex h-8 min-w-8 items-center justify-center rounded-lg border border-border bg-card px-2 text-text-primary hover:bg-surface disabled:opacity-35 cursor-pointer disabled:cursor-not-allowed"
         onClick={() => onPageChange(page - 1)}
         disabled={page === 1}
         aria-label="Page précédente"
@@ -45,7 +45,7 @@ export default function Pagination({
               p === page
                 ? "border-border-strong bg-surface font-medium"
                 : "border-border bg-card text-text-primary hover:bg-surface"
-            }`}
+            } cursor-pointer`}
             aria-current={p === page ? "page" : undefined}
           >
             {p}
@@ -54,7 +54,7 @@ export default function Pagination({
       )}
 
       <button
-        className="flex h-8 min-w-8 items-center justify-center rounded-lg border border-border bg-card px-2 text-text-primary hover:bg-surface disabled:opacity-35"
+        className="flex h-8 min-w-8 items-center justify-center rounded-lg border border-border bg-card px-2 text-text-primary hover:bg-surface disabled:opacity-35 cursor-pointer disabled:cursor-not-allowed"
         onClick={() => onPageChange(page + 1)}
         disabled={page === totalPages}
         aria-label="Page suivante"

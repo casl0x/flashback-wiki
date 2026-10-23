@@ -18,7 +18,7 @@ export default function CharactersGrid({ chars, onSelect }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-4">
       {chars.map((c) => (
         <Link key={c.id} href={`/personnages/${c.id}`} prefetch={true}>
           <CharacterCard character={c} />

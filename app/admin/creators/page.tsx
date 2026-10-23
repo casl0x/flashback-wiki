@@ -1,6 +1,6 @@
-// app/admin/creators/page.tsx
 "use client";
 
+import { PageHeader } from "@/app/_composents/admin/ui";
 import {
   Check,
   ExternalLink,
@@ -112,24 +112,17 @@ export default function AdminCreatorsPage() {
   const pendingCount = data.filter((r) => r.status === "pending").length;
 
   return (
-    <div className="flex flex-col min-h-0">
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-border flex items-center justify-between">
-        <div>
-          <h1 className="text-[15px] font-semibold text-text-primary">
-            Créateurs de contenu
-          </h1>
-          <p className="text-xs text-text-muted mt-0.5">
-            Validation des comptes créateurs — les publications sont visibles
-            dès qu&apos;un compte est validé, sans étape supplémentaire.
-          </p>
-        </div>
-        {pendingCount > 0 && (
-          <span className="text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
-            {pendingCount} compte(s) en attente
-          </span>
-        )}
-      </div>
+    <div className="flex flex-col gap-4 min-h-0">
+      <PageHeader
+        title="Créateurs"
+        meta={
+          <>
+            Comptes créateurs et publications.
+            {pendingCount > 0 &&
+              ` · ${pendingCount} compte(s) en attente (aussi visibles dans Modération)`}
+          </>
+        }
+      />
 
       {/* Vue */}
       <div className="flex gap-1 px-6 pt-4">

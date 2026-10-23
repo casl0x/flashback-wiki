@@ -1,27 +1,27 @@
-import CharacterDetailShell from "@/components/wiki/CharacterDetailShell";
-import { getCharacterById, getCharactersByPlayerId } from "@/lib/wiki-data";
+import CharacterPage from "@/app/_composents/characters/CharacterPage";
+import { getCharacterPage } from "@/lib/character-page";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-export default async function CharacterPage({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const character = await getCharacterById(id);
+  const c = await getCharacterPage(id);
+  if (!c) return { title: "Personnage introuvable – Flashback Wiki" };
+  return {
+    title: `${c.nom} – Flashback Wiki`,
+    description:
+      c.description?.replace(/@\[([^\]]+)\]\([^)]+\)/g, "$1").slice(0, 160) ??
+      undefined,
+  };
+}
 
-  if (!character) {
-    notFound();
-  }
-
-  const samePlayerChars = character.player
-    ? await getCharactersByPlayerId(character.player.id)
-    : [];
-
-  return (
-    <CharacterDetailShell
-      character={character}
-      allCharacters={samePlayerChars}
-    />
-  );
+export default async function Page({ params }: Props) {
+  const { id } = await params;
+  const character = await getCharacterPage(id);
+  if (!character) notFound();
+  return <CharacterPage c={character} />;
 }

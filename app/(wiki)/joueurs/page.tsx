@@ -1,7 +1,7 @@
 "use client";
 
+import { KickIcon, TwitchIcon } from "@/app/_composents/icons/PlatformIcons";
 import { PlayerBadges } from "@/components/admin/PlayerBadges";
-import { KickIcon, TwitchIcon } from "@/components/wiki/PlatformIcons";
 import { useSearch } from "@/components/wiki/SearchContext";
 import {
   detectStreamPlatform,

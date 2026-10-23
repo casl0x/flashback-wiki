@@ -1,190 +1,54 @@
-import { invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
-import { notifyBadgesEarned, notifyUser } from "@/lib/notifications";
+import { auth } from "@clerk/nextjs/server";
+import type { EtatVie, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { auth, clerkClient } from "@clerk/nextjs/server";
+// La validation / le refus des propositions se fait dans l'admin
+// (Modération, server actions de lib/admin/actions/moderation.ts).
 
-async function isAdmin(userId: string | null) {
-  if (!userId) return false;
-  const client = await clerkClient();
-  const memberships = await client.users.getOrganizationMembershipList({
-    userId,
-  });
-  return memberships.data.some(
-    (m) => m.organization.id === process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID,
-  );
-}
+const ROLES: Role[] = ["civil", "illegal"];
+const ETATS: EtatVie[] = ["EN_VIE", "MORT", "PARTI", "DISPARU", "PRISON"];
+
+const text = (v: unknown, max = 4000) => {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t ? t.slice(0, max) : null;
+};
 
 export async function POST(req: Request) {
   const { userId } = await auth();
-  if (!userId)
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  const body = await req.json();
+  if (!userId) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!body) return NextResponse.json({ error: "Requête invalide" }, { status: 400 });
+
+  // Seuls les champs d'une proposition sont acceptés (pas de statut, pas d'auteur…).
+  const characterId = text(body.characterId, 64);
+  const versionId = text(body.versionId, 32);
+  const [character, version] = await Promise.all([
+    characterId ? prisma.character.findUnique({ where: { id: characterId }, select: { id: true } }) : null,
+    versionId ? prisma.version.findUnique({ where: { id: versionId }, select: { id: true } }) : null,
+  ]);
+  if (characterId && !character) return NextResponse.json({ error: "Personnage introuvable" }, { status: 400 });
+
+  const role = ROLES.includes(body.role as Role) ? (body.role as Role) : null;
+  const etatVie = ETATS.includes(body.etatVie as EtatVie) ? (body.etatVie as EtatVie) : null;
+
   const suggestion = await prisma.suggestion.create({
     data: {
-      ...body,
-      clerkUserId: userId ?? null,
+      clerkUserId: userId,
+      characterId: character?.id ?? null,
+      nom: text(body.nom, 200),
+      metier: text(body.metier, 200),
+      groupe: text(body.groupe, 200),
+      joueur: text(body.joueur, 200),
+      lienReddif: text(body.lienReddif, 500),
+      description: text(body.description),
+      note: text(body.note, 2000),
+      role,
+      etatVie,
+      versionId: version?.id ?? null,
     },
   });
-  return NextResponse.json(suggestion);
-}
-
-export async function GET() {
-  const suggestions = await prisma.suggestion.findMany({
-    where: { status: "pending" },
-    include: { character: true },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(suggestions);
-}
-
-type AcceptedSuggestion = NonNullable<
-  Awaited<ReturnType<typeof prisma.suggestion.update>>
->;
-
-// Applique une suggestion acceptée : écrit ses champs sur le personnage
-// (visé, ou nouvellement créé) et attribue les points à son auteur.
-// Isolée de PATCH pour rester testable sans le contexte Clerk.
-export async function applyAcceptedSuggestion(suggestion: AcceptedSuggestion) {
-  const [groupe, joueur] = await Promise.all([
-    suggestion.groupe
-      ? prisma.groupe.findFirst({
-          where: { nom: { equals: suggestion.groupe, mode: "insensitive" } },
-        })
-      : null,
-    suggestion.joueur
-      ? prisma.player.findFirst({
-          where: { pseudo: { equals: suggestion.joueur, mode: "insensitive" } },
-        })
-      : null,
-  ]);
-
-  const fieldUpdates = {
-    ...(suggestion.metier ? { metier: suggestion.metier } : {}),
-    ...(suggestion.description ? { description: suggestion.description } : {}),
-    ...(suggestion.lienReddif ? { lienReddif: suggestion.lienReddif } : {}),
-    ...(suggestion.role ? { role: suggestion.role } : {}),
-    ...(suggestion.etatVie ? { etatVie: suggestion.etatVie } : {}),
-    ...(joueur ? { playerId: joueur.id } : {}),
-  };
-
-  let characterMutated = false;
-
-  if (suggestion.characterId) {
-    await prisma.character.update({
-      where: { id: suggestion.characterId },
-      data: {
-        ...(suggestion.nom ? { nom: suggestion.nom } : {}),
-        ...fieldUpdates,
-        ...(suggestion.versionId
-          ? { versions: { set: [{ id: suggestion.versionId }] } }
-          : {}),
-        ...(groupe
-          ? { groupes: { create: { groupeId: groupe.id } } }
-          : {}),
-      },
-    });
-    characterMutated = true;
-  } else if (suggestion.nom) {
-    const character = await prisma.character.create({
-      data: {
-        nom: suggestion.nom,
-        ...fieldUpdates,
-        ...(suggestion.versionId
-          ? { versions: { connect: [{ id: suggestion.versionId }] } }
-          : {}),
-        ...(groupe
-          ? { groupes: { create: { groupeId: groupe.id } } }
-          : {}),
-      },
-    });
-    await prisma.suggestion.update({
-      where: { id: suggestion.id },
-      data: { characterId: character.id },
-    });
-    characterMutated = true;
-  }
-
-  if (suggestion.clerkUserId) {
-    const before = await prisma.userProfile.findUnique({
-      where: { clerkUserId: suggestion.clerkUserId },
-      select: { badges: true },
-    });
-
-    const updated = await prisma.userProfile.upsert({
-      where: { clerkUserId: suggestion.clerkUserId },
-      create: {
-        clerkUserId: suggestion.clerkUserId,
-        totalPoints: 10,
-        acceptedCount: 1,
-      },
-      update: {
-        totalPoints: { increment: 10 },
-        acceptedCount: { increment: 1 },
-      },
-    });
-
-    const existing = before?.badges ?? [];
-    const computedBadges = computeBadges(
-      updated.acceptedCount,
-      updated.totalPoints,
-    );
-    const merged = [...new Set([...existing, ...computedBadges])];
-    await prisma.userProfile.update({
-      where: { clerkUserId: suggestion.clerkUserId },
-      data: { badges: merged },
-    });
-
-    const earned = computedBadges.filter((b) => !existing.includes(b));
-    if (earned.length) {
-      await notifyBadgesEarned(suggestion.clerkUserId, earned);
-    }
-  }
-
-  if (characterMutated) await invalidateWikiCache();
-}
-
-export async function PATCH(req: Request) {
-  const { userId } = await auth();
-  if (!(await isAdmin(userId)))
-    return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-
-  const { id, status } = await req.json();
-
-  const suggestion = await prisma.suggestion.update({
-    where: { id },
-    data: { status },
-  });
-
-  if (status === "accepted") {
-    await applyAcceptedSuggestion(suggestion);
-  }
-
-  if (
-    suggestion.clerkUserId &&
-    (status === "accepted" || status === "rejected")
-  ) {
-    await notifyUser(
-      suggestion.clerkUserId,
-      status === "accepted" ? "suggestion_accepted" : "suggestion_rejected",
-      status === "accepted"
-        ? `Ta proposition${suggestion.nom ? ` pour "${suggestion.nom}"` : ""} a été acceptée !`
-        : `Ta proposition${suggestion.nom ? ` pour "${suggestion.nom}"` : ""} a été refusée.`,
-    );
-  }
-
-  return NextResponse.json(suggestion);
-}
-
-function computeBadges(acceptedCount: number, points: number): string[] {
-  const badges: string[] = [];
-
-  // Badges contribution → basés sur acceptedCount
-  if (acceptedCount >= 1) badges.push("first-step");
-  if (acceptedCount >= 5) badges.push("contributor");
-  if (acceptedCount >= 15) badges.push("expert");
-  if (acceptedCount >= 30) badges.push("legend");
-
-  return badges;
+  return NextResponse.json({ id: suggestion.id });
 }

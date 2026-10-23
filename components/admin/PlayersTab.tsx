@@ -14,7 +14,7 @@ import { matchesSearch } from "@/lib/utils";
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { getAvatarStyle, getInitials } from "../wiki/CharacterCard";
+
 import { BadgeKey, BADGES_CONFIG, PlayerBadges } from "./PlayerBadges";
 
 const PER_PAGE = 15;

@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { notifyUser } from "@/lib/notifications";
 
@@ -6,6 +7,7 @@ export async function updateCreatorRoleStatus(
   id: string,
   status: "approved" | "rejected",
 ) {
+  await requireAdmin();
   const role = await prisma.creatorRole.update({
     where: { id },
     data: { status },
@@ -24,5 +26,6 @@ export async function updateCreatorRoleStatus(
 }
 
 export async function deleteCreatorPostAdmin(id: string) {
+  await requireAdmin();
   await prisma.creatorPost.delete({ where: { id } });
 }

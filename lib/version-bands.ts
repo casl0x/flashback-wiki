@@ -29,13 +29,13 @@ function formatPeriode(
 /** Bandes de l'explorateur de versions (accueil), dans l'ordre défini dans l'admin. */
 export async function getVersionBands(): Promise<VersionBand[]> {
   const versions = await prisma.version.findMany({
-    orderBy: [{ ordre: "asc" }],
+    orderBy: [{ ordre: "asc" }, { id: "asc" }],
     include: { _count: { select: { characters: true } } },
   });
 
   return versions.map((v) => ({
     id: v.id,
-    num: v.id,
+    num: v.id.replace(/^V/i, ""),
     label: v.label,
     color: v.color,
     imageUrl: v.imageUrl,

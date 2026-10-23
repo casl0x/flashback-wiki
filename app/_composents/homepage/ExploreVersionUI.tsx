@@ -73,7 +73,7 @@ export default function ExploreVersionUI({
                   ) : (
                     <span className="absolute inset-0 bg-muted" />
                   )}
-                  <span className="absolute inset-0 bg-linear-to-t from-background/95 from-30% to-background/10" />
+                  <span className="absolute inset-0" />
                   <span className="absolute inset-x-5 bottom-5 flex flex-col gap-1.5 md:inset-x-6">
                     <span
                       className={`${anton.className} text-7xl leading-[0.85] md:text-[110px]`}

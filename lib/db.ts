@@ -62,7 +62,11 @@ export type Character = {
     Player,
     "id" | "pseudo" | "stream" | "lienChaine" | "reseaux" | "badges"
   > | null;
-  version?: Pick<Version, "id" | "label" | "color" | "description"> | null;
+  version?: Pick<
+    Version,
+    "id" | "label" | "color" | "description" | "ordre"
+  > | null;
+  versions?: Pick<Version, "id" | "label" | "color" | "description" | "ordre">[];
   relations?: LinkedRelation[];
 
   locationX?: number | null;

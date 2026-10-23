@@ -14,7 +14,7 @@ export default async function HomePage() {
   return (
     <main className="max-w-6xl mx-auto flex flex-col gap-8 px-4 py-8 lg:gap-12 lg:px-5 lg:py-12">
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center height-160px background: linear-gradient(to top, #0E0F12 10%, rgba(14,15,18,0));"></div>
+        <div className="absolute inset-0 flex items-center justify-center height-160px "></div>
         {/* <Button className="absolute inset-0 flex items-center justify-center">
           Commencer
         </Button> */}
@@ -25,7 +25,7 @@ export default async function HomePage() {
           <h1 className="uppercase text-4xl font-bold text-text-primary sm:text-5xl lg:text-6xl">
             Tous les visages de Flashback WL
           </h1>
-          <p className="text-sm text-text-secondary sm:text-base lg:text-lg max-w-0 lg:max-w-3xl">
+          <p className="text-sm text-text-secondary sm:text-base lg:text-lg sm:max-w-3xl">
             Tous les personnages joués sur le serveur et leurs joueurs, les
             playlists liées aux persos, les rediffusions et les créations de la
             communauté.

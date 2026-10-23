@@ -1,81 +1,182 @@
-"use client";
+import {
+  ButtonLink,
+  PageHeader,
+  Select,
+  TextInput,
+} from "@/app/_composents/admin/ui";
+import {
+  characterListInclude,
+  characterWhere,
+  currentJob,
+} from "@/lib/admin/character-list";
+import { prisma } from "@/lib/db";
+import Link from "next/link";
+import CharactersTable from "./CharactersTable";
 
-import { CharactersTab } from "@/components/admin/CharactersTab";
-import { Groupe, Player, Version } from "@/lib/db";
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+const PER_PAGE = 25;
 
-export default function CharactersPage() {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [versions, setVersions] = useState<Version[]>([]);
-  const [groupes, setGroupes] = useState<Groupe[]>([]);
-  const [loaded, setLoaded] = useState(false);
+type Props = {
+  searchParams: Promise<{
+    q?: string;
+    version?: string;
+    etat?: string;
+    groupe?: string;
+    page?: string;
+  }>;
+};
 
-  useEffect(() => {
-    fetch("/api/data", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => {
-        setPlayers(d.players ?? []);
-        setVersions(d.versions ?? []);
-        setGroupes(d.groupes ?? []);
-        setLoaded(true);
-      });
-  }, []);
+export default async function AdminCharacters({ searchParams }: Props) {
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp.page) || 1);
+  const where = characterWhere(sp);
+
+  const [total, rows, versions, groupes] = await Promise.all([
+    prisma.character.count({ where }),
+    prisma.character.findMany({
+      where,
+      include: characterListInclude,
+      orderBy: { nom: "asc" },
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.version.findMany({
+      orderBy: [{ ordre: "asc" }, { id: "asc" }],
+      select: { id: true, label: true },
+    }),
+    prisma.groupe.findMany({
+      orderBy: { nom: "asc" },
+      select: { id: true, nom: true },
+    }),
+  ]);
+
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const qs = (p: number) => {
+    const params = new URLSearchParams();
+    for (const k of ["q", "version", "etat", "groupe"] as const)
+      if (sp[k]) params.set(k, sp[k]!);
+    params.set("page", String(p));
+    return `?${params}`;
+  };
+  const exportParams = new URLSearchParams();
+  for (const k of ["q", "version", "etat", "groupe"] as const)
+    if (sp[k]) exportParams.set(k, sp[k]!);
 
   return (
     <>
-      {/* Page header */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-3.5 flex items-center justify-between">
-        <div>
-          <h1 className="text-[15px] font-semibold text-text-primary flex items-center gap-2">
-            <svg
-              className="text-accent"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+      <PageHeader
+        title="Personnages"
+        meta={`${total} fiche${total > 1 ? "s" : ""}`}
+        actions={
+          <>
+            <ButtonLink
+              href={`/admin/characters/export?${exportParams}`}
+              prefetch={false}
             >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
-            Personnages
-          </h1>
-          <p className="text-[11px] text-text-muted mt-0.5">
-            Gérer les personnages du jeu
-          </p>
-        </div>
-      </div>
+              Exporter CSV
+            </ButtonLink>
+            <ButtonLink href="/admin/characters/new" variant="primary">
+              + Nouveau personnage
+            </ButtonLink>
+          </>
+        }
+      />
 
-      {/* Content */}
-      <div className="flex-1 p-6">
-        {loaded ? (
-          <CharactersTab
-            players={players}
-            versions={versions}
-            groupes={groupes}
-          />
-        ) : (
-          <div className="flex items-center justify-center py-16">
-            <div className="flex flex-col items-center gap-3 text-text-muted">
-              <svg
-                className="animate-spin"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-              </svg>
-              <span className="text-[12px]">Chargement…</span>
-            </div>
-          </div>
+      <form className="flex flex-wrap gap-2.5" role="search">
+        <TextInput
+          name="q"
+          defaultValue={sp.q}
+          placeholder="Nom, métier, joueur…"
+          aria-label="Rechercher"
+          className="max-w-90 flex-[1_1_240px]"
+        />
+        <Select
+          name="version"
+          defaultValue={sp.version ?? ""}
+          aria-label="Version"
+          className="w-auto"
+        >
+          <option value="">Toutes versions</option>
+          {versions.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.label}
+            </option>
+          ))}
+          <option value="none">Sans version</option>
+        </Select>
+        <Select
+          name="etat"
+          defaultValue={sp.etat ?? ""}
+          aria-label="État"
+          className="w-auto"
+        >
+          <option value="">Tous états</option>
+          <option value="EN_VIE">En vie</option>
+          <option value="MORT">Mort</option>
+          <option value="PARTI">Parti</option>
+          <option value="DISPARU">Disparu</option>
+          <option value="PRISON">En prison</option>
+        </Select>
+        <Select
+          name="groupe"
+          defaultValue={sp.groupe ?? ""}
+          aria-label="Groupe"
+          className="w-auto max-w-55"
+        >
+          <option value="">Tous groupes</option>
+          {groupes.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.nom}
+            </option>
+          ))}
+          <option value="none">Sans groupe</option>
+        </Select>
+        <button
+          type="submit"
+          className="min-h-10 rounded-lg bg-[#22252B] px-4 font-bold text-[#ECECEE] hover:bg-[#2B2E35]"
+        >
+          Filtrer
+        </button>
+        {(sp.q || sp.version || sp.etat || sp.groupe) && (
+          <Link
+            href="/admin/characters"
+            className="self-center text-[13px] text-[#A3A8B3] underline"
+          >
+            Effacer
+          </Link>
         )}
-      </div>
+      </form>
+
+      <CharactersTable
+        versions={versions}
+        rows={rows.map((c) => ({
+          id: c.id,
+          nom: c.nom,
+          imageUrl: c.imageUrl,
+          versions: c.versions,
+          job: currentJob(c),
+          player: c.player,
+          etatVie: c.etatVie,
+        }))}
+      />
+
+      <nav
+        aria-label="Pagination"
+        className="flex items-center justify-between gap-3 text-[13px] text-[#A3A8B3]"
+      >
+        <span>
+          {total === 0
+            ? "0"
+            : `${(page - 1) * PER_PAGE + 1} – ${Math.min(page * PER_PAGE, total)}`}{" "}
+          sur {total}
+        </span>
+        <span className="flex gap-2">
+          {page > 1 && <ButtonLink href={qs(page - 1)}>← Précédent</ButtonLink>}
+          {page < pages && (
+            <ButtonLink href={qs(page + 1)}>Suivant →</ButtonLink>
+          )}
+        </span>
+      </nav>
     </>
   );
 }

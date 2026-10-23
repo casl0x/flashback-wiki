@@ -3,15 +3,15 @@
 import { Character } from "@/lib/db";
 import { detectStreamPlatform } from "@/lib/utils";
 import { Player } from "@prisma/client";
+import {
+  KICK_COLOR,
+  KickIcon,
+  TWITCH_COLOR,
+  TwitchIcon,
+} from "../../app/_composents/icons/PlatformIcons";
 import { PlayerBadges } from "../admin/PlayerBadges";
 import { RESEAUX_OPTIONS } from "../admin/PlayersTab";
 import CharacterCard from "./CharacterCard";
-import {
-  KickIcon,
-  KICK_COLOR,
-  TwitchIcon,
-  TWITCH_COLOR,
-} from "./PlatformIcons";
 import SocialRow from "./SocialRow";
 
 type PartialPlayer = Pick<

@@ -97,16 +97,5 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(
-        900px 500px at 10% 10%,
-        hsl(263 84% 57% / 0.08),
-        transparent 60%
-      ),
-      radial-gradient(
-        700px 400px at 90% 90%,
-        hsl(217 91% 60% / 0.04),
-        transparent 60%
-      );
   }
 }

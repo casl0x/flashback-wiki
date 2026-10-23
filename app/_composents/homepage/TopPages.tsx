@@ -18,7 +18,7 @@ interface PageStat {
   versionColor: string;
 }
 
-async function fetchTopPersonnages(
+export async function fetchTopPersonnages(
   limit: number,
   since: string,
 ): Promise<PageStat[]> {
@@ -104,7 +104,8 @@ async function fetchTopPersonnages(
             );
           })(),
           version: c.version?.label ?? "",
-          versionId: (c.version as typeof c.version & { id?: string })?.id ?? "",
+          versionId:
+            (c.version as typeof c.version & { id?: string })?.id ?? "",
           versionColor:
             (c.version as typeof c.version & { color?: string })?.color ?? "",
         },
