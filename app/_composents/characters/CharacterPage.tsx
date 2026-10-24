@@ -65,15 +65,8 @@ export default function CharacterPage({ c }: { c: CharacterPageData }) {
                   <SuggestButton
                     mode="edit"
                     character={toSuggestCharacter(c)}
-                    renderTrigger={(onClick) => (
-                      <button
-                        type="button"
-                        onClick={onClick}
-                        className="font-semibold underline text-[#8AB4FF]"
-                      >
-                        propose-la
-                      </button>
-                    )}
+                    triggerLabel="propose-la"
+                    triggerClassName="font-semibold underline text-[#8AB4FF]"
                   />
                 ),
               }}

@@ -31,6 +31,9 @@ interface SuggestButtonProps {
   character?: Character; // requis en mode "edit"
   /** Trigger personnalisé (ex. lien inline dans un bandeau) ; par défaut, le bouton habituel. */
   renderTrigger?: (onClick: () => void) => React.ReactNode;
+  /** Variante sérialisable de renderTrigger, utilisable depuis un Server Component. */
+  triggerLabel?: string;
+  triggerClassName?: string;
 }
 
 const EMPTY_FORM = {
@@ -63,6 +66,8 @@ export function SuggestButton({
   mode,
   character,
   renderTrigger,
+  triggerLabel,
+  triggerClassName,
 }: SuggestButtonProps) {
   const { isSignedIn } = useUser();
   const router = useRouter();
@@ -200,6 +205,10 @@ export function SuggestButton({
     <>
       {renderTrigger ? (
         renderTrigger(handleClick)
+      ) : triggerLabel ? (
+        <button type="button" onClick={handleClick} className={triggerClassName}>
+          {triggerLabel}
+        </button>
       ) : (
         <button
           onClick={handleClick}
