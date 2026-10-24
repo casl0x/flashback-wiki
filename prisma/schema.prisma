@@ -263,7 +263,7 @@ model GroupeGrade {
   id      String  @id @default(cuid())
   nom     String
   ordre   Int     @default(0)
-  niveau  String? // "commandement" | "encadrement" | "agents" (couleur sur la page groupe)
+  color   String? // couleur hex de la rangée sur la page groupe ; libre, adapté à tout type de groupe
 
   groupeId String @map("groupe_id")
   groupe   Groupe @relation(fields: [groupeId], references: [id], onDelete: Cascade)

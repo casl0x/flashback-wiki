@@ -49,10 +49,12 @@ const PLAT = {
 
 export default function PlayerEditor({
   initial,
+  backHref,
   account,
   characters,
 }: {
   initial: P;
+  backHref: string;
   account: string | null;
   characters: C[];
 }) {
@@ -73,9 +75,8 @@ export default function PlayerEditor({
       setMsg(null);
       const r = await savePlayer(f.id, f);
       if (!r.ok) return setMsg({ tone: "error", text: r.error });
-      setMsg({ tone: "ok", text: "Joueur enregistré." });
-      if (!f.id) router.replace(`/admin/players/${r.data.id}`);
-      else router.refresh();
+      router.push(backHref);
+      router.refresh();
     });
 
   const remove = () => {
@@ -84,7 +85,7 @@ export default function PlayerEditor({
     start(async () => {
       const r = await deletePlayer(f.id!);
       if (!r.ok) return setMsg({ tone: "error", text: r.error });
-      router.push("/admin/players");
+      router.push(backHref);
       router.refresh();
     });
   };
@@ -99,7 +100,7 @@ export default function PlayerEditor({
   return (
     <>
       <PageHeader
-        back={{ href: "/admin/players", label: "Joueurs" }}
+        back={{ href: backHref, label: "Joueurs" }}
         title={f.pseudo || "Nouveau joueur"}
         meta={
           f.id
@@ -331,7 +332,7 @@ export default function PlayerEditor({
                       ))}
                     </span>
                     <Link
-                      href={`/admin/characters/${c.id}`}
+                      href={`/admin/characters/${c.id}?back=${encodeURIComponent(`/admin/players/${f.id}`)}`}
                       className="inline-flex min-h-8 items-center rounded-md border border-[#3A3E47] px-2.5 text-[13px] hover:bg-[#1F2228]"
                     >
                       Modifier
@@ -339,7 +340,7 @@ export default function PlayerEditor({
                   </div>
                 ))}
                 <ButtonLink
-                  href={`/admin/characters/new?player=${f.id}`}
+                  href={`/admin/characters/new?player=${f.id}&back=${encodeURIComponent(`/admin/players/${f.id}`)}`}
                   className="self-start"
                 >
                   + Créer un perso pour {f.pseudo}

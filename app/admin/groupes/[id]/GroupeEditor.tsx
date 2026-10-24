@@ -9,7 +9,6 @@ import {
   Notice,
   PageHeader,
   Panel,
-  Select,
   TextArea,
   TextInput,
 } from "@/app/_composents/admin/ui";
@@ -30,7 +29,7 @@ type Grade = {
   key: string;
   id: string | null;
   nom: string;
-  niveau: string;
+  color: string;
   members: number;
 };
 type G = {
@@ -43,23 +42,28 @@ type G = {
   grades: Grade[];
 };
 
-// Niveau = couleur de la rangée sur la page du groupe.
-const NIVEAUX = [
-  { value: "", label: "—" },
-  { value: "commandement", label: "Commandement" },
-  { value: "encadrement", label: "Encadrement" },
-  { value: "agents", label: "Agents" },
+// Couleurs proposées par défaut pour un nouveau grade, du plus haut au plus bas.
+// Libre à l'admin de les changer : rien n'impose une hiérarchie "militaire" type.
+const GRADE_PALETTE = [
+  "#E4B44A",
+  "#8AB4FF",
+  "#6EE7A0",
+  "#FF8A8E",
+  "#C98BFF",
+  "#9AA0AA",
 ];
 
 let seq = 0;
 
 export default function GroupeEditor({
   initial,
+  backHref,
   members,
   presence,
   others,
 }: {
   initial: G;
+  backHref: string;
   members: number;
   presence: { id: string; color: string; count: number }[];
   others: { id: string; nom: string }[];
@@ -97,13 +101,12 @@ export default function GroupeEditor({
         grades: f.grades.map((g) => ({
           id: g.id,
           nom: g.nom,
-          niveau: g.niveau || null,
+          color: g.color || null,
         })),
       });
       if (!r.ok) return setMsg({ tone: "error", text: r.error });
-      setMsg({ tone: "ok", text: "Groupe enregistré." });
-      if (!f.id) router.replace(`/admin/groupes/${r.data.id}`);
-      else router.refresh();
+      router.push(backHref);
+      router.refresh();
     });
 
   const remove = () => {
@@ -112,7 +115,7 @@ export default function GroupeEditor({
     start(async () => {
       const r = await deleteGroupe(f.id!);
       if (!r.ok) return setMsg({ tone: "error", text: r.error });
-      router.push("/admin/groupes");
+      router.push(backHref);
       router.refresh();
     });
   };
@@ -129,7 +132,7 @@ export default function GroupeEditor({
   return (
     <>
       <PageHeader
-        back={{ href: "/admin/groupes", label: "Groupes" }}
+        back={{ href: backHref, label: "Groupes" }}
         title={f.nom || "Nouveau groupe"}
         meta={
           f.id
@@ -290,26 +293,38 @@ export default function GroupeEditor({
                     }
                     className="min-w-40 flex-[1_1_200px]"
                   />
-                  <Select
-                    aria-label="Niveau"
-                    value={g.niveau}
-                    onChange={(e) =>
-                      setGrades(
-                        f.grades.map((x) =>
-                          x.key === g.key
-                            ? { ...x, niveau: e.target.value }
-                            : x,
-                        ),
-                      )
-                    }
-                    className="w-42 flex-none"
-                  >
-                    {NIVEAUX.map((n) => (
-                      <option key={n.value} value={n.value}>
-                        {n.label}
-                      </option>
-                    ))}
-                  </Select>
+                  <span className="flex flex-none items-center gap-1.5">
+                    <input
+                      type="color"
+                      aria-label={`Couleur de ${g.nom || "ce grade"}`}
+                      value={g.color || "#9AA0AA"}
+                      onChange={(e) =>
+                        setGrades(
+                          f.grades.map((x) =>
+                            x.key === g.key
+                              ? { ...x, color: e.target.value }
+                              : x,
+                          ),
+                        )
+                      }
+                      className="h-9 w-10 cursor-pointer rounded-md border border-[#3A3E47] bg-transparent p-1"
+                    />
+                    <TextInput
+                      aria-label={`Couleur de ${g.nom || "ce grade"} (hex)`}
+                      value={g.color}
+                      onChange={(e) =>
+                        setGrades(
+                          f.grades.map((x) =>
+                            x.key === g.key
+                              ? { ...x, color: e.target.value }
+                              : x,
+                          ),
+                        )
+                      }
+                      placeholder="#9AA0AA"
+                      className="w-24 flex-none font-mono"
+                    />
+                  </span>
                   <span className="w-22 flex-none text-[12px] text-[#9AA0AA]">
                     {g.members
                       ? `${g.members} membre${g.members > 1 ? "s" : ""}`
@@ -336,7 +351,7 @@ export default function GroupeEditor({
                       key: `new-${++seq}`,
                       id: null,
                       nom: "",
-                      niveau: "",
+                      color: GRADE_PALETTE[f.grades.length % GRADE_PALETTE.length],
                       members: 0,
                     },
                   ])

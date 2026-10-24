@@ -15,12 +15,8 @@ type Props = {
   searchParams: Promise<{ v?: string }>;
 };
 
-// Couleur d'une rangée de la hiérarchie selon le niveau du grade.
-const NIVEAU_COLOR: Record<string, string> = {
-  commandement: "#E4B44A",
-  encadrement: "#8AB4FF",
-  agents: "#9AA0AA",
-};
+// Couleur de repli si un grade (ancien format) n'a pas encore de couleur propre.
+const FALLBACK_COLOR = "#9AA0AA";
 const NONE = "__none__";
 
 const loadGroupe = unstable_cache(
@@ -95,12 +91,10 @@ export default async function GroupePage({ params, searchParams }: Props) {
   // Hiérarchie de la période : une rangée par grade (ordre défini dans l'admin), puis « Sans grade ».
   const ranks = current
     ? [
-        ...g.grades.map((gr, i) => ({
+        ...g.grades.map((gr) => ({
           key: gr.id,
           label: gr.nom,
-          color:
-            (gr.niveau && NIVEAU_COLOR[gr.niveau]) ||
-            (i === 0 ? NIVEAU_COLOR.commandement : NIVEAU_COLOR.agents),
+          color: gr.color || FALLBACK_COLOR,
           people: current.members.filter((m) => m.gradeId === gr.id),
         })),
         {

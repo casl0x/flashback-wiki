@@ -33,6 +33,14 @@ export default async function AdminPlayers({ searchParams }: Props) {
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const qs = (p: number) =>
     `?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), page: String(p) })}`;
+  const listParams = new URLSearchParams();
+  if (sp.q) listParams.set("q", sp.q);
+  if (sp.page) listParams.set("page", sp.page);
+  const backHref = listParams.toString()
+    ? `/admin/players?${listParams}`
+    : "/admin/players";
+  const editHref = (id: string) =>
+    `/admin/players/${id}?back=${encodeURIComponent(backHref)}`;
 
   return (
     <>
@@ -40,7 +48,7 @@ export default async function AdminPlayers({ searchParams }: Props) {
         title="Joueurs"
         meta={`${total} joueur${total > 1 ? "s" : ""}`}
         actions={
-          <ButtonLink href="/admin/players/new" variant="primary">
+          <ButtonLink href={editHref("new")} variant="primary">
             + Nouveau joueur
           </ButtonLink>
         }
@@ -105,7 +113,7 @@ export default async function AdminPlayers({ searchParams }: Props) {
                 >
                   <td className="px-3 py-2.5 font-semibold">
                     <Link
-                      href={`/admin/players/${p.id}`}
+                      href={editHref(p.id)}
                       className="hover:underline"
                     >
                       {p.pseudo}
@@ -161,7 +169,7 @@ export default async function AdminPlayers({ searchParams }: Props) {
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     <Link
-                      href={`/admin/players/${p.id}`}
+                      href={editHref(p.id)}
                       className="inline-flex min-h-8 items-center rounded-md border border-[#3A3E47] px-2.5 text-[13px] hover:bg-[#1F2228]"
                     >
                       Modifier

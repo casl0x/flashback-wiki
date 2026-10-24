@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/admin/slug";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
 
-export type GradeInput = { id: string | null; nom: string; niveau: string | null };
+export type GradeInput = { id: string | null; nom: string; color: string | null };
 
 export type GroupeInput = {
   nom: string;
@@ -45,7 +45,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
         await tx.groupeGrade.update({ where: { id: gr.id! }, data: { nom: `__tmp_${gr.id}` } });
       }
       for (const [i, gr] of input.grades.entries()) {
-        const gradeData = { nom: gr.nom.trim(), niveau: clean(gr.niveau), ordre: i };
+        const gradeData = { nom: gr.nom.trim(), color: clean(gr.color), ordre: i };
         if (gr.id) await tx.groupeGrade.update({ where: { id: gr.id }, data: gradeData });
         else await tx.groupeGrade.create({ data: { ...gradeData, groupeId: g.id } });
       }
@@ -89,7 +89,7 @@ export async function mergeGroupe(sourceId: string, targetId: string): Promise<A
       for (const sg of srcGrades) {
         const match = tgtGrades.find((t) => t.nom.toLowerCase() === sg.nom.toLowerCase());
         const target =
-          match ?? (await tx.groupeGrade.create({ data: { groupeId: targetId, nom: sg.nom, niveau: sg.niveau, ordre: nextOrdre++ } }));
+          match ?? (await tx.groupeGrade.create({ data: { groupeId: targetId, nom: sg.nom, color: sg.color, ordre: nextOrdre++ } }));
         gradeMap.set(sg.id, target.id);
       }
 

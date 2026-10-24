@@ -11,6 +11,11 @@ export default async function AdminGroupes({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
+  const backHref = q?.trim()
+    ? `/admin/groupes?q=${encodeURIComponent(q.trim())}`
+    : "/admin/groupes";
+  const editHref = (id: string) =>
+    `/admin/groupes/${id}?back=${encodeURIComponent(backHref)}`;
   const groupes = await prisma.groupe.findMany({
     where: q?.trim()
       ? { nom: { contains: q.trim(), mode: "insensitive" } }
@@ -28,7 +33,7 @@ export default async function AdminGroupes({
         title="Groupes"
         meta={`${groupes.length} groupe${groupes.length > 1 ? "s" : ""}`}
         actions={
-          <ButtonLink href="/admin/groupes/new" variant="primary">
+          <ButtonLink href={editHref("new")} variant="primary">
             + Nouveau groupe
           </ButtonLink>
         }
@@ -99,7 +104,7 @@ export default async function AdminGroupes({
                 >
                   <td className="px-3 py-2.5">
                     <Link
-                      href={`/admin/groupes/${g.id}`}
+                      href={editHref(g.id)}
                       className="flex items-center gap-2 font-semibold hover:underline"
                     >
                       <span
@@ -124,7 +129,7 @@ export default async function AdminGroupes({
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     <Link
-                      href={`/admin/groupes/${g.id}`}
+                      href={editHref(g.id)}
                       className="inline-flex min-h-8 items-center rounded-md border border-[#3A3E47] px-2.5 text-[13px] hover:bg-[#1F2228]"
                     >
                       Modifier

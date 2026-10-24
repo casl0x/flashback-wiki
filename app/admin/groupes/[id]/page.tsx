@@ -5,8 +5,14 @@ import GroupeEditor from "./GroupeEditor";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditGroupePage({ params }: { params: Promise<{ id: string }> }) {
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ back?: string }>;
+};
+
+export default async function EditGroupePage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { back } = await searchParams;
   const isNew = id === "new";
   const [g, others, versions] = await Promise.all([
     isNew
@@ -34,9 +40,12 @@ export default async function EditGroupePage({ params }: { params: Promise<{ id:
     .sort(([a], [b]) => versionRank(b) - versionRank(a))
     .map(([v, s]) => ({ id: v, color: color.get(v) ?? "#C4C7CF", count: s.size }));
 
+  const backHref = back && back.startsWith("/admin/") ? back : "/admin/groupes";
+
   return (
     <GroupeEditor
       key={g?.id ?? "new"}
+      backHref={backHref}
       initial={{
         id: g?.id ?? null,
         nom: g?.nom ?? "",
@@ -44,7 +53,7 @@ export default async function EditGroupePage({ params }: { params: Promise<{ id:
         color: g?.color ?? "#2F6FEB",
         description: g?.description ?? "",
         imageUrl: g?.imageUrl ?? null,
-        grades: (g?.grades ?? []).map((gr) => ({ key: gr.id, id: gr.id, nom: gr.nom, niveau: gr.niveau ?? "", members: gr._count.members })),
+        grades: (g?.grades ?? []).map((gr) => ({ key: gr.id, id: gr.id, nom: gr.nom, color: gr.color ?? "", members: gr._count.members })),
       }}
       members={g ? new Set(g.members.map((m) => m.characterId)).size : 0}
       presence={presence}

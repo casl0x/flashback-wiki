@@ -11,8 +11,14 @@ const reseaux = (v: Prisma.JsonValue): Record<string, string> =>
     ? Object.fromEntries(Object.entries(v).filter((e): e is [string, string] => typeof e[1] === "string"))
     : {};
 
-export default async function EditPlayerPage({ params }: { params: Promise<{ id: string }> }) {
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ back?: string }>;
+};
+
+export default async function EditPlayerPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { back } = await searchParams;
   const isNew = id === "new";
   const p = isNew
     ? null
@@ -35,9 +41,12 @@ export default async function EditPlayerPage({ params }: { params: Promise<{ id:
     ? (p.userProfile.pseudo ?? (await displayNames([p.userProfile.clerkUserId])).get(p.userProfile.clerkUserId) ?? "Utilisateur")
     : null;
 
+  const backHref = back && back.startsWith("/admin/") ? back : "/admin/players";
+
   return (
     <PlayerEditor
       key={p?.id ?? "new"}
+      backHref={backHref}
       initial={{
         id: p?.id ?? null,
         pseudo: p?.pseudo ?? "",

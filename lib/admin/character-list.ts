@@ -1,8 +1,8 @@
 import "server-only";
 
-import type { EtatVie, Prisma } from "@prisma/client";
+import type { EtatVie, Prisma, Role } from "@prisma/client";
 
-export type CharacterFilters = { q?: string; version?: string; etat?: string; groupe?: string };
+export type CharacterFilters = { q?: string; version?: string; etat?: string; groupe?: string; role?: string };
 
 const ETATS = ["EN_VIE", "MORT", "PARTI", "DISPARU", "PRISON"];
 
@@ -21,6 +21,7 @@ export function characterWhere(f: CharacterFilters): Prisma.CharacterWhereInput 
   if (f.version === "none") and.push({ versions: { none: {} } });
   else if (f.version) and.push({ versions: { some: { id: f.version } } });
   if (f.etat && ETATS.includes(f.etat)) and.push({ etatVie: f.etat as EtatVie });
+  if (f.role === "civil" || f.role === "illegal") and.push({ role: f.role as Role });
   if (f.groupe === "none") and.push({ groupes: { none: {} } });
   else if (f.groupe) and.push({ groupes: { some: { groupeId: f.groupe } } });
   return and.length ? { AND: and } : {};

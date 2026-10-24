@@ -1,16 +1,11 @@
-import {
-  ButtonLink,
-  PageHeader,
-  Select,
-  TextInput,
-} from "@/app/_composents/admin/ui";
+import { ButtonLink, PageHeader } from "@/app/_composents/admin/ui";
 import {
   characterListInclude,
   characterWhere,
   currentJob,
 } from "@/lib/admin/character-list";
 import { prisma } from "@/lib/db";
-import Link from "next/link";
+import AdminCharacterFilters from "../../_composents/admin/AdminCharacterFilters";
 import CharactersTable from "./CharactersTable";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +17,8 @@ type Props = {
     version?: string;
     etat?: string;
     groupe?: string;
+    role?: string;
+    sort?: string;
     page?: string;
   }>;
 };
@@ -31,35 +28,32 @@ export default async function AdminCharacters({ searchParams }: Props) {
   const page = Math.max(1, Number(sp.page) || 1);
   const where = characterWhere(sp);
 
-  const [total, rows, versions, groupes] = await Promise.all([
+  const [total, rows, versionRows] = await Promise.all([
     prisma.character.count({ where }),
     prisma.character.findMany({
       where,
       include: characterListInclude,
-      orderBy: { nom: "asc" },
+      orderBy: { nom: sp.sort === "z→a" ? "desc" : "asc" },
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
     }),
     prisma.version.findMany({
       orderBy: [{ ordre: "asc" }, { id: "asc" }],
-      select: { id: true, label: true },
-    }),
-    prisma.groupe.findMany({
-      orderBy: { nom: "asc" },
-      select: { id: true, nom: true },
+      select: { id: true, label: true, color: true, ordre: true },
     }),
   ]);
+  const versions = versionRows.map((v) => ({ ...v, ordre: String(v.ordre) }));
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const qs = (p: number) => {
     const params = new URLSearchParams();
-    for (const k of ["q", "version", "etat", "groupe"] as const)
+    for (const k of ["q", "version", "etat", "groupe", "role", "sort"] as const)
       if (sp[k]) params.set(k, sp[k]!);
     params.set("page", String(p));
     return `?${params}`;
   };
   const exportParams = new URLSearchParams();
-  for (const k of ["q", "version", "etat", "groupe"] as const)
+  for (const k of ["q", "version", "etat", "groupe", "role", "sort"] as const)
     if (sp[k]) exportParams.set(k, sp[k]!);
 
   return (
@@ -75,77 +69,21 @@ export default async function AdminCharacters({ searchParams }: Props) {
             >
               Exporter CSV
             </ButtonLink>
-            <ButtonLink href="/admin/characters/new" variant="primary">
+            <ButtonLink
+              href={`/admin/characters/new?back=${encodeURIComponent(
+                exportParams.toString()
+                  ? `/admin/characters?${exportParams}`
+                  : "/admin/characters",
+              )}`}
+              variant="primary"
+            >
               + Nouveau personnage
             </ButtonLink>
           </>
         }
       />
 
-      <form className="flex flex-wrap gap-2.5" role="search">
-        <TextInput
-          name="q"
-          defaultValue={sp.q}
-          placeholder="Nom, métier, joueur…"
-          aria-label="Rechercher"
-          className="max-w-90 flex-[1_1_240px]"
-        />
-        <Select
-          name="version"
-          defaultValue={sp.version ?? ""}
-          aria-label="Version"
-          className="w-auto"
-        >
-          <option value="">Toutes versions</option>
-          {versions.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.label}
-            </option>
-          ))}
-          <option value="none">Sans version</option>
-        </Select>
-        <Select
-          name="etat"
-          defaultValue={sp.etat ?? ""}
-          aria-label="État"
-          className="w-auto"
-        >
-          <option value="">Tous états</option>
-          <option value="EN_VIE">En vie</option>
-          <option value="MORT">Mort</option>
-          <option value="PARTI">Parti</option>
-          <option value="DISPARU">Disparu</option>
-          <option value="PRISON">En prison</option>
-        </Select>
-        <Select
-          name="groupe"
-          defaultValue={sp.groupe ?? ""}
-          aria-label="Groupe"
-          className="w-auto max-w-55"
-        >
-          <option value="">Tous groupes</option>
-          {groupes.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.nom}
-            </option>
-          ))}
-          <option value="none">Sans groupe</option>
-        </Select>
-        <button
-          type="submit"
-          className="min-h-10 rounded-lg bg-[#22252B] px-4 font-bold text-[#ECECEE] hover:bg-[#2B2E35]"
-        >
-          Filtrer
-        </button>
-        {(sp.q || sp.version || sp.etat || sp.groupe) && (
-          <Link
-            href="/admin/characters"
-            className="self-center text-[13px] text-[#A3A8B3] underline"
-          >
-            Effacer
-          </Link>
-        )}
-      </form>
+      <AdminCharacterFilters versions={versions} resultCount={rows.length} />
 
       <CharactersTable
         versions={versions}

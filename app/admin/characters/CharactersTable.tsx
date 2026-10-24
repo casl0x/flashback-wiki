@@ -10,7 +10,7 @@ import {
 import { bulkSetVersion } from "@/lib/admin/actions/characters";
 import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 
 type Row = {
@@ -31,6 +31,12 @@ export default function CharactersTable({
   versions: { id: string; label: string }[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editHref = (id: string) => {
+    const qs = searchParams.toString();
+    const back = qs ? `/admin/characters?${qs}` : "/admin/characters";
+    return `/admin/characters/${id}?back=${encodeURIComponent(back)}`;
+  };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [version, setVersion] = useState(versions[0]?.id ?? "");
   const [pending, start] = useTransition();
@@ -151,7 +157,7 @@ export default function CharactersTable({
                 </td>
                 <td className="px-3 py-2">
                   <Link
-                    href={`/admin/characters/${r.id}`}
+                    href={editHref(r.id)}
                     className="flex items-center gap-2.5 font-semibold text-[#ECECEE] hover:underline"
                   >
                     {r.imageUrl ? (
@@ -214,7 +220,7 @@ export default function CharactersTable({
                 </td>
                 <td className="px-3 py-2 text-right">
                   <Link
-                    href={`/admin/characters/${r.id}`}
+                    href={editHref(r.id)}
                     className="inline-flex min-h-8 items-center rounded-md border border-[#3A3E47] px-2.5 text-[13px] text-[#ECECEE] hover:bg-[#1F2228]"
                   >
                     Modifier

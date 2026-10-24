@@ -5,11 +5,14 @@ import CharacterEditor, { type EditorCharacter } from "./CharacterEditor";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ player?: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ player?: string; back?: string }>;
+};
 
 export default async function EditCharacterPage({ params, searchParams }: Props) {
   const { id } = await params;
-  const { player } = await searchParams;
+  const { player, back } = await searchParams;
   const isNew = id === "new";
 
   const [c, players, versions, groupes, characters] = await Promise.all([
@@ -87,10 +90,13 @@ export default async function EditCharacterPage({ params, searchParams }: Props)
         relations: [],
       };
 
+  const backHref = back && back.startsWith("/admin/") ? back : "/admin/characters";
+
   return (
     <CharacterEditor
       key={initial.id ?? "new"}
       initial={initial}
+      backHref={backHref}
       players={players}
       versions={[...versions].sort((a, b) => versionRank(a.id) - versionRank(b.id))}
       groupes={groupes}
