@@ -1,5 +1,6 @@
-import { SuggestButton } from "@/components/user/SuggestEditButton";
-import { MentionText } from "@/components/wiki/MentionText";
+import { MentionText } from "@/app/_composents/MentionText";
+import { InlineNotice } from "@/app/_composents/notice/InlineNotice";
+import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
 import type { CharacterPageData } from "@/lib/character-page";
 import type { Character } from "@/lib/db";
 import { youtubeThumbnail } from "@/lib/media-embed";
@@ -10,6 +11,7 @@ import CharacterMap from "./CharacterMap";
 import CharacterParcours from "./CharacterParcours";
 import CharacterRelations from "./CharacterRelations";
 import CharacterSounds from "./CharacterSounds";
+import { CharacterUserNotices } from "./CharacterUserNotices";
 import SectionTitle from "./SectionTitle";
 
 /** Forme attendue par le bouton « Proposer une modification » (ancien type Character). */
@@ -53,6 +55,33 @@ export default function CharacterPage({ c }: { c: CharacterPageData }) {
 
       <div className="mx-auto flex max-w-295 flex-wrap items-start gap-8 px-4 pb-16 pt-8 sm:px-5">
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-7">
+          <CharacterUserNotices characterId={c.id} />
+
+          {!c.lienReddif && !c.description && (
+            <InlineNotice
+              tone="info"
+              action={{
+                render: (
+                  <SuggestButton
+                    mode="edit"
+                    character={toSuggestCharacter(c)}
+                    renderTrigger={(onClick) => (
+                      <button
+                        type="button"
+                        onClick={onClick}
+                        className="font-semibold underline text-[#8AB4FF]"
+                      >
+                        propose-la
+                      </button>
+                    )}
+                  />
+                ),
+              }}
+            >
+              Cette fiche n’a pas de source. Si tu as un clip ou un live,
+            </InlineNotice>
+          )}
+
           {c.description && (
             <section
               aria-labelledby="histoire-h"

@@ -1,4 +1,4 @@
-import { PlayerBadges } from "@/components/admin/PlayerBadges";
+import { PlayerBadges } from "@/app/_composents/admin/PlayerBadges";
 import type { CharacterPageData } from "@/lib/character-page";
 import { cloudinaryUrl, initials } from "@/lib/character-page";
 import { cn } from "@/lib/utils";
@@ -49,16 +49,17 @@ export function PlayerPanel({ player }: { player: Player }) {
         >
           {initials(player.pseudo)}
         </span>
-        <div>
+        <div className="flex flex-col gap-0.5">
           <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#A3A8B3]">
             Joué par
           </span>
-          <h2
+          <Link
+            href={`/joueurs/${player.id}`}
             id="player-h"
             className="m-0 mt-0.5 text-[24px] font-bold text-[#ECECEE]"
           >
             {player.pseudo}
-          </h2>
+          </Link>
           <p className="m-0 mt-0.5 text-[14px] text-[#A3A8B3]">
             {player.totalCharacters} personnage
             {player.totalCharacters > 1 ? "s" : ""}

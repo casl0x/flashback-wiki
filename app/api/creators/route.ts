@@ -9,6 +9,7 @@ type GroupedCreator = {
   types: ("ARTISTE" | "EDITEUR")[];
   roles: {
     type: "ARTISTE" | "EDITEUR";
+    bio: string | null;
     socialLinks: { platform: string; url: string }[];
   }[];
 };
@@ -50,6 +51,7 @@ export async function GET() {
     entry.types.push(r.type);
     entry.roles.push({
       type: r.type,
+      bio: r.bio,
       socialLinks: r.socialLinks.map((l) => ({
         platform: l.platform,
         url: l.url,

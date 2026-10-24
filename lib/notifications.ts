@@ -1,4 +1,4 @@
-import { BADGES_CONFIG } from "@/components/user/badges";
+import { BADGES_CONFIG } from "@/app/_composents/user/badges";
 import { prisma } from "@/lib/db";
 
 export async function notifyUser(

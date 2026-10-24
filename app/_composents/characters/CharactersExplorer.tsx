@@ -2,7 +2,7 @@
 
 import CharactersGrid from "@/app/_composents/characters/CharactersGrid";
 import Pagination from "@/app/_composents/ui/Pagination";
-import EmptyState from "@/components/wiki/EmptyState";
+import EmptyState from "@/app/_composents/EmptyState";
 import { Character } from "@/lib/db";
 import { matchesSearch } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
@@ -92,7 +92,7 @@ export default function CharactersExplorer({ characters }: Props) {
   const resetPage = () => setPage(1);
 
   return (
-    <section className="flex flex-col gap-4 mt-4">
+    <section className="flex flex-col gap-4">
       <CharacterFilterBar
         query={query}
         onQueryChange={(v) => {

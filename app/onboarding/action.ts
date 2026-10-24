@@ -13,6 +13,7 @@ type SocialLinkInput = {
 type CreatorRoleInput = {
   type: CreatorType;
   displayOnWiki: boolean;
+  bio?: string;
   socialLinks: SocialLinkInput[];
 };
 
@@ -21,7 +22,6 @@ export async function completeOnboarding(data: {
   roles: CreatorRoleInput[];
 }) {
   const { userId } = await auth();
-  console.log("userId dans completeOnboarding:", userId);
   if (!userId) throw new Error("Non authentifié");
 
   await prisma.userProfile.upsert({
@@ -89,6 +89,7 @@ export async function updateCreatorProfile(data: {
         where: { id: existing.id },
         data: {
           displayOnWiki: role.displayOnWiki,
+          bio: role.bio?.trim() || null,
           socialLinks: {
             deleteMany: {},
             createMany: {
@@ -104,6 +105,7 @@ export async function updateCreatorProfile(data: {
           userProfileId: profile.id,
           type: role.type,
           displayOnWiki: role.displayOnWiki,
+          bio: role.bio?.trim() || null,
           status: "pending",
           socialLinks: {
             createMany: {

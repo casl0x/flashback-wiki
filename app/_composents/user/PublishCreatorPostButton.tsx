@@ -1,7 +1,8 @@
 "use client";
 
+import { CharacterCombobox } from "@/app/_composents/characters/CharacterCombobox";
+import { useToast } from "@/app/_composents/toast/ToastProvider";
 import { createCreatorPost } from "@/app/profil/actions";
-import { CharacterCombobox } from "@/components/admin/CharacterCombobox";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +21,14 @@ import { useEffect, useState } from "react";
 
 type PostType = "ARTISTE" | "EDITEUR";
 
-const PLATFORMS = ["TWITTER", "TIKTOK", "YOUTUBE", "INSTAGRAM", "TWITCH", "AUTRE"];
+const PLATFORMS = [
+  "TWITTER",
+  "TIKTOK",
+  "YOUTUBE",
+  "INSTAGRAM",
+  "TWITCH",
+  "AUTRE",
+];
 const PLATFORM_LABELS: Record<string, string> = {
   TWITTER: "Twitter / X",
   TIKTOK: "TikTok",
@@ -58,6 +66,7 @@ export function PublishCreatorPostButton({
   const { isSignedIn } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const toast = useToast();
 
   const initialType = allowedTypes.includes(defaultType)
     ? defaultType
@@ -137,8 +146,16 @@ export function PublishCreatorPostButton({
       });
       setSent(true);
       onPublished?.();
+      toast({
+        tone: "success",
+        title: "Création publiée",
+        text: "Elle est visible sur la page Créations.",
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue.");
+      const message =
+        err instanceof Error ? err.message : "Une erreur est survenue.";
+      setError(message);
+      toast({ tone: "error", title: "Publication impossible", text: message });
     } finally {
       setLoading(false);
     }
@@ -154,7 +171,9 @@ export function PublishCreatorPostButton({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="bg-card border-border-mid max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-[14px]">Publier une création</DialogTitle>
+            <DialogTitle className="text-[14px]">
+              Publier une création
+            </DialogTitle>
           </DialogHeader>
 
           {sent ? (
@@ -170,9 +189,17 @@ export function PublishCreatorPostButton({
                 <div className="flex gap-1.5">
                   {(
                     [
-                      { key: "ARTISTE" as const, label: "Fan art", icon: Sparkles },
+                      {
+                        key: "ARTISTE" as const,
+                        label: "Fan art",
+                        icon: Sparkles,
+                      },
                       { key: "EDITEUR" as const, label: "Edit", icon: Film },
-                    ] satisfies { key: PostType; label: string; icon: typeof Sparkles }[]
+                    ] satisfies {
+                      key: PostType;
+                      label: string;
+                      icon: typeof Sparkles;
+                    }[]
                   )
                     .filter(({ key }) => allowedTypes.includes(key))
                     .map(({ key, label, icon: Icon }) => (
@@ -209,11 +236,15 @@ export function PublishCreatorPostButton({
                       <div className="h-14 w-14 rounded-md border border-dashed border-border bg-elevated" />
                     )}
                     <CldUploadWidget
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
+                      uploadPreset={
+                        process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!
+                      }
                       onSuccess={(result) => {
                         const info = result?.info;
                         const publicId =
-                          typeof info === "object" && info && "public_id" in info
+                          typeof info === "object" &&
+                          info &&
+                          "public_id" in info
                             ? (info.public_id as string)
                             : "";
                         setForm((p) => ({ ...p, imageUrl: publicId }));
@@ -225,7 +256,9 @@ export function PublishCreatorPostButton({
                           onClick={() => openWidget()}
                           className="text-[11px] border border-border-mid text-text-secondary px-3 py-1.5 rounded-md hover:bg-elevated transition-colors"
                         >
-                          {form.imageUrl ? "Changer l'image" : "Choisir une image"}
+                          {form.imageUrl
+                            ? "Changer l'image"
+                            : "Choisir une image"}
                         </button>
                       )}
                     </CldUploadWidget>

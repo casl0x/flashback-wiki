@@ -1,8 +1,8 @@
 "use client";
 
-import { LifeStateIcon } from "@/components/admin/LifeStateIcon";
 import { Character } from "@/lib/db";
 import Image from "next/image";
+import { LifeStateIcon } from "./LifeStateIcon";
 
 type Props = {
   character: Character;

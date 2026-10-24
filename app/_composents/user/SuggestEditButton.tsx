@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/app/_composents/toast/ToastProvider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +29,8 @@ type Mode = "create" | "edit";
 interface SuggestButtonProps {
   mode: Mode;
   character?: Character; // requis en mode "edit"
+  /** Trigger personnalisé (ex. lien inline dans un bandeau) ; par défaut, le bouton habituel. */
+  renderTrigger?: (onClick: () => void) => React.ReactNode;
 }
 
 const EMPTY_FORM = {
@@ -56,10 +59,15 @@ const ETATS_VIE = [
   { label: "En prison", value: "PRISON" },
 ];
 
-export function SuggestButton({ mode, character }: SuggestButtonProps) {
+export function SuggestButton({
+  mode,
+  character,
+  renderTrigger,
+}: SuggestButtonProps) {
   const { isSignedIn } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const toast = useToast();
 
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
@@ -132,14 +140,32 @@ export function SuggestButton({ mode, character }: SuggestButtonProps) {
       lienReddif: form.lienReddif || null,
     };
 
-    await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    setLoading(false);
-    setSent(true);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error();
+      setSent(true);
+      toast({
+        tone: "success",
+        title: "Proposition envoyée",
+        text: "Un modérateur va la vérifier. Tu seras notifié du résultat.",
+        action: {
+          label: "Voir mes propositions",
+          href: "/profil#propositions",
+        },
+      });
+    } catch {
+      toast({
+        tone: "error",
+        title: "Envoi impossible",
+        action: { label: "Réessayer", onClick: submit },
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   const isEdit = mode === "edit";
@@ -172,22 +198,26 @@ export function SuggestButton({ mode, character }: SuggestButtonProps) {
 
   return (
     <>
-      <button
-        onClick={handleClick}
-        className="inline-flex items-center gap-1.5 text-[11px] text-text-muted hover:text-text-secondary px-2.5 py-1 rounded-lg border border-border hover:border-border-mid transition-colors"
-      >
-        {isEdit ? (
-          <>
-            <Pencil className="w-3 h-3" />
-            Proposer une modification
-          </>
-        ) : (
-          <>
-            <Plus className="w-3 h-3" />
-            Proposer un personnage
-          </>
-        )}
-      </button>
+      {renderTrigger ? (
+        renderTrigger(handleClick)
+      ) : (
+        <button
+          onClick={handleClick}
+          className="inline-flex items-center gap-1.5 text-[11px] text-text-muted hover:text-text-secondary px-2.5 py-1 rounded-lg border border-border hover:border-border-mid transition-colors"
+        >
+          {isEdit ? (
+            <>
+              <Pencil className="w-3 h-3" />
+              Proposer une modification
+            </>
+          ) : (
+            <>
+              <Plus className="w-3 h-3" />
+              Proposer un personnage
+            </>
+          )}
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="bg-card border-border-mid max-w-sm max-h-[90vh] overflow-y-auto">
@@ -293,7 +323,9 @@ export function SuggestButton({ mode, character }: SuggestButtonProps) {
                     setForm((p) => ({ ...p, joueur: e.target.value }))
                   }
                   placeholder={
-                    isEdit ? (character?.player?.pseudo ?? "—") : "Pseudo du joueur"
+                    isEdit
+                      ? (character?.player?.pseudo ?? "—")
+                      : "Pseudo du joueur"
                   }
                   list="suggest-joueurs"
                 />

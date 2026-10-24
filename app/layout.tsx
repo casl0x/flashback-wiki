@@ -1,4 +1,5 @@
-import { NotificationPopup } from "@/components/user/NotificationPopup";
+import { ToastProvider } from "@/app/_composents/toast/ToastProvider";
+import { NotificationWatcher } from "@/app/_composents/user/NotificationWatcher";
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
@@ -44,12 +45,14 @@ export default async function RootLayout({
           />
         </head>
         <body>
-          <Header />
+          <ToastProvider>
+            <Header />
 
-          {children}
+            {children}
 
-          <NotificationPopup />
-          <Analytics />
+            <NotificationWatcher />
+            <Analytics />
+          </ToastProvider>
         </body>
       </html>
     </ClerkProvider>

@@ -12,7 +12,7 @@ import {
   Select,
   TextInput,
 } from "@/app/_composents/admin/ui";
-import { BADGES_CONFIG } from "@/components/admin/PlayerBadges";
+import { BADGES_CONFIG } from "@/app/_composents/admin/PlayerBadges";
 import {
   deletePlayer,
   savePlayer,

@@ -1,24 +1,25 @@
-// app/createurs/page.tsx
 "use client";
 
+import { useSearch } from "@/app/_composents/SearchContext";
+import { PublishCreatorPostButton } from "@/app/_composents/user/PublishCreatorPostButton";
 import { deleteCreatorPost } from "@/app/profil/actions";
-import { PublishCreatorPostButton } from "@/components/user/PublishCreatorPostButton";
-import { useSearch } from "@/components/wiki/SearchContext";
-import { matchesSearch } from "@/lib/utils";
+import { cloudinaryUrl } from "@/lib/cloudinary";
+import { anton } from "@/lib/fonts";
+import { youtubeThumbnail } from "@/lib/media-embed";
+import { cn, matchesSearch } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import {
   ChevronDown,
   ExternalLink,
   Film,
-  Sparkles,
+  Play,
   Trash2,
   User,
-  UserCircle2,
   X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type CreatorPost = {
   id: string;
@@ -32,6 +33,18 @@ type CreatorPost = {
   creator: { pseudo: string; avatarUrl: string | null; clerkUserId: string };
 };
 
+type Creator = {
+  id: string;
+  pseudo: string;
+  avatarUrl: string | null;
+  types: ("ARTISTE" | "EDITEUR")[];
+  roles: {
+    type: "ARTISTE" | "EDITEUR";
+    bio: string | null;
+    socialLinks: { platform: string; url: string }[];
+  }[];
+};
+
 const PLATFORM_LABELS: Record<string, string> = {
   TWITTER: "Twitter / X",
   TIKTOK: "TikTok",
@@ -41,11 +54,16 @@ const PLATFORM_LABELS: Record<string, string> = {
   AUTRE: "Autre",
 };
 
+const TYPE_STYLE = {
+  ARTISTE: { label: "Fan art", color: "#E5A3F0" },
+  EDITEUR: { label: "Edit", color: "#8AB4FF" },
+} as const;
+
 const TABS = [
-  { key: "all", label: "Tous" },
-  { key: "ARTISTE", label: "Fan art", icon: <Sparkles className="h-3 w-3" /> },
-  { key: "EDITEUR", label: "Edits", icon: <Film className="h-3 w-3" /> },
-] as const;
+  { key: "all" as const, label: "Tous" },
+  { key: "ARTISTE" as const, label: "Fan arts" },
+  { key: "EDITEUR" as const, label: "Edits" },
+];
 
 type Tab = (typeof TABS)[number]["key"];
 
@@ -54,24 +72,31 @@ export default function CreateursPage() {
   const query = ctx?.query ?? "";
   const { isLoaded, isSignedIn, user } = useUser();
   const [data, setData] = useState<CreatorPost[]>([]);
+  const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("all");
   const [rulesOpen, setRulesOpen] = useState(false);
   const [approvedTypes, setApprovedTypes] = useState<("ARTISTE" | "EDITEUR")[]>(
     [],
   );
-  const [lightbox, setLightbox] = useState<{ url: string; alt: string } | null>(
-    null,
-  );
+  const [viewer, setViewer] = useState<CreatorPost | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  const closeViewer = useCallback(() => {
+    setViewer(null);
+    triggerRef.current?.focus();
+  }, []);
 
   useEffect(() => {
-    if (!lightbox) return;
+    if (!viewer) return;
+    dialogRef.current?.focus();
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setLightbox(null);
+      if (e.key === "Escape") closeViewer();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [lightbox]);
+  }, [viewer, closeViewer]);
 
   const load = useCallback(() => {
     fetch("/api/creator-posts")
@@ -84,6 +109,9 @@ export default function CreateursPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/creators")
+      .then((r) => r.json())
+      .then(setCreators);
   }, [load]);
 
   useEffect(() => {
@@ -116,90 +144,109 @@ export default function CreateursPage() {
     await deleteCreatorPost(id);
   }
 
+  function openViewer(post: CreatorPost, trigger: HTMLElement) {
+    triggerRef.current = trigger;
+    setViewer(post);
+  }
+
   return (
-    <>
-      <div className="space-y-6 p-4 lg:p-8">
-        {/* Header */}
-        <div className="rounded-xl border border-border bg-card p-5 lg:p-8">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted">
-              <Sparkles className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold text-text-primary">
-                Créateurs de contenu
-              </h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Fan art, edits et créations de la communauté Flashback WL
-              </p>
-            </div>
-            {approvedTypes.length > 0 && (
-              <PublishCreatorPostButton
-                defaultType={approvedTypes[0]}
-                allowedTypes={approvedTypes}
-                onPublished={load}
-                className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-accent/90 transition-colors shrink-0"
-              />
-            )}
+    <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
+      <header className="mx-auto max-w-295 px-4 pt-10 pb-4 sm:px-5 sm:pt-14">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1
+              className={cn(
+                anton.className,
+                "m-0 text-[clamp(48px,9vw,80px)] uppercase leading-[0.95]",
+              )}
+            >
+              Créations
+            </h1>
+            <p className="mt-3 max-w-2xl text-[16px] text-[#A3A8B3]">
+              Fan arts, edits et créations de la communauté autour des
+              personnages de Flashback.
+            </p>
+          </div>
+          <div className="flex flex-none items-center gap-4">
             <button
               onClick={() => setRulesOpen((o) => !o)}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors shrink-0"
+              aria-expanded={rulesOpen}
+              className="flex min-h-11 items-center gap-1 text-[13px] font-semibold text-[#8AB4FF] hover:underline"
             >
-              Règles
+              Lire les règles
               <ChevronDown
-                className={`h-3 w-3 transition-transform ${rulesOpen ? "rotate-180" : ""}`}
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform",
+                  rulesOpen && "rotate-180",
+                )}
               />
             </button>
+            <ShareCreationButton
+              approvedTypes={approvedTypes}
+              isSignedIn={!!isSignedIn}
+              onPublished={load}
+            />
           </div>
-
-          {rulesOpen && (
-            <div className="mt-4 border-t border-border pt-4 space-y-1.5">
-              <p className="text-[11px] text-text-muted leading-relaxed mb-2">
-                Je me permets de mettre quelques règles en place pour que cet
-                endroit reste une place de bienveillance et de partage :
-              </p>
-              {[
-                "Le contenu partagé doit être en lien avec Flashback WL",
-                "Pas de contenu offensant ou haineux",
-                "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
-                "Les liens partagés doivent pointer vers ton propre contenu",
-                "Les comptes de clipfarming ne seront pas acceptés",
-                "Ton profil créateur est examiné manuellement avant de pouvoir publier",
-                "Aucun délai de validation garanti - sois patient",
-              ].map((rule, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-2 text-xs text-text-muted"
-                >
-                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/50" />
-                  {rule}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1">
+        {rulesOpen && (
+          <div className="mt-5 flex flex-col gap-1.5 rounded-[10px] border border-[#23262D] bg-[#15171B] p-4">
+            <p className="mb-1 text-[13px] leading-relaxed text-[#9AA0AA]">
+              Quelques règles pour que cet endroit reste une place de
+              bienveillance et de partage :
+            </p>
+            {[
+              "Le contenu partagé doit être en lien avec Flashback WL",
+              "Pas de contenu offensant ou haineux",
+              "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
+              "Les liens partagés doivent pointer vers ton propre contenu",
+              "Les comptes de clipfarming ne seront pas acceptés",
+              "Ton profil créateur est examiné manuellement avant de pouvoir publier",
+              "Aucun délai de validation garanti - sois patient",
+            ].map((rule, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-2 text-[13px] text-[#C4C7CF]"
+              >
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2F6FEB]" />
+                {rule}
+              </div>
+            ))}
+          </div>
+        )}
+      </header>
+
+      <main className="mx-auto flex max-w-295 flex-col gap-6 px-4 pb-16 sm:px-5">
+        <div
+          role="tablist"
+          aria-label="Filtrer les créations"
+          className="flex flex-wrap gap-2"
+        >
           {TABS.map((t) => {
             const count =
               t.key === "all"
                 ? data.length
                 : data.filter((p) => p.type === t.key).length;
+            const on = tab === t.key;
             return (
               <button
                 key={t.key}
+                role="tab"
+                aria-selected={on}
                 onClick={() => setTab(t.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-                  tab === t.key
-                    ? "bg-accent/10 text-accent-light"
-                    : "text-text-muted hover:text-text-secondary hover:bg-elevated"
-                }`}
+                className={cn(
+                  "inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3.5 text-[14px] font-semibold transition-colors",
+                  on
+                    ? "border-[#ECECEE] bg-[#ECECEE] text-[#0E0F12]"
+                    : "border-[#3A3E47] text-[#C4C7CF] hover:border-[#6E7380]",
+                )}
               >
-                {"icon" in t && t.icon}
                 {t.label}
                 <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-accent/20" : "bg-elevated"}`}
+                  className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[11px] font-bold",
+                    on ? "bg-[#0E0F12]/10" : "bg-[#23262D]",
+                  )}
                 >
                   {count}
                 </span>
@@ -208,60 +255,191 @@ export default function CreateursPage() {
           })}
         </div>
 
-        {/* Grille */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {Array.from({ length: 10 }).map((_, i) => (
+          <div className="columns-2 gap-3 sm:columns-2 lg:columns-3">
+            {Array.from({ length: 9 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-square rounded-xl border border-border bg-card animate-pulse"
+                className="mb-3 aspect-square animate-pulse rounded-xl border border-[#23262D] bg-[#15171B]"
               />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-16 text-muted-foreground">
-            <p className="text-sm">
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#3A3E47] py-16 text-center text-[#9AA0AA]">
+            <p className="text-[14px]">
               {query
-                ? `Aucune publication ne correspond à "${query}".`
-                : "Aucune publication dans cette catégorie pour l'instant."}
+                ? `Aucune création ne correspond à "${query}".`
+                : "Aucune création dans cette catégorie pour l'instant."}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div className="columns-2 gap-3 sm:columns-2 lg:columns-3">
             {filtered.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
                 isOwn={!!user && post.creator.clerkUserId === user.id}
                 onDelete={handleDelete}
-                onOpenImage={setLightbox}
+                onOpen={openViewer}
               />
             ))}
           </div>
         )}
-      </div>
 
-      {lightbox && (
+        {creators.length > 0 && (
+          <section
+            aria-labelledby="createurs-h"
+            className="flex flex-col gap-4 pt-4"
+          >
+            <h2
+              id="createurs-h"
+              className={cn(
+                anton.className,
+                "m-0 text-[26px] uppercase tracking-[0.02em] sm:text-[30px]",
+              )}
+            >
+              Créateurs
+            </h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {creators.map((c) => (
+                <CreatorCard key={c.id} creator={c} />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+
+      {viewer && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={() => setLightbox(null)}
+          onClick={closeViewer}
         >
-          <button
-            onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={lightbox.url}
-            alt={lightbox.alt}
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={viewer.caption ?? "Création"}
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="max-h-full max-w-full rounded-lg object-contain"
-          />
+            className="relative flex max-h-full max-w-2xl flex-col gap-3 outline-none"
+          >
+            <button
+              onClick={closeViewer}
+              aria-label="Fermer la visionneuse"
+              className="absolute -top-11 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {viewer.type === "ARTISTE" && viewer.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cloudinaryUrl(viewer.imageUrl, "w_1200")}
+                alt={viewer.caption ?? `Création de ${viewer.creator.pseudo}`}
+                className="max-h-[75vh] w-auto rounded-lg object-contain"
+              />
+            ) : (
+              <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg bg-[#15171B]">
+                {youtubeThumbnail(viewer.linkUrl) ? (
+                  <Image
+                    src={youtubeThumbnail(viewer.linkUrl)!}
+                    alt=""
+                    fill
+                    unoptimized
+                    sizes="800px"
+                    className="object-cover"
+                  />
+                ) : null}
+                <a
+                  href={viewer.linkUrl ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-[#0E0F12] hover:bg-white"
+                  aria-label={`Ouvrir sur ${viewer.platform ? PLATFORM_LABELS[viewer.platform] : "le site"}`}
+                >
+                  <Play className="ml-1 h-6 w-6 fill-current" />
+                </a>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#15171B] px-4 py-3">
+              <div className="flex min-w-0 flex-col gap-1">
+                {viewer.caption && (
+                  <p className="text-[14px] text-[#ECECEE]">{viewer.caption}</p>
+                )}
+                <div className="flex flex-wrap items-center gap-2 text-[13px] text-[#9AA0AA]">
+                  <span>{viewer.creator.pseudo}</span>
+                  {viewer.characters.length > 0 && (
+                    <span>
+                      avec{" "}
+                      {viewer.characters.map((c, i) => (
+                        <span key={c.id}>
+                          {i > 0 && ", "}
+                          <Link
+                            href={`/personnages/${c.id}`}
+                            className="text-[#8AB4FF] hover:underline"
+                          >
+                            {c.nom}
+                          </Link>
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {viewer.linkUrl && (
+                <a
+                  href={viewer.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 flex-none items-center gap-1 text-[13px] font-semibold text-[#8AB4FF] hover:underline"
+                >
+                  Ouvrir ↗
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       )}
-    </>
+    </div>
+  );
+}
+
+function ShareCreationButton({
+  approvedTypes,
+  isSignedIn,
+  onPublished,
+}: {
+  approvedTypes: ("ARTISTE" | "EDITEUR")[];
+  isSignedIn: boolean;
+  onPublished: () => void;
+}) {
+  const btnClass =
+    "inline-flex min-h-11 items-center gap-1.5 rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#2F6FEB]/90 transition-colors";
+
+  if (approvedTypes.length > 0) {
+    return (
+      <PublishCreatorPostButton
+        defaultType={approvedTypes[0]}
+        allowedTypes={approvedTypes}
+        onPublished={onPublished}
+        className={btnClass}
+      />
+    );
+  }
+
+  if (isSignedIn) {
+    return (
+      <Link href="/profil#createur" className={btnClass}>
+        + Partager une création
+      </Link>
+    );
+  }
+
+  return (
+    <Link href="/sign-in?redirect_url=/createurs" className={btnClass}>
+      + Partager une création
+    </Link>
   );
 }
 
@@ -269,95 +447,172 @@ function PostCard({
   post,
   isOwn,
   onDelete,
-  onOpenImage,
+  onOpen,
 }: {
   post: CreatorPost;
   isOwn: boolean;
   onDelete: (id: string) => void;
-  onOpenImage: (image: { url: string; alt: string }) => void;
+  onOpen: (post: CreatorPost, trigger: HTMLElement) => void;
 }) {
+  const style = TYPE_STYLE[post.type];
+  const thumb = post.type === "EDITEUR" ? youtubeThumbnail(post.linkUrl) : null;
+  const alt = post.caption ?? `Création de ${post.creator.pseudo}`;
+
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-accent/30">
+    <div className="group relative mb-3 break-inside-avoid overflow-hidden rounded-xl border border-[#23262D] bg-[#15171B] transition-colors hover:border-[#3A3E47]">
       {isOwn && (
         <button
           onClick={() => onDelete(post.id)}
-          className="absolute top-1.5 right-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+          aria-label="Supprimer cette création"
+          className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
-      )}
-      {post.type === "ARTISTE" && post.imageUrl ? (
-        <button
-          type="button"
-          onClick={() =>
-            onOpenImage({
-              url: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${post.imageUrl}`,
-              alt: post.caption ?? "Fan art",
-            })
-          }
-          className="relative block aspect-square w-full overflow-hidden bg-muted cursor-zoom-in"
-        >
-          <img
-            src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_400,c_fill/${post.imageUrl}`}
-            alt={post.caption ?? "Fan art"}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-          />
-        </button>
-      ) : (
-        <a
-          href={post.linkUrl ?? "#"}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex aspect-square w-full flex-col items-center justify-center gap-2 bg-elevated text-center px-3"
-        >
-          <Film className="h-6 w-6 text-blue-400" />
-          <span className="flex items-center gap-1 text-[11px] font-medium text-text-secondary">
-            {post.platform ? PLATFORM_LABELS[post.platform] : "Voir l'edit"}
-            <ExternalLink className="h-2.5 w-2.5" />
-          </span>
-        </a>
       )}
 
-      <div className="flex flex-col gap-1.5 p-2.5">
+      <button
+        type="button"
+        onClick={(e) => onOpen(post, e.currentTarget)}
+        aria-label={`Agrandir : ${alt}`}
+        className="relative block w-full cursor-zoom-in"
+      >
+        <span
+          className="absolute left-2 top-2 z-10 rounded px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-[#0E0F12]"
+          style={{ background: style.color }}
+        >
+          {style.label}
+        </span>
+
+        {post.type === "ARTISTE" && post.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={cloudinaryUrl(post.imageUrl, "w_500,c_fill")}
+            alt={alt}
+            className="w-full object-cover transition-transform group-hover:scale-[1.02]"
+          />
+        ) : (
+          <span className="relative block aspect-video w-full bg-[#22252B]">
+            {thumb ? (
+              <Image
+                src={thumb}
+                alt={alt}
+                fill
+                unoptimized
+                sizes="400px"
+                className="object-cover"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center">
+                <Film className="h-6 w-6 text-[#8AB4FF]" />
+              </span>
+            )}
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-[#0E0F12]">
+                <Play className="ml-0.5 h-4 w-4 fill-current" />
+              </span>
+            </span>
+          </span>
+        )}
+      </button>
+
+      <div className="flex flex-col gap-1.5 p-3">
         {post.characters.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap items-baseline gap-1 text-[12px] text-[#9AA0AA]">
+            avec
             {post.characters.map((c) => (
               <Link
                 key={c.id}
                 href={`/personnages/${c.id}`}
-                className="inline-flex w-fit items-center gap-1 text-[10px] text-accent-light hover:underline"
+                className="text-[#8AB4FF] hover:underline"
               >
-                <UserCircle2 className="h-2.5 w-2.5" />
                 {c.nom}
               </Link>
             ))}
           </div>
         )}
-        {post.caption && (
-          <p className="line-clamp-2 text-[11px] text-text-secondary">
-            {post.caption}
-          </p>
-        )}
         <div className="flex items-center gap-1.5">
-          <div className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#23262D] bg-[#22252B]">
             {post.creator.avatarUrl ? (
               <Image
                 src={post.creator.avatarUrl}
-                width={16}
-                height={16}
-                alt={post.creator.pseudo}
-                className="h-full w-full object-cover"
+                width={20}
+                height={20}
+                alt=""
                 unoptimized
+                className="h-full w-full object-cover"
               />
             ) : (
-              <User className="h-2.5 w-2.5 text-muted-foreground" />
+              <User className="h-3 w-3 text-[#9AA0AA]" />
             )}
-          </div>
-          <span className="truncate text-[10px] text-text-muted">
+          </span>
+          <span className="truncate text-[12px] font-semibold text-[#C4C7CF]">
             {post.creator.pseudo}
           </span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CreatorCard({ creator }: { creator: Creator }) {
+  const links = creator.roles.flatMap((r) => r.socialLinks);
+  const bio = creator.roles.find((r) => r.bio)?.bio;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#23262D] bg-[#22252B]">
+          {creator.avatarUrl ? (
+            <Image
+              src={creator.avatarUrl}
+              width={44}
+              height={44}
+              alt=""
+              unoptimized
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <User className="h-5 w-5 text-[#9AA0AA]" />
+          )}
+        </span>
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-[15px] font-bold text-[#ECECEE]">
+            {creator.pseudo}
+          </span>
+          <span className="flex flex-wrap gap-1.5">
+            {creator.types.map((t) => (
+              <span
+                key={t}
+                className="text-[11px] font-semibold uppercase tracking-wide"
+                style={{ color: TYPE_STYLE[t].color }}
+              >
+                {TYPE_STYLE[t].label}
+              </span>
+            ))}
+          </span>
+        </div>
+      </div>
+
+      {bio && (
+        <p className="text-[13px] leading-relaxed text-[#C4C7CF]">{bio}</p>
+      )}
+
+      {links.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {links.map((l, i) => (
+            <a
+              key={i}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-8 items-center gap-1 rounded-md border border-[#3A3E47] px-2.5 text-[12px] font-semibold text-[#C4C7CF] hover:border-[#6E7380] hover:text-[#ECECEE]"
+            >
+              {PLATFORM_LABELS[l.platform] ?? l.platform}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

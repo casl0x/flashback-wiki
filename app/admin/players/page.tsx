@@ -1,5 +1,5 @@
 import { ButtonLink, PageHeader, TextInput } from "@/app/_composents/admin/ui";
-import { BADGES_CONFIG } from "@/components/admin/PlayerBadges";
+import { BADGES_CONFIG } from "@/app/_composents/admin/PlayerBadges";
 import { prisma } from "@/lib/db";
 import { detectStreamPlatform } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";

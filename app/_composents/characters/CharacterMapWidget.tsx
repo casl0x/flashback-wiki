@@ -1,9 +1,9 @@
 "use client";
 
-import type { MapMarker } from "@/components/wiki/GameMap";
+import type { MapMarker } from "@/app/_composents/GameMap";
 import dynamic from "next/dynamic";
 
-const GameMap = dynamic(() => import("@/components/wiki/GameMap"), {
+const GameMap = dynamic(() => import("@/app/_composents/GameMap"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-75 bg-slate-900 rounded-lg animate-pulse" />

@@ -98,6 +98,36 @@ function computeCreatorBadges(types: CreatorType[]): string[] {
   return badges;
 }
 
+export async function requestPlayerLink(playerId: string, message?: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+
+  const profile = await prisma.userProfile.upsert({
+    where: { clerkUserId: userId },
+    create: { clerkUserId: userId },
+    update: {},
+  });
+
+  if (profile.playerId) {
+    throw new Error("Ton compte est déjà lié à une fiche joueur.");
+  }
+
+  const pending = await prisma.playerLinkRequest.findFirst({
+    where: { userProfileId: profile.id, status: "pending" },
+  });
+  if (pending) {
+    throw new Error("Une demande de lien est déjà en attente.");
+  }
+
+  await prisma.playerLinkRequest.create({
+    data: {
+      userProfileId: profile.id,
+      playerId,
+      message: message?.trim() || null,
+    },
+  });
+}
+
 export async function deleteCreatorPost(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");

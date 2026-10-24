@@ -1,6 +1,5 @@
 "use client";
 
-import { ETAT_VIE_CONFIG } from "@/components/admin/LifeStateIcon";
 import {
   Select,
   SelectContent,
@@ -15,6 +14,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
+import { ETAT_VIE_CONFIG } from "./LifeStateIcon";
 
 export type RoleFilter = "all" | "civil" | "illegal";
 export type SortOrder = "a→z" | "z→a";
