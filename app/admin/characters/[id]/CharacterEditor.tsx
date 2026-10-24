@@ -13,7 +13,7 @@ import {
   Select,
   TextInput,
 } from "@/app/_composents/admin/ui";
-import { MentionTextarea } from "@/components/admin/MentionTextarea";
+import { MentionTextarea } from "@/app/_composents/MentionText";
 import {
   deleteCharacter,
   fetchSoundMeta,
@@ -34,7 +34,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 const AdminLocationPicker = dynamic(
-  () => import("@/components/admin/AdminLocationPicker"),
+  () => import("@/app/_composents/admin/AdminLocationPicker"),
   { ssr: false },
 );
 
