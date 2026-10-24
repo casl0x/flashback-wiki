@@ -27,7 +27,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { updateCreatorProfile } from "../onboarding/action";
 import { deleteCreatorPost, requestPlayerLink } from "./actions";
 
@@ -140,6 +140,14 @@ const SUGGESTION_STYLE: Record<string, { color: string; label: string }> = {
 };
 
 export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfilePageContent />
+    </Suspense>
+  );
+}
+
+function ProfilePageContent() {
   const { isLoaded, isSignedIn } = useUser();
   const [data, setData] = useState<MeData | null>(null);
   const [fetched, setFetched] = useState(false);
