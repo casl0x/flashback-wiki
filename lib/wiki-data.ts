@@ -136,6 +136,8 @@ export async function fetchWikiData(): Promise<WikiData> {
     const normalizedVersions = versions.map((version) => ({
       ...version,
       createdAt: version.createdAt.toISOString(),
+      dateDebut: version.dateDebut?.toISOString() ?? null,
+      dateFin: version.dateFin?.toISOString() ?? null,
     }));
 
     const normalizedPlayers = players.map((player) => ({
@@ -218,6 +220,8 @@ export async function fetchWikiDataWithRelations(): Promise<WikiData> {
     const normalizedVersions = versions.map((version) => ({
       ...version,
       createdAt: version.createdAt.toISOString(),
+      dateDebut: version.dateDebut?.toISOString() ?? null,
+      dateFin: version.dateFin?.toISOString() ?? null,
     }));
 
     const normalizedPlayers = players.map((player) => ({

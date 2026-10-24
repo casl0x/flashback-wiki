@@ -160,7 +160,7 @@ function OrderButtons({
         aria-label={`Monter ${label}`}
         disabled={index === 0}
         onClick={() => onMove(index - 1)}
-        className="flex h-[17px] w-7 items-center justify-center text-[#9AA0AA] hover:text-white disabled:opacity-30"
+        className="flex h-4.25 w-7 items-center justify-center text-[#9AA0AA] hover:text-white disabled:opacity-30"
       >
         <ArrowUp className="h-3.5 w-3.5" />
       </button>
@@ -169,7 +169,7 @@ function OrderButtons({
         aria-label={`Descendre ${label}`}
         disabled={index === length - 1}
         onClick={() => onMove(index + 1)}
-        className="flex h-[17px] w-7 items-center justify-center text-[#9AA0AA] hover:text-white disabled:opacity-30"
+        className="flex h-4.25 w-7 items-center justify-center text-[#9AA0AA] hover:text-white disabled:opacity-30"
       >
         <ArrowDown className="h-3.5 w-3.5" />
       </button>
@@ -517,7 +517,7 @@ export default function CharacterEditor({
                       onChange={(e) =>
                         update({ versionId: e.target.value || null })
                       }
-                      className="w-[92px] flex-none font-bold"
+                      className="w-23 flex-none font-bold"
                       style={{
                         color: m.versionId
                           ? versionById.get(m.versionId)?.color
@@ -533,7 +533,7 @@ export default function CharacterEditor({
                     </Select>
                     <SearchSelect
                       label="Groupe"
-                      className="min-w-[160px] flex-[1_1_180px]"
+                      className="min-w-40 flex-[1_1_180px]"
                       options={groupes.map((x) => ({
                         value: x.id,
                         label: x.nom,
@@ -551,7 +551,7 @@ export default function CharacterEditor({
                       onChange={(e) =>
                         update({ gradeId: e.target.value || null })
                       }
-                      className="w-[150px] flex-none"
+                      className="w-37.5 flex-none"
                       disabled={!g || g.grades.length === 0}
                     >
                       <option value="">
@@ -568,7 +568,7 @@ export default function CharacterEditor({
                       placeholder="Matricule"
                       value={m.matricule}
                       onChange={(e) => update({ matricule: e.target.value })}
-                      className="w-[96px] flex-none"
+                      className="w-24 flex-none"
                     />
                     {last && (
                       <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
@@ -650,7 +650,7 @@ export default function CharacterEditor({
                   >
                     <SearchSelect
                       label="Perso lié"
-                      className="min-w-[180px] flex-[1_1_200px]"
+                      className="min-w-45 flex-[1_1_200px]"
                       options={charOptions}
                       value={r.otherId || null}
                       allowClear={false}
@@ -676,7 +676,7 @@ export default function CharacterEditor({
                         placeholder="Fille, Ex…"
                       />
                     </label>
-                    <span className="w-[110px] flex-none text-[11px] text-[#9AA0AA]">
+                    <span className="w-27.5 flex-none text-[11px] text-[#9AA0AA]">
                       {r.type ? `→ ${KIND_LABEL[relationKind(r.type)]}` : ""}
                     </span>
                     <RemoveButton
@@ -751,21 +751,21 @@ export default function CharacterEditor({
                         value={s.url}
                         onChange={(e) => update({ url: e.target.value })}
                         onBlur={(e) => fillSoundMeta(s.key, e.target.value)}
-                        className="min-w-[200px] flex-[2_1_240px]"
+                        className="min-w-50 flex-[2_1_240px]"
                       />
                       <TextInput
                         aria-label="Titre"
                         placeholder="Titre"
                         value={s.titre}
                         onChange={(e) => update({ titre: e.target.value })}
-                        className="min-w-[140px] flex-[1_1_160px]"
+                        className="min-w-35 flex-[1_1_160px]"
                       />
                       <TextInput
                         aria-label="Artiste"
                         placeholder="Artiste"
                         value={s.artiste}
                         onChange={(e) => update({ artiste: e.target.value })}
-                        className="min-w-[120px] flex-[1_1_140px]"
+                        className="min-w-30 flex-[1_1_140px]"
                       />
                       {s.url && (
                         <span
@@ -871,7 +871,7 @@ export default function CharacterEditor({
           <Panel legend="Aperçu dans la liste">
             <div
               className={cn(
-                "relative flex h-[250px] w-[180px] flex-col justify-end overflow-hidden rounded-[10px] border border-[#23262D]",
+                "relative flex h-62.5 w-45 flex-col justify-end overflow-hidden rounded-[10px] border border-[#23262D]",
                 f.etatVie === "MORT" ? "bg-[#141416]" : "bg-[#1A1C21]",
               )}
             >
@@ -886,7 +886,7 @@ export default function CharacterEditor({
                   )}
                 />
               ) : (
-                <span className="absolute inset-x-0 top-[95px] text-center text-[28px] font-bold text-[#3A3E47]">
+                <span className="absolute inset-x-0 top-23.75 text-center text-[28px] font-bold text-[#3A3E47]">
                   {initials(f.nom || "?")}
                 </span>
               )}
@@ -901,7 +901,7 @@ export default function CharacterEditor({
                   </span>
                 ))}
               </span>
-              <span className="relative flex flex-col bg-gradient-to-t from-[#0E0F12] from-45% to-transparent p-3">
+              <span className="relative flex flex-col bg-linear-to-t from-[#0E0F12] from-45% to-transparent p-3">
                 <span className="text-[17px] font-bold uppercase leading-tight">
                   {f.nom || "Nom"}
                 </span>

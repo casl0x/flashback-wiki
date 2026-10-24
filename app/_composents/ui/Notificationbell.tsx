@@ -106,7 +106,7 @@ export default function NotificationBell() {
       >
         <Bell className="h-5 w-5" />
         {unread > 0 && (
-          <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+          <span className="absolute right-1 top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -147,7 +147,7 @@ export default function NotificationBell() {
                       onClick={() => handleItemClick(n)}
                       className={cn(
                         "flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5",
-                        !n.read && "bg-white/[0.03]",
+                        !n.read && "bg-white/3",
                       )}
                     >
                       <Icon

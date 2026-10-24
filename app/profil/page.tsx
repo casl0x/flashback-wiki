@@ -301,7 +301,7 @@ export default function ProfilePage() {
   if (!isSignedIn) {
     return (
       <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
-        <main className="mx-auto flex max-w-[1180px] flex-col items-center gap-3 px-4 py-20 text-center sm:px-5">
+        <main className="mx-auto flex max-w-295 flex-col items-center gap-3 px-4 py-20 text-center sm:px-5">
           <h1
             className={cn(
               anton.className,
@@ -334,7 +334,7 @@ export default function ProfilePage() {
     <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
       {/* Bannière */}
       <div
-        className="h-[140px] w-full sm:h-[200px]"
+        className="h-35 w-full sm:h-50"
         style={{
           background: hasApprovedRole
             ? "linear-gradient(135deg, #2F6FEB, #0E0F12)"
@@ -342,10 +342,10 @@ export default function ProfilePage() {
         }}
       />
 
-      <main className="mx-auto flex max-w-[1180px] flex-col gap-7 px-4 pb-14 sm:px-5">
+      <main className="mx-auto flex max-w-295 flex-col gap-7 px-4 pb-14 sm:px-5">
         {/* En-tête : identité */}
         <section className="-mt-14 flex flex-wrap items-end gap-4">
-          <span className="flex h-[88px] w-[88px] flex-none items-center justify-center overflow-hidden rounded-full border-[5px] border-[#0E0F12] bg-[#22252B] sm:h-[120px] sm:w-[120px]">
+          <span className="flex h-22 w-22 flex-none items-center justify-center overflow-hidden rounded-full border-[5px] border-[#0E0F12] bg-[#22252B] sm:h-30 sm:w-30">
             {loading ? null : data?.avatarUrl ? (
               <Image
                 src={data.avatarUrl}
@@ -448,7 +448,7 @@ export default function ProfilePage() {
                   aria-label="Informations publiques"
                   className="flex flex-wrap gap-5"
                 >
-                  <div className="flex min-w-[260px] flex-1 flex-col gap-2.5 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
+                  <div className="flex min-w-65 flex-1 flex-col gap-2.5 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
                     <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-[#A3A8B3]">
                       Bio
                     </p>
@@ -469,7 +469,7 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  <div className="flex min-w-[260px] flex-1 flex-wrap gap-6 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
+                  <div className="flex min-w-65 flex-1 flex-wrap gap-6 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
                     <Stat value={data.stats.accepted} label="Ajouts validés" />
                     <Stat value={data.points} label="Points" />
                     <Stat value={totalCreations} label="Créations" />
@@ -504,7 +504,7 @@ export default function ProfilePage() {
                         Aucun personnage lié pour l&apos;instant.
                       </p>
                     ) : (
-                      <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
                         {data.playerCharacters.map((c) => {
                           const dead = c.etatVie === "MORT";
                           const etat =
@@ -592,7 +592,7 @@ export default function ProfilePage() {
                       )}
                     </div>
                   ) : (
-                    <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2.5">
                       {roles
                         .flatMap((r) => r.posts)
                         .map((post) => (
@@ -741,7 +741,7 @@ export default function ProfilePage() {
               <section
                 id="createur"
                 aria-labelledby="createur-h"
-                className="flex max-w-[760px] flex-col gap-5"
+                className="flex max-w-190 flex-col gap-5"
               >
                 <div className="flex items-center justify-between gap-3">
                   <h2
@@ -804,7 +804,7 @@ export default function ProfilePage() {
                           disabled={!editing}
                           onClick={() => toggleRole(type)}
                           className={cn(
-                            "flex min-w-[220px] flex-1 flex-col gap-2 rounded-xl border p-4 text-left transition-colors",
+                            "flex min-w-55 flex-1 flex-col gap-2 rounded-xl border p-4 text-left transition-colors",
                             active
                               ? "border-[#2F6FEB]/60 bg-[#2F6FEB]/10"
                               : "border-[#23262D] bg-[#15171B]",
@@ -1052,7 +1052,7 @@ function AccountSection({
   return (
     <section
       aria-labelledby="compte-h"
-      className="flex max-w-[760px] flex-col gap-5"
+      className="flex max-w-190 flex-col gap-5"
     >
       <h2
         id="compte-h"
@@ -1163,7 +1163,7 @@ function ProfilePill({
 }) {
   return (
     <span
-      className="rounded-full px-2.5 py-[3px] text-[12px] font-bold"
+      className="rounded-full px-2.5 py-0.75 text-[12px] font-bold"
       style={{ backgroundColor: bg, color }}
     >
       {children}

@@ -64,7 +64,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[200] flex flex-col items-center gap-2 p-3 sm:inset-x-auto sm:bottom-4 sm:right-4 sm:items-end">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-200 flex flex-col items-center gap-2 p-3 sm:inset-x-auto sm:bottom-4 sm:right-4 sm:items-end">
         {toasts.map((t) => (
           <ToastCard key={t.id} toast={t} onClose={() => remove(t.id)} />
         ))}
@@ -121,7 +121,7 @@ function ToastCard({
       aria-live="polite"
       onMouseEnter={pause}
       onMouseLeave={start}
-      className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border p-3.5 shadow-2xl sm:w-[360px]"
+      className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border p-3.5 shadow-2xl sm:w-90"
       style={{ background: style.bg, borderColor: `${style.color}40` }}
     >
       <Icon className="mt-0.5 h-4.5 w-4.5 flex-none" style={{ color: style.color }} aria-hidden />

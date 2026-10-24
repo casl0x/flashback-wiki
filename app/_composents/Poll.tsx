@@ -153,7 +153,7 @@ export function Poll() {
                     {isSelected && "✓ "}
                     {option.label}
                   </span>
-                  <span className="text-[12px] font-semibold text-text-muted min-w-[36px] text-right">
+                  <span className="text-[12px] font-semibold text-text-muted min-w-9 text-right">
                     {option.percent}%
                   </span>
                 </div>
