@@ -1,5 +1,6 @@
 "use server";
 
+import { invalidateProfilesCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
 import { auth } from "@clerk/nextjs/server";
@@ -62,6 +63,8 @@ export async function createCreatorPost(data: {
         : undefined,
     },
   });
+
+  await invalidateProfilesCache();
 
   const posts = await prisma.creatorPost.findMany({
     where: { creatorRole: { userProfileId: profile!.id }, status: "approved" },
@@ -141,4 +144,27 @@ export async function deleteCreatorPost(id: string) {
   }
 
   await prisma.creatorPost.delete({ where: { id } });
+  await invalidateProfilesCache();
+}
+
+/** Bio et réglages de visibilité du profil public. */
+export async function updatePublicProfile(data: {
+  bio: string;
+  profilePublic: boolean;
+  showStats: boolean;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+
+  const fields = {
+    bio: data.bio.trim().slice(0, 500) || null,
+    profilePublic: data.profilePublic,
+    showStats: data.showStats,
+  };
+  await prisma.userProfile.upsert({
+    where: { clerkUserId: userId },
+    create: { clerkUserId: userId, ...fields },
+    update: fields,
+  });
+  await invalidateProfilesCache();
 }

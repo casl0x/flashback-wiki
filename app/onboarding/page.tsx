@@ -104,7 +104,13 @@ async function handleSubmitDirect() {
   setLoading(true);
   setError(null);
   try {
-    await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
+    const res = await completeOnboarding({ pseudo: pseudo.trim(), roles: [] });
+    if (res.error) {
+      setError(res.error);
+      setStep(1);
+      setLoading(false);
+      return;
+    }
     await session?.reload();
     await new Promise((r) => setTimeout(r, 2000)); // attendre que le JWT se propage
     window.location.href = "/";
@@ -124,10 +130,16 @@ async function handleSubmitDirect() {
   setLoading(true);
   setError(null);
   try {
-    await completeOnboarding({
+    const res = await completeOnboarding({
       pseudo: pseudo.trim(),
       roles: wantsCreator ? roles : [],
     });
+    if (res.error) {
+      setError(res.error);
+      setStep(1);
+      setLoading(false);
+      return;
+    }
 
     let attempts = 0;
     while (attempts < 5) {

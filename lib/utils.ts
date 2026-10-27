@@ -93,3 +93,8 @@ export const MENTION_PATTERN = /@\[([^\]]+)\]\(([a-zA-Z0-9_-]+)\)/g;
 export function stripMentions(text: string): string {
   return text.replace(MENTION_PATTERN, "$1");
 }
+
+// Lien vers le profil public d'un membre (le pseudo peut contenir des espaces).
+export function profileHref(pseudo: string): string {
+  return `/profil/${encodeURIComponent(pseudo)}`;
+}

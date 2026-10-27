@@ -1,7 +1,9 @@
 // app/onboarding/action.ts
 "use server";
 
+import { invalidateProfilesCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
+import { isPseudoTaken } from "@/lib/public-profile";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { CreatorType, SocialPlatform } from "@prisma/client";
 
@@ -13,22 +15,28 @@ type SocialLinkInput = {
 type CreatorRoleInput = {
   type: CreatorType;
   displayOnWiki: boolean;
-  bio?: string;
   socialLinks: SocialLinkInput[];
 };
 
 export async function completeOnboarding(data: {
   pseudo: string;
   roles: CreatorRoleInput[];
-}) {
+}): Promise<{ error?: string }> {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
+
+  const pseudo = data.pseudo.trim();
+  if (!pseudo) return { error: "Le pseudo est obligatoire." };
+  // Le pseudo sert d'adresse au profil public : il doit être unique.
+  if (await isPseudoTaken(pseudo, userId)) {
+    return { error: "Ce pseudo est déjà pris, choisis-en un autre." };
+  }
 
   await prisma.userProfile.upsert({
     where: { clerkUserId: userId },
     create: {
       clerkUserId: userId,
-      pseudo: data.pseudo,
+      pseudo,
       onboardingComplete: true,
       creatorRoles: {
         create: data.roles.map((r) => ({
@@ -44,7 +52,7 @@ export async function completeOnboarding(data: {
       },
     },
     update: {
-      pseudo: data.pseudo,
+      pseudo,
       onboardingComplete: true,
     },
   });
@@ -53,6 +61,8 @@ export async function completeOnboarding(data: {
   await client.users.updateUserMetadata(userId, {
     publicMetadata: { onboardingComplete: true },
   });
+  await invalidateProfilesCache();
+  return {};
 }
 
 export async function updateCreatorProfile(data: {
@@ -89,7 +99,6 @@ export async function updateCreatorProfile(data: {
         where: { id: existing.id },
         data: {
           displayOnWiki: role.displayOnWiki,
-          bio: role.bio?.trim() || null,
           socialLinks: {
             deleteMany: {},
             createMany: {
@@ -105,7 +114,6 @@ export async function updateCreatorProfile(data: {
           userProfileId: profile.id,
           type: role.type,
           displayOnWiki: role.displayOnWiki,
-          bio: role.bio?.trim() || null,
           status: "pending",
           socialLinks: {
             createMany: {
@@ -116,4 +124,6 @@ export async function updateCreatorProfile(data: {
       });
     }
   }
+
+  await invalidateProfilesCache();
 }

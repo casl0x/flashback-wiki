@@ -227,14 +227,14 @@ export async function loadCreationDetail(id: string) {
 export async function loadCreatorRoleDetail(id: string) {
   const r = await prisma.creatorRole.findUnique({
     where: { id },
-    include: { userProfile: { select: { clerkUserId: true, pseudo: true } }, socialLinks: true },
+    include: { userProfile: { select: { clerkUserId: true, pseudo: true, bio: true } }, socialLinks: true },
   });
   if (!r) return null;
   const author = (await displayNames([r.userProfile.clerkUserId])).get(r.userProfile.clerkUserId);
   return {
     id: r.id,
     type: r.type,
-    bio: r.bio,
+    bio: r.userProfile.bio,
     createdAt: r.createdAt.toISOString(),
     author: author ?? "Utilisateur",
     links: r.socialLinks.map((l) => ({ platform: l.platform, url: l.url })),

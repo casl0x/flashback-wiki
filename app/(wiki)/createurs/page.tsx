@@ -6,7 +6,7 @@ import { deleteCreatorPost } from "@/app/profil/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { youtubeThumbnail } from "@/lib/media-embed";
-import { cn, matchesSearch } from "@/lib/utils";
+import { cn, matchesSearch, profileHref } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import {
   ChevronDown,
@@ -30,17 +30,23 @@ type CreatorPost = {
   caption: string | null;
   createdAt: string;
   characters: { id: string; nom: string }[];
-  creator: { pseudo: string; avatarUrl: string | null; clerkUserId: string };
+  creator: {
+    pseudo: string;
+    avatarUrl: string | null;
+    profilePseudo: string | null;
+    clerkUserId: string;
+  };
 };
 
 type Creator = {
   id: string;
   pseudo: string;
   avatarUrl: string | null;
+  bio: string | null;
+  profilePseudo: string | null;
   types: ("ARTISTE" | "EDITEUR")[];
   roles: {
     type: "ARTISTE" | "EDITEUR";
-    bio: string | null;
     socialLinks: { platform: string; url: string }[];
   }[];
 };
@@ -368,7 +374,11 @@ export default function CreateursPage() {
                   <p className="text-[14px] text-[#ECECEE]">{viewer.caption}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-2 text-[13px] text-[#9AA0AA]">
-                  <span>{viewer.creator.pseudo}</span>
+                  <AuthorName
+                    pseudo={viewer.creator.pseudo}
+                    profilePseudo={viewer.creator.profilePseudo}
+                    className="font-semibold text-[#C4C7CF]"
+                  />
                   {viewer.characters.length > 0 && (
                     <span>
                       avec{" "}
@@ -545,18 +555,43 @@ function PostCard({
               <User className="h-3 w-3 text-[#9AA0AA]" />
             )}
           </span>
-          <span className="truncate text-[12px] font-semibold text-[#C4C7CF]">
-            {post.creator.pseudo}
-          </span>
+          <AuthorName
+            pseudo={post.creator.pseudo}
+            profilePseudo={post.creator.profilePseudo}
+            className="truncate text-[12px] font-semibold text-[#C4C7CF]"
+          />
         </div>
       </div>
     </div>
   );
 }
 
+/** Pseudo cliquable vers le profil public, sauf si le membre l'a masqué. */
+function AuthorName({
+  pseudo,
+  profilePseudo,
+  className,
+}: {
+  pseudo: string;
+  profilePseudo: string | null;
+  className?: string;
+}) {
+  if (!profilePseudo) {
+    return <span className={className}>{pseudo}</span>;
+  }
+  return (
+    <Link
+      href={profileHref(profilePseudo)}
+      className={cn(className, "hover:underline")}
+    >
+      {pseudo}
+    </Link>
+  );
+}
+
 function CreatorCard({ creator }: { creator: Creator }) {
   const links = creator.roles.flatMap((r) => r.socialLinks);
-  const bio = creator.roles.find((r) => r.bio)?.bio;
+  const bio = creator.bio;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-4">
@@ -576,9 +611,11 @@ function CreatorCard({ creator }: { creator: Creator }) {
           )}
         </span>
         <div className="flex min-w-0 flex-col">
-          <span className="truncate text-[15px] font-bold text-[#ECECEE]">
-            {creator.pseudo}
-          </span>
+          <AuthorName
+            pseudo={creator.pseudo}
+            profilePseudo={creator.profilePseudo}
+            className="truncate text-[15px] font-bold text-[#ECECEE]"
+          />
           <span className="flex flex-wrap gap-1.5">
             {creator.types.map((t) => (
               <span
@@ -594,7 +631,9 @@ function CreatorCard({ creator }: { creator: Creator }) {
       </div>
 
       {bio && (
-        <p className="text-[13px] leading-relaxed text-[#C4C7CF]">{bio}</p>
+        <p className="whitespace-pre-line text-[13px] leading-relaxed text-[#C4C7CF]">
+          {bio}
+        </p>
       )}
 
       {links.length > 0 && (

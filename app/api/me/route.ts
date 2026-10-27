@@ -68,6 +68,11 @@ export async function GET() {
 
   return NextResponse.json({
     pseudo: user.username ?? user.firstName ?? "Anonyme",
+    // Pseudo du wiki, qui sert d'adresse au profil public.
+    profilePseudo: profile?.pseudo ?? null,
+    bio: profile?.bio ?? null,
+    profilePublic: profile?.profilePublic ?? true,
+    showStats: profile?.showStats ?? true,
     avatarUrl: user.imageUrl,
     provider: user.externalAccounts[0]?.provider ?? null,
     points: profile?.totalPoints ?? 0,
@@ -100,7 +105,6 @@ export async function GET() {
         type: r.type,
         displayOnWiki: r.displayOnWiki,
         status: r.status,
-        bio: r.bio,
         socialLinks: r.socialLinks.map((l) => ({
           platform: l.platform,
           url: l.url,

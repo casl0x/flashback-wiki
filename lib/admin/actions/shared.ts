@@ -1,6 +1,6 @@
 import "server-only";
 
-import { invalidateWikiCache } from "@/lib/actions";
+import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { NotAdminError } from "@/lib/admin/auth";
 import { revalidatePath } from "next/cache";
 
@@ -11,6 +11,7 @@ export type ActionResult<T = undefined> =
 /** Vide les caches du wiki et de l'admin après une écriture. */
 export async function refreshAll() {
   await invalidateWikiCache();
+  await invalidateProfilesCache();
   revalidatePath("/admin", "layout");
 }
 

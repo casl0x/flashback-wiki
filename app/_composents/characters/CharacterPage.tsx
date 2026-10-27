@@ -5,7 +5,9 @@ import type { CharacterPageData } from "@/lib/character-page";
 import type { Character } from "@/lib/db";
 import { youtubeThumbnail } from "@/lib/media-embed";
 import Image from "next/image";
+import { Suspense } from "react";
 import { OtherCharacters, PlayerPanel } from "./CharacterAside";
+import CharacterContributors from "./CharacterContributors";
 import CharacterHero from "./CharacterHero";
 import CharacterMap from "./CharacterMap";
 import CharacterParcours from "./CharacterParcours";
@@ -155,6 +157,13 @@ export default function CharacterPage({ c }: { c: CharacterPageData }) {
             <SuggestButton mode="edit" character={toSuggestCharacter(c)} />
           </div>
         </aside>
+
+        {/* Pleine largeur, sous les deux colonnes : tout en bas de la fiche. */}
+        <div className="w-full">
+          <Suspense fallback={null}>
+            <CharacterContributors characterId={c.id} />
+          </Suspense>
+        </div>
       </div>
     </div>
   );

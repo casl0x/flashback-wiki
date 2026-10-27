@@ -40,12 +40,16 @@ enum SocialPlatform {
 model UserProfile {
   id                     String    @id @default(cuid())
   clerkUserId            String    @unique
-  pseudo                 String?
+  pseudo                 String?   @unique
+  bio                    String?
   onboardingComplete     Boolean   @default(false)
   totalPoints            Int       @default(0)
   acceptedCount          Int       @default(0)
   badges                 String[]  @default([])
   lastSeenAnnouncementAt DateTime?
+  // Profil public (/profil/[pseudo]) : masquable, stats affichables ou non
+  profilePublic          Boolean   @default(true)
+  showStats              Boolean   @default(true)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -103,7 +107,6 @@ model CreatorRole {
   type          CreatorType
   displayOnWiki Boolean     @default(false)
   status        String      @default("pending")
-  bio           String?
   createdAt     DateTime    @default(now())
 
   userProfileId String

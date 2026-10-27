@@ -49,6 +49,10 @@ export async function GET(req: NextRequest) {
           pseudo:
             p.creatorRole.userProfile.pseudo ?? clerkUser?.username ?? "Anonyme",
           avatarUrl: clerkUser?.imageUrl ?? null,
+          // Lien vers le profil public, absent si le membre l'a masqué.
+          profilePseudo: p.creatorRole.userProfile.profilePublic
+            ? p.creatorRole.userProfile.pseudo
+            : null,
           clerkUserId: p.creatorRole.userProfile.clerkUserId,
         },
       };

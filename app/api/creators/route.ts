@@ -6,10 +6,12 @@ type GroupedCreator = {
   id: string;
   pseudo: string;
   avatarUrl: string | null;
+  bio: string | null;
+  /** Lien vers le profil public, absent si le membre l'a masqué. */
+  profilePseudo: string | null;
   types: ("ARTISTE" | "EDITEUR")[];
   roles: {
     type: "ARTISTE" | "EDITEUR";
-    bio: string | null;
     socialLinks: { platform: string; url: string }[];
   }[];
 };
@@ -42,6 +44,8 @@ export async function GET() {
         id: profileId,
         pseudo: r.userProfile.pseudo ?? clerkUser?.username ?? "Anonyme",
         avatarUrl: clerkUser?.imageUrl ?? null,
+        bio: r.userProfile.bio,
+        profilePseudo: r.userProfile.profilePublic ? r.userProfile.pseudo : null,
         types: [],
         roles: [],
       });
@@ -51,7 +55,6 @@ export async function GET() {
     entry.types.push(r.type);
     entry.roles.push({
       type: r.type,
-      bio: r.bio,
       socialLinks: r.socialLinks.map((l) => ({
         platform: l.platform,
         url: l.url,

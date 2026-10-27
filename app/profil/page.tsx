@@ -1,17 +1,25 @@
-// app/profil/page.tsx
 "use client";
 
-import { ETAT_BADGE } from "@/app/_composents/characters/CharacterHero";
 import { useToast } from "@/app/_composents/toast/ToastProvider";
+import { BadgePill } from "@/app/_composents/user/badges";
 import { NotificationsSection } from "@/app/_composents/user/NotificationsSection";
+import {
+  ProfileCharacters,
+  ProfilePill,
+  Stat,
+  type ProfileCharacter,
+} from "@/app/_composents/user/ProfileParts";
 import { PublishCreatorPostButton } from "@/app/_composents/user/PublishCreatorPostButton";
 import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
+import { invalidateProfilesCache } from "@/lib/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
-import { cn, matchesSearch } from "@/lib/utils";
+import { cn, matchesSearch, profileHref } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import {
+  Camera,
   Check,
+  Eye,
   ExternalLink,
   Film,
   Info,
@@ -27,9 +35,13 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { updateCreatorProfile } from "../onboarding/action";
-import { deleteCreatorPost, requestPlayerLink } from "./actions";
+import {
+  deleteCreatorPost,
+  requestPlayerLink,
+  updatePublicProfile,
+} from "./actions";
 
 type SocialLink = { platform: string; url: string };
 type CreatorPost = {
@@ -46,7 +58,6 @@ type CreatorRole = {
   type: "ARTISTE" | "EDITEUR";
   displayOnWiki: boolean;
   status?: string;
-  bio: string | null;
   socialLinks: SocialLink[];
   posts: CreatorPost[];
 };
@@ -58,16 +69,12 @@ type Suggestion = {
   rejectReason: string | null;
   moderatorMessage: string | null;
 };
-type PlayerCharacter = {
-  id: string;
-  nom: string;
-  imageUrl: string | null;
-  etatVie: "EN_VIE" | "MORT" | "PARTI" | "DISPARU" | "PRISON";
-  version: { id: string; color: string } | null;
-};
-
 type MeData = {
   pseudo: string;
+  profilePseudo: string | null;
+  bio: string | null;
+  profilePublic: boolean;
+  showStats: boolean;
   avatarUrl: string | null;
   provider: string | null;
   points: number;
@@ -76,7 +83,7 @@ type MeData = {
   playerId: string | null;
   player: { id: string; pseudo: string } | null;
   pendingLinkRequest: { playerPseudo: string } | null;
-  playerCharacters: PlayerCharacter[];
+  playerCharacters: ProfileCharacter[];
   suggestions: Suggestion[];
   creatorRoles: CreatorRole[];
 };
@@ -217,7 +224,6 @@ function ProfilePageContent() {
             {
               type,
               displayOnWiki: false,
-              bio: null,
               socialLinks: [],
               posts: [],
             },
@@ -231,10 +237,6 @@ function ProfilePageContent() {
         r.type === type ? { ...r, displayOnWiki: !r.displayOnWiki } : r,
       ),
     );
-  }
-
-  function updateBio(type: "ARTISTE" | "EDITEUR", bio: string) {
-    setRoles((prev) => prev.map((r) => (r.type === type ? { ...r, bio } : r)));
   }
 
   function addLink(type: "ARTISTE" | "EDITEUR") {
@@ -287,7 +289,6 @@ function ProfilePageContent() {
         roles: roles.map((r) => ({
           type: r.type,
           displayOnWiki: r.displayOnWiki,
-          bio: r.bio ?? undefined,
           socialLinks: r.socialLinks.map((l) => ({
             platform: l.platform as never,
             url: l.url,
@@ -336,7 +337,6 @@ function ProfilePageContent() {
   const hasApprovedRole = (data?.creatorRoles ?? []).some(
     (r) => r.status === "approved",
   );
-  const approvedRole = roles.find((r) => r.status === "approved");
 
   return (
     <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
@@ -452,125 +452,69 @@ function ProfilePageContent() {
             {/* Profil public */}
             {tab === "public" && (
               <div className="flex flex-col gap-7">
+                {data.profilePseudo && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[#23262D] bg-[#15171B] px-4 py-3">
+                    <p className="m-0 text-[14px] text-[#C4C7CF]">
+                      {data.profilePublic
+                        ? "Voici ce que les autres membres voient de toi."
+                        : "Ton profil public est masqué : personne d'autre ne le voit."}
+                    </p>
+                    {data.profilePublic && (
+                      <Link
+                        href={profileHref(data.profilePseudo)}
+                        className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#ECECEE] hover:border-[#6E7380]"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Voir mon profil public
+                      </Link>
+                    )}
+                  </div>
+                )}
+
                 <section
                   aria-label="Informations publiques"
                   className="flex flex-wrap gap-5"
                 >
-                  <div className="flex min-w-65 flex-1 flex-col gap-2.5 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
-                    <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-[#A3A8B3]">
-                      Bio
-                    </p>
-                    {approvedRole?.bio ? (
-                      <p className="m-0 text-[17px] text-[#D5D7DD]">
-                        {approvedRole.bio}
-                      </p>
-                    ) : (
-                      <p className="m-0 text-[17px] text-[#9AA0AA]">
-                        Pas encore de bio.{" "}
+                  <BioCard
+                    data={data}
+                    onSaved={(bio) =>
+                      setData((prev) => (prev ? { ...prev, bio } : prev))
+                    }
+                  />
+
+                  <div className="flex min-w-65 flex-1 flex-col gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
+                    <div className="flex flex-wrap gap-6">
+                      <Stat value={data.stats.accepted} label="Ajouts validés" />
+                      <Stat value={data.points} label="Points" />
+                      <Stat value={totalCreations} label="Créations" />
+                    </div>
+                    {!data.showStats && (
+                      <p className="m-0 text-[13px] text-[#9AA0AA]">
+                        Masquées sur ton profil public.{" "}
                         <button
-                          onClick={() => goToTab("createur")}
+                          onClick={() => goToTab("compte")}
                           className="font-semibold text-[#8AB4FF] hover:underline"
                         >
-                          Ajouter
+                          Modifier
                         </button>
                       </p>
                     )}
                   </div>
-
-                  <div className="flex min-w-65 flex-1 flex-wrap gap-6 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
-                    <Stat value={data.stats.accepted} label="Ajouts validés" />
-                    <Stat value={data.points} label="Points" />
-                    <Stat value={totalCreations} label="Créations" />
-                  </div>
                 </section>
 
-                {/* Ses personnages */}
+                {data.badges.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {data.badges.map((b) => (
+                      <BadgePill key={b} badgeKey={b} />
+                    ))}
+                  </div>
+                )}
+
                 {data.playerId && (
-                  <section
-                    aria-labelledby="persos-h"
-                    className="flex flex-col gap-4"
-                  >
-                    <div className="flex flex-wrap items-baseline justify-between gap-3">
-                      <h2
-                        id="persos-h"
-                        className={cn(
-                          anton.className,
-                          "m-0 text-[28px] uppercase tracking-[0.02em]",
-                        )}
-                      >
-                        Ses personnages
-                      </h2>
-                      <Link
-                        href={`/joueurs/${data.playerId}`}
-                        className="text-[13px] font-semibold text-[#8AB4FF] hover:underline"
-                      >
-                        Voir sa fiche joueur →
-                      </Link>
-                    </div>
-                    {data.playerCharacters.length === 0 ? (
-                      <p className="text-[13px] text-[#9AA0AA]">
-                        Aucun personnage lié pour l&apos;instant.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
-                        {data.playerCharacters.map((c) => {
-                          const dead = c.etatVie === "MORT";
-                          const etat =
-                            c.etatVie !== "EN_VIE"
-                              ? ETAT_BADGE[c.etatVie]
-                              : null;
-                          return (
-                            <Link
-                              key={c.id}
-                              href={`/personnages/${c.id}`}
-                              className="relative flex h-50 flex-col justify-end overflow-hidden rounded-[10px] border border-[#23262D] bg-[#15171B] hover:border-[#3A3E47]"
-                            >
-                              {c.imageUrl && (
-                                <Image
-                                  src={cloudinaryUrl(
-                                    c.imageUrl,
-                                    "w_400,h_500,c_fill,g_face",
-                                  )}
-                                  alt=""
-                                  fill
-                                  unoptimized
-                                  sizes="200px"
-                                  className={cn(
-                                    "object-cover",
-                                    dead && "grayscale",
-                                  )}
-                                />
-                              )}
-                              <div className="absolute inset-x-0 bottom-0 h-[70%] bg-linear-to-t from-[#0E0F12] from-10% to-transparent" />
-                              {etat && (
-                                <span
-                                  className={cn(
-                                    "absolute right-2 top-2 rounded border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide",
-                                    etat.className,
-                                  )}
-                                >
-                                  {etat.label}
-                                </span>
-                              )}
-                              {c.version && (
-                                <span
-                                  className="absolute left-2 top-2 rounded bg-[#0E0F12]/80 px-1.5 py-0.5 text-[11px] font-bold"
-                                  style={{ color: c.version.color }}
-                                >
-                                  {c.version.id}
-                                </span>
-                              )}
-                              <div className="relative flex flex-col px-3 pb-3">
-                                <span className="text-[16px] font-bold leading-tight text-[#ECECEE]">
-                                  {c.nom}
-                                </span>
-                              </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
+                  <ProfileCharacters
+                    playerId={data.playerId}
+                    characters={data.playerCharacters}
+                  />
                 )}
 
                 {/* Ses créations */}
@@ -864,24 +808,6 @@ function ProfilePageContent() {
                       </span>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[13px] font-semibold uppercase tracking-wide text-[#9AA0AA]">
-                        Bio
-                      </label>
-                      {editing ? (
-                        <textarea
-                          value={role.bio ?? ""}
-                          onChange={(e) => updateBio(role.type, e.target.value)}
-                          placeholder="Un mot sur toi et ce que tu crées…"
-                          className="h-24 resize-none rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 py-2 text-[14px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
-                        />
-                      ) : (
-                        <p className="text-[14px] text-[#C4C7CF]">
-                          {role.bio || "Aucune bio renseignée."}
-                        </p>
-                      )}
-                    </div>
-
                     <div>
                       <p className="mb-1.5 flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wide text-[#9AA0AA]">
                         <Link2 className="h-2.5 w-2.5" />
@@ -1072,31 +998,9 @@ function AccountSection({
         Compte
       </h2>
 
-      <div className="flex items-center gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
-        <span className="flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-full bg-[#22252B]">
-          {data.avatarUrl ? (
-            <Image
-              src={data.avatarUrl}
-              width={56}
-              height={56}
-              alt=""
-              unoptimized
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <User className="h-6 w-6 text-[#9AA0AA]" />
-          )}
-        </span>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[14px] font-semibold text-[#ECECEE]">
-            {data.pseudo}
-          </span>
-          <span className="text-[13px] text-[#9AA0AA]">
-            Connecté avec{" "}
-            {(data.provider && PROVIDER_LABELS[data.provider]) || "e-mail"}
-          </span>
-        </div>
-      </div>
+      <AvatarSettings data={data} onSaved={onLinked} />
+
+      <VisibilitySettings data={data} onSaved={onLinked} />
 
       {data.playerId && data.player ? null : data.pendingLinkRequest ? (
         <div className="flex flex-col gap-2 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
@@ -1160,39 +1064,296 @@ function AccountSection({
   );
 }
 
-function ProfilePill({
-  bg,
-  color,
-  children,
+function BioCard({
+  data,
+  onSaved,
 }: {
-  bg: string;
-  color: string;
-  children: React.ReactNode;
+  data: MeData;
+  onSaved: (bio: string | null) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [bio, setBio] = useState(data.bio ?? "");
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updatePublicProfile({
+        bio,
+        profilePublic: data.profilePublic,
+        showStats: data.showStats,
+      });
+      onSaved(bio.trim() || null);
+      setEditing(false);
+      toast({ tone: "success", title: "Bio enregistrée" });
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Enregistrement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <span
-      className="rounded-full px-2.5 py-0.75 text-[12px] font-bold"
-      style={{ backgroundColor: bg, color }}
-    >
-      {children}
-    </span>
+    <div className="flex min-w-65 flex-1 flex-col gap-2.5 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-[#A3A8B3]">
+          Bio
+        </p>
+        {!editing && data.bio && (
+          <button
+            onClick={() => setEditing(true)}
+            className="text-[13px] font-semibold text-[#8AB4FF] hover:underline"
+          >
+            Modifier
+          </button>
+        )}
+      </div>
+      {editing ? (
+        <>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={500}
+            placeholder="Un mot sur toi…"
+            aria-label="Bio"
+            className="h-28 resize-none rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 py-2 text-[15px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex min-h-11 items-center gap-1.5 rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#2F6FEB]/90 disabled:opacity-50"
+            >
+              <Check className="h-3.5 w-3.5" />
+              {saving ? "…" : "Enregistrer"}
+            </button>
+            <button
+              onClick={() => {
+                setBio(data.bio ?? "");
+                setEditing(false);
+              }}
+              className="flex min-h-11 items-center rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#C4C7CF] hover:border-[#6E7380]"
+            >
+              Annuler
+            </button>
+          </div>
+        </>
+      ) : data.bio ? (
+        <p className="m-0 whitespace-pre-line text-[17px] text-[#D5D7DD]">
+          {data.bio}
+        </p>
+      ) : (
+        <p className="m-0 text-[17px] text-[#9AA0AA]">
+          Pas encore de bio.{" "}
+          <button
+            onClick={() => setEditing(true)}
+            className="font-semibold text-[#8AB4FF] hover:underline"
+          >
+            Ajouter
+          </button>
+        </p>
+      )}
+    </div>
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+const AVATAR_MAX_BYTES = 10 * 1024 * 1024;
+
+/** Photo de profil : stockée chez Clerk, donc reprise partout sur le site. */
+function AvatarSettings({
+  data,
+  onSaved,
+}: {
+  data: MeData;
+  onSaved: () => void;
+}) {
+  const { user } = useUser();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+
+  async function apply(file: File | null) {
+    if (!user) return;
+    if (file && !file.type.startsWith("image/")) {
+      toast({ tone: "error", title: "Ce fichier n'est pas une image" });
+      return;
+    }
+    if (file && file.size > AVATAR_MAX_BYTES) {
+      toast({ tone: "error", title: "Image trop lourde", text: "10 Mo maximum." });
+      return;
+    }
+    setSaving(true);
+    try {
+      await user.setProfileImage({ file });
+      await invalidateProfilesCache();
+      onSaved();
+      toast({
+        tone: "success",
+        title: file ? "Photo de profil mise à jour" : "Photo de profil retirée",
+      });
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Changement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
   return (
-    <div className="flex flex-col">
-      <span
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={saving}
+        aria-label="Changer la photo de profil"
+        className="group relative flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-full bg-[#22252B] disabled:opacity-50"
+      >
+        {data.avatarUrl ? (
+          <Image
+            src={data.avatarUrl}
+            width={56}
+            height={56}
+            alt=""
+            unoptimized
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <User className="h-6 w-6 text-[#9AA0AA]" />
+        )}
+        <span className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <Camera className="h-5 w-5 text-white" />
+        </span>
+      </button>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[14px] font-semibold text-[#ECECEE]">
+          {data.pseudo}
+        </span>
+        <span className="text-[13px] text-[#9AA0AA]">
+          Connecté avec{" "}
+          {(data.provider && PROVIDER_LABELS[data.provider]) || "e-mail"}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={saving}
+          className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#ECECEE] hover:border-[#6E7380] disabled:opacity-50"
+        >
+          <Camera className="h-3.5 w-3.5" />
+          {saving ? "…" : "Changer la photo"}
+        </button>
+        {user?.hasImage && (
+          <button
+            type="button"
+            onClick={() => apply(null)}
+            disabled={saving}
+            className="flex min-h-11 items-center rounded-md px-3 text-[14px] font-bold text-[#9AA0AA] hover:text-[#FF8A8E] disabled:opacity-50"
+          >
+            Retirer
+          </button>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) apply(file);
+        }}
+      />
+    </div>
+  );
+}
+
+function VisibilitySettings({
+  data,
+  onSaved,
+}: {
+  data: MeData;
+  onSaved: () => void;
+}) {
+  const [profilePublic, setProfilePublic] = useState(data.profilePublic);
+  const [showStats, setShowStats] = useState(data.showStats);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+
+  async function save(next: { profilePublic: boolean; showStats: boolean }) {
+    setProfilePublic(next.profilePublic);
+    setShowStats(next.showStats);
+    setSaving(true);
+    try {
+      await updatePublicProfile({ bio: data.bio ?? "", ...next });
+      onSaved();
+    } catch (err) {
+      setProfilePublic(data.profilePublic);
+      setShowStats(data.showStats);
+      toast({
+        tone: "error",
+        title: "Enregistrement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
+      <p className="m-0 text-[14px] font-semibold text-[#ECECEE]">
+        Profil public
+      </p>
+      <label className="flex cursor-pointer items-start gap-2.5">
+        <input
+          type="checkbox"
+          checked={profilePublic}
+          disabled={saving}
+          onChange={() => save({ profilePublic: !profilePublic, showStats })}
+          className="mt-1 accent-[#2F6FEB]"
+        />
+        <span className="flex flex-col gap-0.5">
+          <span className="text-[14px] text-[#ECECEE]">
+            Rendre mon profil visible
+          </span>
+          <span className="text-[13px] text-[#9AA0AA]">
+            Masqué, ta page n&apos;est plus accessible et tu n&apos;apparais
+            plus dans les contributeurs des fiches.
+          </span>
+        </span>
+      </label>
+      <label
         className={cn(
-          anton.className,
-          "text-[32px] leading-none text-[#ECECEE]",
+          "flex items-start gap-2.5",
+          profilePublic ? "cursor-pointer" : "opacity-50",
         )}
       >
-        {value}
-      </span>
-      <span className="text-[12px] uppercase tracking-widest text-[#A3A8B3]">
-        {label}
-      </span>
+        <input
+          type="checkbox"
+          checked={showStats}
+          disabled={saving || !profilePublic}
+          onChange={() => save({ profilePublic, showStats: !showStats })}
+          className="mt-1 accent-[#2F6FEB]"
+        />
+        <span className="flex flex-col gap-0.5">
+          <span className="text-[14px] text-[#ECECEE]">
+            Afficher mes statistiques
+          </span>
+          <span className="text-[13px] text-[#9AA0AA]">
+            Ajouts validés, points et nombre de créations.
+          </span>
+        </span>
+      </label>
     </div>
   );
 }
