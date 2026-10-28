@@ -13,7 +13,7 @@ import {
   Select,
   TextInput,
 } from "@/app/_composents/admin/ui";
-import { MentionTextarea } from "@/app/_composents/MentionText";
+import { MentionTextarea } from "@/app/_composents/MentionTextarea";
 import {
   deleteCharacter,
   fetchSoundMeta,
