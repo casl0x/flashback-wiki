@@ -7,6 +7,11 @@ on:
       - "prisma/migrations/**"
   workflow_dispatch: {}
 
+# Une seule migration à la fois : remplace la protection du verrou Postgres désactivé plus bas.
+concurrency:
+  group: prisma-migrate
+  cancel-in-progress: false
+
 jobs:
   migrate:
     runs-on: ubuntu-latest
@@ -20,3 +25,6 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          # pg_advisory_lock expire de façon intermittente (P1002) ; ce workflow est le seul
+          # à migrer et ses exécutions sont sérialisées par `concurrency`.
+          PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: "1"
