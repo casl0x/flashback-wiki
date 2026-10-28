@@ -1,4 +1,3 @@
-import { Character } from "@/lib/db";
 import { MENTION_PATTERN } from "@/lib/utils";
 import Link from "next/link";
 
@@ -38,27 +37,4 @@ export function MentionText({ text, className }: Props) {
   }
 
   return <span className={className}>{nodes}</span>;
-}
-
-export function MentionTextarea({
-  value,
-  onChange,
-  characters: _characters,
-  placeholder,
-  className,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  characters: Character[];
-  placeholder?: string;
-  className?: string;
-}) {
-  return (
-    <textarea
-      value={value}
-      onChange={(event) => onChange(event.currentTarget.value)}
-      placeholder={placeholder}
-      className={className}
-    />
-  );
 }
