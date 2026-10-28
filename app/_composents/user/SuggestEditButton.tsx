@@ -86,7 +86,8 @@ export function SuggestButton({
       ? {
           nom: character.nom,
           metier: character.metier ?? "",
-          groupe: character.groupes?.map((g) => g.nom).join(", ") ?? "",
+          // Groupes en ordre chronologique : le dernier est l'actuel.
+          groupe: character.groupes?.at(-1)?.nom ?? "",
           role: character.role ?? "",
           etatVie: character.etatVie ?? "",
           joueur: character.player?.pseudo ?? "",
@@ -200,7 +201,7 @@ export function SuggestButton({
       label: "Entreprise / service public",
       key: "groupe",
       placeholder: isEdit
-        ? (character?.groupes?.map((g) => g.nom).join(", ") ?? "—")
+        ? (character?.groupes?.at(-1)?.nom ?? "—")
         : "Entreprise ou service public",
       listId: "suggest-groupes",
     },
