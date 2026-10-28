@@ -23,6 +23,14 @@ enum Role {
   illegal
 }
 
+// Nature d'un groupe : détermine la section du site où il apparaît
+// (/groupes, /entreprises, /services-publics) et sa présence dans le parcours d'un perso.
+enum GroupeType {
+  GROUPE
+  ENTREPRISE
+  SERVICE_PUBLIC
+}
+
 enum CreatorType {
   ARTISTE
   EDITEUR
@@ -255,10 +263,31 @@ model Groupe {
   color       String?
   createdAt   DateTime @default(now()) @map("created_at")
 
+  type GroupeType @default(GROUPE)
+
+  // Catégorie dans l'annuaire (entreprises / services publics) ; une seule par groupe.
+  categorieId String?          @map("categorie_id")
+  categorie   GroupeCategorie? @relation(fields: [categorieId], references: [id], onDelete: SetNull)
+
   members CharacterGroupe[]
   grades  GroupeGrade[]
 
+  @@index([type])
   @@map("groupes")
+}
+
+// Catégories de l'annuaire (ex. Automobile, Restauration), gérées dans l'admin.
+// `type` indique à quel annuaire elle appartient (ENTREPRISE ou SERVICE_PUBLIC).
+model GroupeCategorie {
+  id    String     @id @default(cuid())
+  nom   String
+  ordre Int        @default(0)
+  type  GroupeType
+
+  groupes Groupe[]
+
+  @@unique([type, nom])
+  @@map("groupe_categories")
 }
 
 // Grades d'un groupe, du plus haut (ordre 0) au plus bas

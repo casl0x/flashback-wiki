@@ -1,4 +1,5 @@
 import type { EtatVie, ParcoursStep } from "@/lib/character-page";
+import { groupeHref } from "@/lib/groupe-types";
 import Link from "next/link";
 import { textOn } from "./CharacterHero";
 import SectionTitle from "./SectionTitle";
@@ -52,7 +53,7 @@ export default function CharacterParcours({ steps, etatVie }: Props) {
                     style={{ background: s.groupe.color ?? "#6E7380" }}
                   />
                   <Link
-                    href={`/groupes/${s.groupe.slug}`}
+                    href={groupeHref(s.groupe)}
                     className="text-[16px] font-bold text-[#ECECEE] hover:underline"
                   >
                     {s.groupe.nom}

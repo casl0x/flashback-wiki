@@ -14,7 +14,7 @@ export default async function EditGroupePage({ params, searchParams }: Props) {
   const { id } = await params;
   const { back } = await searchParams;
   const isNew = id === "new";
-  const [g, others, versions] = await Promise.all([
+  const [g, others, versions, categories] = await Promise.all([
     isNew
       ? null
       : prisma.groupe.findUnique({
@@ -26,6 +26,7 @@ export default async function EditGroupePage({ params, searchParams }: Props) {
         }),
     prisma.groupe.findMany({ where: isNew ? {} : { NOT: { id } }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
     prisma.version.findMany({ select: { id: true, color: true } }),
+    prisma.groupeCategorie.findMany({ orderBy: [{ ordre: "asc" }, { nom: "asc" }], select: { id: true, nom: true, type: true } }),
   ]);
   if (!isNew && !g) notFound();
 
@@ -53,11 +54,14 @@ export default async function EditGroupePage({ params, searchParams }: Props) {
         color: g?.color ?? "#2F6FEB",
         description: g?.description ?? "",
         imageUrl: g?.imageUrl ?? null,
+        type: g?.type ?? "GROUPE",
+        categorieId: g?.categorieId ?? null,
         grades: (g?.grades ?? []).map((gr) => ({ key: gr.id, id: gr.id, nom: gr.nom, color: gr.color ?? "", members: gr._count.members })),
       }}
       members={g ? new Set(g.members.map((m) => m.characterId)).size : 0}
       presence={presence}
       others={others}
+      categories={categories}
     />
   );
 }

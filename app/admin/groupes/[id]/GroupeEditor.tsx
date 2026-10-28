@@ -9,6 +9,7 @@ import {
   Notice,
   PageHeader,
   Panel,
+  Select,
   TextArea,
   TextInput,
 } from "@/app/_composents/admin/ui";
@@ -18,6 +19,7 @@ import {
   saveGroupe,
 } from "@/lib/admin/actions/groupes";
 import { slugify } from "@/lib/admin/slug";
+import { GROUPE_TYPES, GROUPE_TYPE_META, groupeHref, type GroupeType } from "@/lib/groupe-types";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
@@ -39,8 +41,11 @@ type G = {
   color: string;
   description: string;
   imageUrl: string | null;
+  type: GroupeType;
+  categorieId: string | null;
   grades: Grade[];
 };
+type Categorie = { id: string; nom: string; type: GroupeType };
 
 // Couleurs proposées par défaut pour un nouveau grade, du plus haut au plus bas.
 // Libre à l'admin de les changer : rien n'impose une hiérarchie "militaire" type.
@@ -61,12 +66,14 @@ export default function GroupeEditor({
   members,
   presence,
   others,
+  categories,
 }: {
   initial: G;
   backHref: string;
   members: number;
   presence: { id: string; color: string; count: number }[];
   others: { id: string; nom: string }[];
+  categories: Categorie[];
 }) {
   const router = useRouter();
   const [f, setF] = useState(initial);
@@ -98,6 +105,8 @@ export default function GroupeEditor({
         color: f.color,
         description: f.description,
         imageUrl: f.imageUrl,
+        type: f.type,
+        categorieId: f.categorieId,
         grades: f.grades.map((g) => ({
           id: g.id,
           nom: g.nom,
@@ -142,7 +151,7 @@ export default function GroupeEditor({
         actions={
           <>
             {f.id && (
-              <ButtonLink href={`/groupes/${initial.slug}`} target="_blank">
+              <ButtonLink href={groupeHref(initial)} target="_blank">
                 Voir sur le site ↗
               </ButtonLink>
             )}
@@ -184,7 +193,7 @@ export default function GroupeEditor({
               <Field label="Slug">
                 <span className="flex items-center">
                   <span className="flex min-h-10 items-center rounded-l-lg border border-r-0 border-[#3A3E47] bg-[#1A1C21] px-2.5 text-[13px] font-normal text-[#9AA0AA]">
-                    /groupes/
+                    {GROUPE_TYPE_META[f.type].base}/
                   </span>
                   <TextInput
                     value={f.slug}
@@ -196,6 +205,49 @@ export default function GroupeEditor({
                   />
                 </span>
               </Field>
+              <Field
+                label="Type"
+                hint="Détermine la section du site : groupes, entreprises ou services publics. Seuls les deux derniers apparaissent dans le parcours d’un perso."
+              >
+                <Select
+                  value={f.type}
+                  onChange={(e) =>
+                    setF({
+                      ...f,
+                      type: e.target.value as GroupeType,
+                      categorieId: null,
+                    })
+                  }
+                >
+                  {GROUPE_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {GROUPE_TYPE_META[t].label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {f.type !== "GROUPE" && (
+                <Field
+                  label="Catégorie"
+                  hint="Se gère dans Données › Catégories."
+                >
+                  <Select
+                    value={f.categorieId ?? ""}
+                    onChange={(e) =>
+                      setF({ ...f, categorieId: e.target.value || null })
+                    }
+                  >
+                    <option value="">Aucune (Autres)</option>
+                    {categories
+                      .filter((c) => c.type === f.type)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nom}
+                        </option>
+                      ))}
+                  </Select>
+                </Field>
+              )}
               <Field
                 label="Couleur"
                 className="sm:col-span-2"
@@ -461,7 +513,7 @@ export default function GroupeEditor({
               </span>
               <span className="min-w-0">
                 <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">
-                  Groupe
+                  {GROUPE_TYPE_META[f.type].kicker}
                 </span>
                 <span
                   className={cn(
