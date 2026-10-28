@@ -1,6 +1,7 @@
 import { ButtonLink, PageHeader, TextInput } from "@/app/_composents/admin/ui";
 import { prisma } from "@/lib/db";
 import { versionRank } from "@/lib/version-rank";
+import { GROUPE_TYPES, GROUPE_TYPE_META, type GroupeType } from "@/lib/groupe-types";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -8,20 +9,26 @@ export const dynamic = "force-dynamic";
 export default async function AdminGroupes({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; type?: string }>;
 }) {
-  const { q } = await searchParams;
-  const backHref = q?.trim()
-    ? `/admin/groupes?q=${encodeURIComponent(q.trim())}`
+  const { q, type: typeParam } = await searchParams;
+  const type = GROUPE_TYPES.find((t) => t === typeParam) as GroupeType | undefined;
+  const params = new URLSearchParams();
+  if (q?.trim()) params.set("q", q.trim());
+  if (type) params.set("type", type);
+  const backHref = params.size
+    ? `/admin/groupes?${params.toString()}`
     : "/admin/groupes";
   const editHref = (id: string) =>
     `/admin/groupes/${id}?back=${encodeURIComponent(backHref)}`;
   const groupes = await prisma.groupe.findMany({
-    where: q?.trim()
-      ? { nom: { contains: q.trim(), mode: "insensitive" } }
-      : {},
+    where: {
+      ...(q?.trim() ? { nom: { contains: q.trim(), mode: "insensitive" as const } } : {}),
+      ...(type ? { type } : {}),
+    },
     orderBy: { nom: "asc" },
     include: {
+      categorie: { select: { nom: true } },
       _count: { select: { grades: true } },
       members: { select: { characterId: true, versionId: true } },
     },
@@ -39,6 +46,19 @@ export default async function AdminGroupes({
         }
       />
       <form role="search" className="flex gap-2.5">
+        <select
+          name="type"
+          defaultValue={type ?? ""}
+          aria-label="Type"
+          className="min-h-10 rounded-lg border border-[#3A3E47] bg-[#15171B] px-2.5"
+        >
+          <option value="">Tous les types</option>
+          {GROUPE_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {GROUPE_TYPE_META[t].plural}
+            </option>
+          ))}
+        </select>
         <TextInput
           name="q"
           defaultValue={q}
@@ -54,11 +74,17 @@ export default async function AdminGroupes({
         </button>
       </form>
       <div className="overflow-x-auto rounded-[10px] border border-[#23262D]">
-        <table className="w-full min-w-180 border-collapse text-left">
+        <table className="w-full min-w-220 border-collapse text-left">
           <thead>
             <tr className="bg-[#1A1C21] text-[11px] uppercase tracking-widest text-[#A3A8B3]">
               <th scope="col" className="px-3 py-2.5">
                 Nom
+              </th>
+              <th scope="col" className="px-3 py-2.5">
+                Type
+              </th>
+              <th scope="col" className="px-3 py-2.5">
+                Catégorie
               </th>
               <th scope="col" className="px-3 py-2.5">
                 Slug
@@ -81,7 +107,7 @@ export default async function AdminGroupes({
             {groupes.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={8}
                   className="bg-[#15171B] px-3 py-8 text-center text-[#9AA0AA]"
                 >
                   Aucun groupe.
@@ -114,6 +140,14 @@ export default async function AdminGroupes({
                       />
                       {g.nom}
                     </Link>
+                  </td>
+                  <td className="px-3 py-2.5 text-[#C4C7CF]">
+                    {GROUPE_TYPE_META[g.type].label}
+                  </td>
+                  <td className="px-3 py-2.5 text-[#C4C7CF]">
+                    {g.categorie?.nom ?? (
+                      <span className="text-[#6E7380]">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 text-[#9AA0AA]">/{g.slug}</td>
                   <td className="px-3 py-2.5 text-[#C4C7CF]">{members}</td>

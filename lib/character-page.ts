@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { PARCOURS_TYPES, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
 import { relationKind, type RelationKind } from "@/lib/relation-kinds";
 import { detectStreamPlatform, type StreamPlatform } from "@/lib/utils";
@@ -12,7 +13,7 @@ export type EtatVie = "EN_VIE" | "MORT" | "PARTI" | "DISPARU" | "PRISON";
 
 export type VersionTag = { id: string; label: string; color: string };
 
-export type GroupeTag = { id: string; slug: string; nom: string; color: string | null };
+export type GroupeTag = { id: string; slug: string; nom: string; color: string | null; type: GroupeType };
 
 export type ParcoursStep = {
   key: string;
@@ -115,8 +116,13 @@ function sortMemberships(list: Membership[]): Membership[] {
   );
 }
 
+/** Parcours d'un perso : seuls les entreprises et services publics y figurent (pas les gangs, etc.). */
+function sortParcours(list: Membership[]): Membership[] {
+  return sortMemberships(list).filter((m) => PARCOURS_TYPES.includes(m.groupe.type));
+}
+
 function jobOf(memberships: Membership[], metier: string | null): string | null {
-  const last = sortMemberships(memberships).at(-1);
+  const last = sortParcours(memberships).at(-1);
   if (!last) return metier;
   return last.grade ? `${last.grade.nom} · ${last.groupe.nom}` : last.groupe.nom;
 }
@@ -131,7 +137,7 @@ type Linked = Prisma.CharacterGetPayload<{ include: typeof linkedInclude }>;
 
 function toLinked(relationId: string, label: string | null, c: Linked): LinkedCharacter {
   const lastVersion = [...c.versions].sort(byVersion).at(-1);
-  const lastMembership = sortMemberships(c.groupes).at(-1);
+  const lastMembership = sortParcours(c.groupes).at(-1);
   return {
     relationId,
     id: c.id,
@@ -205,10 +211,10 @@ async function loadCharacterPage(id: string): Promise<CharacterPageData | null> 
     locationX: c.locationX,
     locationY: c.locationY,
     versions: [...c.versions].sort(byVersion).map(toVersionTag),
-    parcours: sortMemberships(c.groupes).map((m) => ({
+    parcours: sortParcours(c.groupes).map((m) => ({
       key: m.id,
       version: m.version ? toVersionTag(m.version) : null,
-      groupe: { id: m.groupe.id, slug: m.groupe.slug, nom: m.groupe.nom, color: m.groupe.color },
+      groupe: { id: m.groupe.id, slug: m.groupe.slug, nom: m.groupe.nom, color: m.groupe.color, type: m.groupe.type },
       grade: m.grade?.nom ?? null,
       matricule: m.matricule,
     })),

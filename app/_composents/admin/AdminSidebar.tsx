@@ -33,6 +33,7 @@ export default function AdminSidebar({
         { href: "/admin/characters", label: "Personnages" },
         { href: "/admin/players", label: "Joueurs" },
         { href: "/admin/groupes", label: "Groupes" },
+        { href: "/admin/categories", label: "Catégories" },
         { href: "/admin/versions", label: "Versions" },
       ],
     },

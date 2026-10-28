@@ -3,6 +3,7 @@ import { cloudinaryUrl } from "@/lib/character-page";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { groupeHref } from "@/lib/groupe-types";
 import Link from "next/link";
 
 export const ETAT_BADGE: Record<
@@ -80,7 +81,7 @@ export default function CharacterHero({ c }: { c: CharacterPageData }) {
             ))}
             {current && (
               <Link
-                href={`/groupes/${current.groupe.slug}`}
+                href={groupeHref(current.groupe)}
                 className={pill}
                 style={{
                   background: current.groupe.color ?? "#2F6FEB",
@@ -125,7 +126,7 @@ export default function CharacterHero({ c }: { c: CharacterPageData }) {
                 <>
                   {(subtitle || c.metier) && " — "}
                   <Link
-                    href={`/groupes/${current.groupe.slug}`}
+                    href={groupeHref(current.groupe)}
                     className="font-semibold text-[#ECECEE] hover:underline"
                   >
                     {current.groupe.nom}

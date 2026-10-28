@@ -3,6 +3,7 @@
 import { requireAdmin } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/admin/slug";
+import type { GroupeType } from "@/lib/groupe-types";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
 
 export type GradeInput = { id: string | null; nom: string; color: string | null };
@@ -13,6 +14,8 @@ export type GroupeInput = {
   color: string | null;
   description: string | null;
   imageUrl: string | null;
+  type: GroupeType;
+  categorieId: string | null; // ignoré pour le type GROUPE
   grades: GradeInput[]; // du plus haut au plus bas
 };
 
@@ -27,7 +30,14 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
     if (gradeNames.some((n) => !n)) return { ok: false, error: "Chaque grade doit avoir un nom." };
     if (new Set(gradeNames).size !== gradeNames.length) return { ok: false, error: "Deux grades portent le même nom." };
 
+    if (input.categorieId && input.type !== "GROUPE") {
+      const cat = await prisma.groupeCategorie.findUnique({ where: { id: input.categorieId } });
+      if (!cat || cat.type !== input.type) return { ok: false, error: "Catégorie incompatible avec le type." };
+    }
+
     const data = {
+      type: input.type,
+      categorieId: input.type === "GROUPE" ? null : input.categorieId,
       nom,
       slug,
       color: clean(input.color),
@@ -115,6 +125,40 @@ export async function mergeGroupe(sourceId: string, targetId: string): Promise<A
 
     await refreshAll();
     return { ok: true, data: { moved } };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+// ─── Catégories de l'annuaire (entreprises / services publics) ───────────────
+
+export type CategorieInput = { id: string | null; nom: string };
+
+/** Remplace la liste des catégories d'un type, dans l'ordre donné. Retirer une catégorie met ses groupes sans catégorie. */
+export async function saveCategories(type: GroupeType, list: CategorieInput[]): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    if (type === "GROUPE") return { ok: false, error: "Ce type n'a pas de catégories." };
+    const names = list.map((c) => c.nom.trim().toLowerCase());
+    if (names.some((n) => !n)) return { ok: false, error: "Chaque catégorie doit avoir un nom." };
+    if (new Set(names).size !== names.length) return { ok: false, error: "Deux catégories portent le même nom." };
+
+    await prisma.$transaction(async (tx) => {
+      const keep = list.filter((c) => c.id).map((c) => c.id!);
+      await tx.groupeCategorie.deleteMany({ where: { type, id: { notIn: keep } } });
+      // Renommage en deux temps pour éviter les collisions de nom uniques.
+      for (const c of list.filter((x) => x.id)) {
+        await tx.groupeCategorie.update({ where: { id: c.id! }, data: { nom: `__tmp_${c.id}` } });
+      }
+      for (const [i, c] of list.entries()) {
+        const data = { nom: c.nom.trim(), ordre: i };
+        if (c.id) await tx.groupeCategorie.update({ where: { id: c.id }, data });
+        else await tx.groupeCategorie.create({ data: { ...data, type } });
+      }
+    }, { timeout: 20000 });
+
+    await refreshAll();
+    return { ok: true };
   } catch (e) {
     return failure(e);
   }
