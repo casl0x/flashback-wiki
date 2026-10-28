@@ -47,7 +47,6 @@ export type Character = {
   id: string;
   nom: string;
   role: "civil" | "illegal" | null;
-  metier: string | null;
   groupes: Pick<Groupe, "id" | "slug" | "nom" | "color">[];
   description: string | null;
   lienReddif: string | null;
@@ -80,8 +79,7 @@ export type LinkedRelation = {
     id: string;
     nom: string;
     role: "civil" | "illegal" | null;
-    metier: string | null;
-    groupes: Pick<Groupe, "id" | "slug" | "nom" | "color">[];
+      groupes: Pick<Groupe, "id" | "slug" | "nom" | "color">[];
     imageUrl: string | null; // ← ajouter
     player_pseudo: string | null;
   };

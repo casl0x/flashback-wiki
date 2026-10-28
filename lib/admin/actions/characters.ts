@@ -22,7 +22,6 @@ export type RelationInput = { otherId: string; type: string | null; inverse: str
 export type CharacterInput = {
   nom: string;
   role: Role | null;
-  metier: string | null;
   etatVie: EtatVie;
   description: string | null;
   lienReddif: string | null;
@@ -64,7 +63,6 @@ export async function saveCharacter(
     const base = {
       nom: input.nom.trim(),
       role: input.role,
-      metier: clean(input.metier),
       etatVie: input.etatVie,
       description: clean(input.description),
       lienReddif: clean(input.lienReddif),

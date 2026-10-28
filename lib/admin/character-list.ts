@@ -13,7 +13,6 @@ export function characterWhere(f: CharacterFilters): Prisma.CharacterWhereInput 
     and.push({
       OR: [
         { nom: { contains: q, mode: "insensitive" } },
-        { metier: { contains: q, mode: "insensitive" } },
         { player: { pseudo: { contains: q, mode: "insensitive" } } },
       ],
     });
@@ -41,6 +40,6 @@ export type CharacterListRow = Prisma.CharacterGetPayload<{ include: typeof char
 /** « Sergent · SASP » pour la dernière appartenance, sinon le métier. */
 export function currentJob(c: CharacterListRow): string | null {
   const last = c.groupes.at(-1);
-  if (!last) return c.metier;
+  if (!last) return null;
   return last.grade ? `${last.grade.nom} · ${last.groupe.nom}` : last.groupe.nom;
 }

@@ -56,7 +56,6 @@ export type CharacterPageData = {
   id: string;
   nom: string;
   role: "civil" | "illegal" | null;
-  metier: string | null;
   description: string | null;
   lienReddif: string | null;
   imageUrl: string | null;
@@ -121,9 +120,9 @@ function sortParcours(list: Membership[]): Membership[] {
   return sortMemberships(list).filter((m) => PARCOURS_TYPES.includes(m.groupe.type));
 }
 
-function jobOf(memberships: Membership[], metier: string | null): string | null {
+function jobOf(memberships: Membership[]): string | null {
   const last = sortParcours(memberships).at(-1);
-  if (!last) return metier;
+  if (!last) return null;
   return last.grade ? `${last.grade.nom} · ${last.groupe.nom}` : last.groupe.nom;
 }
 
@@ -188,7 +187,7 @@ async function loadCharacterPage(id: string): Promise<CharacterPageData | null> 
         nom: o.nom,
         imageUrl: o.imageUrl,
         version: v ? toVersionTag(v) : null,
-        job: jobOf(o.groupes, o.metier),
+        job: jobOf(o.groupes),
         etatVie: o.etatVie as EtatVie,
       };
     })
@@ -203,7 +202,6 @@ async function loadCharacterPage(id: string): Promise<CharacterPageData | null> 
     id: c.id,
     nom: c.nom,
     role: c.role,
-    metier: c.metier,
     description: c.description,
     lienReddif: c.lienReddif,
     imageUrl: c.imageUrl,

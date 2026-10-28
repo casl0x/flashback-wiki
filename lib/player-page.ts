@@ -136,7 +136,7 @@ async function loadPlayerPage(id: string): Promise<PlayerPageData | null> {
         ? last.grade
           ? `${last.grade.nom} · ${last.groupe.nom}`
           : last.groupe.nom
-        : c.metier;
+        : null;
 
       rows.get(key)!.characters.push({
         id: c.id,

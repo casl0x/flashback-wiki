@@ -208,7 +208,6 @@ model Character {
   nom         String
   role        Role?
   description String?
-  metier      String?
   lienReddif  String?  @map("lien_reddif")
   imageUrl    String?  @map("image_url")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -354,7 +353,6 @@ model Suggestion {
   characterId String?
   character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
   nom         String?
-  metier      String?
   groupe      String?
   description String?
   note        String?

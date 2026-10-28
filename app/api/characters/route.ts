@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
     description,
     player_id,
     version_id,
-    metier,
     groupe_ids,
     lien_reddif,
     image_url,
@@ -30,7 +29,6 @@ export async function POST(request: NextRequest) {
         description: description ?? null,
         playerId: player_id ?? null,
         versions: version_id ? { connect: [{ id: version_id }] } : undefined,
-        metier: metier ?? null,
         groupes: groupe_ids?.length
           ? {
               create: groupe_ids.map((id: string, ordre: number) => ({
@@ -63,7 +61,6 @@ export async function PATCH(request: NextRequest) {
     description,
     player_id,
     version_id,
-    metier,
     groupe_ids,
     lien_reddif,
     image_url,
@@ -83,7 +80,6 @@ export async function PATCH(request: NextRequest) {
         ...(version_id !== undefined && {
           versions: { set: version_id ? [{ id: version_id }] : [] },
         }),
-        metier: metier ?? null,
         groupes: {
           deleteMany: {},
           create: (groupe_ids ?? []).map((id: string, ordre: number) => ({
