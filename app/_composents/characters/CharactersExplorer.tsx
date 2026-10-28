@@ -62,7 +62,6 @@ export default function CharactersExplorer({ characters }: Props) {
       const matchSearch =
         matchesSearch(c.nom, query) ||
         matchesSearch(c.player?.pseudo, query) ||
-        matchesSearch(c.metier, query) ||
         c.groupes.some((g) => matchesSearch(g.nom, query));
 
       return (

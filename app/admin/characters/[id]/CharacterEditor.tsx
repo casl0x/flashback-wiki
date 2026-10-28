@@ -44,7 +44,6 @@ export type EditorCharacter = {
   id: string | null;
   nom: string;
   role: "civil" | "illegal" | null;
-  metier: string;
   etatVie: EtatVie;
   description: string;
   lienReddif: string;
@@ -254,7 +253,6 @@ export default function CharacterEditor({
     const input: CharacterInput = {
       nom: f.nom,
       role: f.role,
-      metier: f.metier,
       etatVie: f.etatVie,
       description: f.description,
       lienReddif: f.lienReddif,
@@ -452,12 +450,6 @@ export default function CharacterEditor({
                   <option value="civil">Civil</option>
                   <option value="illegal">Illégal</option>
                 </Select>
-              </Field>
-              <Field label="Métier">
-                <TextInput
-                  value={f.metier}
-                  onChange={(e) => set("metier", e.target.value)}
-                />
               </Field>
               <Field label="État">
                 <Select
@@ -910,7 +902,7 @@ export default function CharacterEditor({
                     ? [currentGrade?.nom, currentGroupe.nom]
                         .filter(Boolean)
                         .join(" · ")
-                    : f.metier || "—"}
+                    : "—"}
                 </span>
               </span>
             </div>

@@ -119,23 +119,16 @@ export default function CharacterHero({ c }: { c: CharacterPageData }) {
             {c.nom}
           </h1>
 
-          {(current || c.metier) && (
+          {current && (
             <p className="mt-3 text-[16px] text-[#C4C7CF] sm:text-[18px]">
-              {subtitle || c.metier}
-              {current && (
-                <>
-                  {(subtitle || c.metier) && " — "}
-                  <Link
-                    href={groupeHref(current.groupe)}
-                    className="font-semibold text-[#ECECEE] hover:underline"
-                  >
-                    {current.groupe.nom}
-                  </Link>
-                </>
-              )}
-              {subtitle && c.metier && (
-                <span className="text-[#9AA0AA]"> · {c.metier}</span>
-              )}
+              {subtitle}
+              {subtitle && " — "}
+              <Link
+                href={groupeHref(current.groupe)}
+                className="font-semibold text-[#ECECEE] hover:underline"
+              >
+                {current.groupe.nom}
+              </Link>
             </p>
           )}
         </div>

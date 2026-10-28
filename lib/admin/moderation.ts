@@ -185,7 +185,6 @@ export async function loadSuggestionDetail(id: string) {
   push("Groupe", c ? c.groupes.map((g) => g.groupe.nom).join(", ") : null, s.groupe ? `+ ${s.groupe}` : null);
   push("Rôle", c?.role ? ROLE[c.role] : null, s.role ? ROLE[s.role] : null);
   push("État", c ? ETAT[c.etatVie] : null, s.etatVie ? ETAT[s.etatVie] : null);
-  push("Métier", c?.metier, s.metier);
   push("Lien rediffusion", c?.lienReddif, s.lienReddif);
   push("Description", c?.description ? stripMentions(c.description) : null, s.description ? stripMentions(s.description) : null);
 

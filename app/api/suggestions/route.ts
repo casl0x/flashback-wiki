@@ -39,7 +39,6 @@ export async function POST(req: Request) {
       clerkUserId: userId,
       characterId: character?.id ?? null,
       nom: text(body.nom, 200),
-      metier: text(body.metier, 200),
       groupe: text(body.groupe, 200),
       joueur: text(body.joueur, 200),
       lienReddif: text(body.lienReddif, 500),

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   });
 
   const lines = [
-    ["id", "nom", "versions", "groupe_metier", "joueur", "etat", "role", "lien_rediffusion"].join(";"),
+    ["id", "nom", "versions", "groupe", "joueur", "etat", "role", "lien_rediffusion"].join(";"),
     ...rows.map((c) =>
       [
         c.id,

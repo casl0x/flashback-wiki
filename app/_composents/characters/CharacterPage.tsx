@@ -22,7 +22,6 @@ function toSuggestCharacter(c: CharacterPageData): Character {
     id: c.id,
     nom: c.nom,
     role: c.role,
-    metier: c.metier,
     groupes: c.parcours.map((p) => p.groupe),
     description: c.description,
     lienReddif: c.lienReddif,

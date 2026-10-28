@@ -38,7 +38,6 @@ interface SuggestButtonProps {
 
 const EMPTY_FORM = {
   nom: "",
-  metier: "",
   groupe: "",
   role: "",
   etatVie: "",
@@ -85,7 +84,6 @@ export function SuggestButton({
     mode === "edit" && character
       ? {
           nom: character.nom,
-          metier: character.metier ?? "",
           // Groupes en ordre chronologique : le dernier est l'actuel.
           groupe: character.groupes?.at(-1)?.nom ?? "",
           role: character.role ?? "",
@@ -140,7 +138,6 @@ export function SuggestButton({
     const body = {
       ...(mode === "edit" ? { characterId: character?.id } : {}),
       nom: form.nom,
-      metier: form.metier,
       groupe: form.groupe,
       description: form.description,
       note: form.note,
@@ -183,7 +180,7 @@ export function SuggestButton({
 
   const fields: {
     label: string;
-    key: "nom" | "metier" | "groupe";
+    key: "nom" | "groupe";
     placeholder: string;
     listId?: string;
   }[] = [
@@ -191,11 +188,6 @@ export function SuggestButton({
       label: "Nom",
       key: "nom",
       placeholder: isEdit ? (character?.nom ?? "") : "Nom du personnage",
-    },
-    {
-      label: "Métier",
-      key: "metier",
-      placeholder: isEdit ? (character?.metier ?? "—") : "Métier",
     },
     {
       label: "Entreprise / service public",

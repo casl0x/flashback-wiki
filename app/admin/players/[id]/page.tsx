@@ -63,7 +63,7 @@ export default async function EditPlayerPage({ params, searchParams }: Props) {
           imageUrl: c.imageUrl,
           etatVie: c.etatVie,
           versions: c.versions,
-          job: last ? [last.grade?.nom, last.groupe.nom].filter(Boolean).join(" · ") : c.metier,
+          job: last ? [last.grade?.nom, last.groupe.nom].filter(Boolean).join(" · ") : null,
         };
       })}
     />

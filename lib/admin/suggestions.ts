@@ -33,7 +33,6 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
   ]);
 
   const fields = {
-    ...(s.metier ? { metier: s.metier } : {}),
     ...(s.description ? { description: s.description } : {}),
     ...(s.lienReddif ? { lienReddif: s.lienReddif } : {}),
     ...(s.role ? { role: s.role } : {}),
