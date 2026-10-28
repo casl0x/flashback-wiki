@@ -16,6 +16,12 @@ import { notFound, permanentRedirect } from "next/navigation";
 const FALLBACK_COLOR = "#9AA0AA";
 const NONE = "__none__";
 
+/** Un perso peut avoir plusieurs passages dans le groupe : une seule carte par rang. */
+const onePerCharacter = <T extends { characterId: string }>(list: T[]): T[] => {
+  const seen = new Set<string>();
+  return list.filter((m) => !seen.has(m.characterId) && !!seen.add(m.characterId));
+};
+
 export const loadGroupe = unstable_cache(
   async (slug: string) =>
     prisma.groupe.findUnique({
@@ -108,14 +114,18 @@ export default async function GroupePage({
           key: gr.id,
           label: gr.nom,
           color: gr.color || FALLBACK_COLOR,
-          people: current.members.filter((m) => m.gradeId === gr.id),
+          people: onePerCharacter(
+            current.members.filter((m) => m.gradeId === gr.id),
+          ),
         })),
         {
           key: NONE,
           label: g.grades.length ? "Sans grade" : "Membres",
           color: "#6E7380",
-          people: current.members.filter(
-            (m) => !m.gradeId || !g.grades.some((gr) => gr.id === m.gradeId),
+          people: onePerCharacter(
+            current.members.filter(
+              (m) => !m.gradeId || !g.grades.some((gr) => gr.id === m.gradeId),
+            ),
           ),
         },
       ]

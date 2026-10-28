@@ -17,8 +17,6 @@ import NotificationBell from "./Notificationbell";
 const LINKS = [
   { href: "/personnages", label: "Personnages" },
   { href: "/joueurs", label: "Joueurs" },
-  { href: "/entreprises", label: "Entreprises" },
-  { href: "/services-publics", label: "Services publics" },
   { href: "/musiques", label: "Musiques" },
   { href: "/createurs", label: "Créateurs" },
 ];

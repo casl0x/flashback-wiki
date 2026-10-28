@@ -36,12 +36,8 @@ export type CharacterInput = {
 
 function validate(input: CharacterInput, selfId: string | null): string | null {
   if (!input.nom.trim()) return "Le nom est requis.";
-  const seen = new Set<string>();
   for (const m of input.memberships) {
     if (!m.groupeId) return "Chaque ligne de groupe doit avoir un groupe.";
-    const key = `${m.groupeId}|${m.versionId ?? ""}`;
-    if (seen.has(key)) return "Le même groupe apparaît deux fois pour la même version.";
-    seen.add(key);
   }
   for (const s of input.sounds) {
     if (!s.titre.trim() || !s.url.trim()) return "Chaque son doit avoir un titre et un lien.";

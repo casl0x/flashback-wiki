@@ -106,8 +106,15 @@ export async function mergeGroupe(sourceId: string, targetId: string): Promise<A
       const members = await tx.characterGroupe.findMany({ where: { groupeId: sourceId } });
       let count = 0;
       for (const m of members) {
+        // Plusieurs passages dans un même groupe sont permis : on n'écarte que le doublon exact.
         const clash = await tx.characterGroupe.findFirst({
-          where: { characterId: m.characterId, groupeId: targetId, versionId: m.versionId },
+          where: {
+            characterId: m.characterId,
+            groupeId: targetId,
+            versionId: m.versionId,
+            gradeId: m.gradeId ? (gradeMap.get(m.gradeId) ?? null) : null,
+            matricule: m.matricule,
+          },
         });
         if (clash) {
           await tx.characterGroupe.delete({ where: { id: m.id } });

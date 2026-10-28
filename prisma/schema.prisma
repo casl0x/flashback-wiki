@@ -325,7 +325,9 @@ model CharacterGroupe {
   versionId String?  @map("version_id")
   version   Version? @relation(fields: [versionId], references: [id], onDelete: SetNull)
 
-  @@unique([characterId, groupeId, versionId])
+  // Un perso peut avoir plusieurs passages dans le même groupe (départ puis retour,
+  // changement de grade), même au sein d'une version : `ordre` les distingue.
+  @@index([characterId])
   @@index([groupeId])
   @@map("character_groupes")
 }
