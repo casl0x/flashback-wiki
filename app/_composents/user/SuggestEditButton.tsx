@@ -108,7 +108,12 @@ export function SuggestButton({
     ])
       .then(([v, g, p]) => {
         setVersions(v ?? []);
-        setGroupeNames((g ?? []).map((x: { nom: string }) => x.nom));
+        // Seuls les entreprises et services publics figurent dans le parcours d'un perso.
+        setGroupeNames(
+          (g ?? [])
+            .filter((x: { type: string }) => x.type !== "GROUPE")
+            .map((x: { nom: string }) => x.nom),
+        );
         setPlayerPseudos((p ?? []).map((x: { pseudo: string }) => x.pseudo));
       })
       .catch(console.error);
@@ -192,11 +197,11 @@ export function SuggestButton({
       placeholder: isEdit ? (character?.metier ?? "—") : "Métier",
     },
     {
-      label: "Groupe",
+      label: "Entreprise / service public",
       key: "groupe",
       placeholder: isEdit
         ? (character?.groupes?.map((g) => g.nom).join(", ") ?? "—")
-        : "Groupe",
+        : "Entreprise ou service public",
       listId: "suggest-groupes",
     },
   ];
