@@ -11,6 +11,9 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
+    // La CLI (migrate deploy) prend un verrou de session (pg_advisory_lock) qui ne passe pas
+    // par le pooler Neon (PgBouncer) : on préfère la connexion directe quand elle existe.
+    // Le client de l'app, lui, continue d'utiliser DATABASE_URL (voir schema.prisma).
+    url: process.env.DATABASE_URL_UNPOOLED ?? env("DATABASE_URL"),
   },
 });
