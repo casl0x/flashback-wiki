@@ -110,7 +110,7 @@ export default function CharacterCard({ character, onClick }: Props) {
           {character.nom}
         </p>
         <span className="text-xs text-white/90">
-          Jouer par {character.player?.pseudo ?? "Inconnu"}
+          Joué/e par {character.player?.pseudo ?? "Inconnu"}
         </span>
       </div>
     </div>
