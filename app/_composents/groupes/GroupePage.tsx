@@ -206,12 +206,10 @@ export default async function GroupePage({
 
       <main className="mx-auto flex max-w-295 flex-col gap-8 px-4 pb-16 pt-6 sm:px-5 sm:pt-7">
         <Link
-          href={g.type === "GROUPE" ? "/personnages" : meta.base}
+          href="/personnages"
           className="-mb-4 self-start text-[13px] text-[#A3A8B3] hover:text-[#ECECEE]"
         >
-          {g.type === "GROUPE"
-            ? "← Retour aux personnages"
-            : `← Retour aux ${meta.plural.toLowerCase()}`}
+          ← Retour aux personnages
         </Link>
 
         {g.description && (
