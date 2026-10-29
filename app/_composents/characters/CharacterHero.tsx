@@ -31,7 +31,7 @@ const pill =
   "rounded px-2.5 py-1 text-[12px] font-bold uppercase tracking-[0.06em] leading-none";
 
 export default function CharacterHero({ c }: { c: CharacterPageData }) {
-  const current = c.parcours.at(-1);
+  const current = c.current;
   const dead = c.etatVie === "MORT";
   const subtitle = current
     ? [

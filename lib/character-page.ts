@@ -64,6 +64,8 @@ export type CharacterPageData = {
   locationY: number | null;
   versions: VersionTag[];
   parcours: ParcoursStep[];
+  /** Dernier passage tous types confondus (groupes compris) : affiché sous le nom. */
+  current: ParcoursStep | null;
   sounds: CharacterSound[];
   relations: LinkedCharacter[];
   player: {
@@ -120,8 +122,18 @@ function sortParcours(list: Membership[]): Membership[] {
   return sortMemberships(list).filter((m) => PARCOURS_TYPES.includes(m.groupe.type));
 }
 
+function toStep(m: Membership): ParcoursStep {
+  return {
+    key: m.id,
+    version: m.version ? toVersionTag(m.version) : null,
+    groupe: { id: m.groupe.id, slug: m.groupe.slug, nom: m.groupe.nom, color: m.groupe.color, type: m.groupe.type },
+    grade: m.grade?.nom ?? null,
+    matricule: m.matricule,
+  };
+}
+
 function jobOf(memberships: Membership[]): string | null {
-  const last = sortParcours(memberships).at(-1);
+  const last = sortMemberships(memberships).at(-1);
   if (!last) return null;
   return last.grade ? `${last.grade.nom} · ${last.groupe.nom}` : last.groupe.nom;
 }
@@ -136,7 +148,7 @@ type Linked = Prisma.CharacterGetPayload<{ include: typeof linkedInclude }>;
 
 function toLinked(relationId: string, label: string | null, c: Linked): LinkedCharacter {
   const lastVersion = [...c.versions].sort(byVersion).at(-1);
-  const lastMembership = sortParcours(c.groupes).at(-1);
+  const lastMembership = sortMemberships(c.groupes).at(-1);
   return {
     relationId,
     id: c.id,
@@ -209,13 +221,11 @@ async function loadCharacterPage(id: string): Promise<CharacterPageData | null> 
     locationX: c.locationX,
     locationY: c.locationY,
     versions: [...c.versions].sort(byVersion).map(toVersionTag),
-    parcours: sortParcours(c.groupes).map((m) => ({
-      key: m.id,
-      version: m.version ? toVersionTag(m.version) : null,
-      groupe: { id: m.groupe.id, slug: m.groupe.slug, nom: m.groupe.nom, color: m.groupe.color, type: m.groupe.type },
-      grade: m.grade?.nom ?? null,
-      matricule: m.matricule,
-    })),
+    parcours: sortParcours(c.groupes).map(toStep),
+    current: (() => {
+      const last = sortMemberships(c.groupes).at(-1);
+      return last ? toStep(last) : null;
+    })(),
     sounds: c.sounds.map((s) => ({
       id: s.id,
       titre: s.titre,
