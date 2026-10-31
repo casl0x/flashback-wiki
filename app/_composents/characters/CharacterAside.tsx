@@ -1,4 +1,5 @@
 import { PlayerBadges } from "@/app/_composents/admin/PlayerBadges";
+import ShowMoreGrid from "@/app/_composents/ui/ShowMoreGrid";
 import type { CharacterPageData } from "@/lib/character-page";
 import { cloudinaryUrl, initials } from "@/lib/character-page";
 import { cn } from "@/lib/utils";
@@ -113,7 +114,7 @@ export function OtherCharacters({ player }: { player: Player }) {
       >
         Autres personnages de {player.pseudo}
       </h2>
-      <div className="grid grid-cols-2 gap-2.5">
+      <ShowMoreGrid className="grid grid-cols-2 gap-2.5">
         {player.others.map((o) => (
           <Link
             key={o.id}
@@ -153,7 +154,7 @@ export function OtherCharacters({ player }: { player: Player }) {
             </span>
           </Link>
         ))}
-      </div>
+      </ShowMoreGrid>
     </section>
   );
 }
