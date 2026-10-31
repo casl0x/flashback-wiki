@@ -2,7 +2,6 @@
 export const CREATOR_RULES = [
   "Le contenu partagé doit être en lien avec Flashback WL",
   "Pas de contenu offensant ou haineux",
-  "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
   "Les liens partagés doivent pointer vers ton propre contenu, pas du clipfarming",
   "Tu es responsable de ce que tu publies : pas de validation admin avant mise en ligne",
   "Un signalement abusif peut entraîner le retrait de ton contenu ou de ton profil",
