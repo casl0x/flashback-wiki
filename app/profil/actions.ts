@@ -210,3 +210,15 @@ export async function createReport(data: {
     },
   });
 }
+
+/** Trace l'acceptation des règles de publication créateur (une fois par compte). */
+export async function acceptCreatorRules() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+
+  await prisma.userProfile.upsert({
+    where: { clerkUserId: userId },
+    create: { clerkUserId: userId, creatorRulesAcceptedAt: new Date() },
+    update: { creatorRulesAcceptedAt: new Date() },
+  });
+}

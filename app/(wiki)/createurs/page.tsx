@@ -5,6 +5,7 @@ import { PublishCreatorPostButton } from "@/app/_composents/user/PublishCreatorP
 import { ReportButton } from "@/app/_composents/user/ReportButton";
 import { deleteCreatorPost } from "@/app/profil/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
+import { CREATOR_RULES } from "@/lib/creator-rules";
 import { anton } from "@/lib/fonts";
 import { youtubeThumbnail } from "@/lib/media-embed";
 import { cn, matchesSearch, profileHref } from "@/lib/utils";
@@ -180,14 +181,7 @@ export default function CreateursPage() {
               Quelques règles pour que cet endroit reste une place de
               bienveillance et de partage :
             </p>
-            {[
-              "Le contenu partagé doit être en lien avec Flashback WL",
-              "Pas de contenu offensant ou haineux",
-              "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
-              "Les liens partagés doivent pointer vers ton propre contenu",
-              "Les comptes de clipfarming ne seront pas acceptés",
-              "Un signalement abusif peut entraîner le retrait de ton contenu",
-            ].map((rule, i) => (
+            {CREATOR_RULES.map((rule, i) => (
               <div
                 key={i}
                 className="flex items-start gap-2 text-[13px] text-[#C4C7CF]"

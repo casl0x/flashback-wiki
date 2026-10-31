@@ -2,6 +2,7 @@
 "use client";
 
 import Image from "next/image";
+import { CREATOR_RULES } from "@/lib/creator-rules";
 import { useSession } from "@clerk/nextjs";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -26,15 +27,6 @@ const ROLE_LABELS: Record<
     sub: "Tu montes des edits vidéo avec des clips du serveur",
   },
 };
-
-const RULES = [
-  "Le contenu partagé doit être en lien avec Flashback WL",
-  "Pas de contenu offensant ou haineux",
-  "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
-  "Les liens partagés doivent pointer vers ton propre contenu",
-  "Les comptes de clipfarming ne seront pas acceptés",
-  "Un signalement abusif peut entraîner le retrait de ton contenu",
-];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -303,7 +295,7 @@ export default function OnboardingPage() {
                     Je me permets de mettre quelques règles en place pour que
                     cet endroit reste une place de bienveillance et de partage :
                   </p>
-                  {RULES.map((rule, i) => (
+                  {CREATOR_RULES.map((rule, i) => (
                     <div
                       key={i}
                       className="flex items-start gap-2 text-[11px] text-text-muted"

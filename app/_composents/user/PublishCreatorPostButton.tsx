@@ -2,7 +2,7 @@
 
 import { CharacterCombobox } from "@/app/_composents/characters/CharacterCombobox";
 import { useToast } from "@/app/_composents/toast/ToastProvider";
-import { createCreatorPost } from "@/app/profil/actions";
+import { acceptCreatorRules, createCreatorPost } from "@/app/profil/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Character } from "@/lib/db";
+import { CREATOR_RULES } from "@/lib/creator-rules";
 import { useUser } from "@clerk/nextjs";
-import { Film, Sparkles, Upload, X } from "lucide-react";
+import { ChevronDown, Film, Sparkles, Upload, X } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -80,6 +81,10 @@ export function PublishCreatorPostButton({
   const [sent, setSent] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [characterPicker, setCharacterPicker] = useState("");
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [acceptedRules, setAcceptedRules] = useState(false);
+  const [alreadyAccepted, setAlreadyAccepted] = useState<boolean | null>(null);
+  const needsAcceptance = alreadyAccepted === false;
 
   useEffect(() => {
     if (!open || characters.length) return;
@@ -87,6 +92,14 @@ export function PublishCreatorPostButton({
       .then((r) => r.json())
       .then((d) => setCharacters(d.characters ?? []));
   }, [open, characters.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/creator-rules-status")
+      .then((r) => r.json())
+      .then((d) => setAlreadyAccepted(!!d.accepted))
+      .catch(() => setAlreadyAccepted(false));
+  }, [open]);
 
   function handleClick() {
     if (!isSignedIn) {
@@ -104,6 +117,9 @@ export function PublishCreatorPostButton({
       setForm(EMPTY_STATE);
       setType(initialType);
       setCharacterPicker("");
+      setRulesOpen(false);
+      setAcceptedRules(false);
+      setAlreadyAccepted(null);
     }
   }
 
@@ -125,6 +141,10 @@ export function PublishCreatorPostButton({
 
   async function submit() {
     setError(null);
+    if (needsAcceptance && !acceptedRules) {
+      setError("Tu dois accepter les règles de publication avant de publier.");
+      return;
+    }
     if (type === "ARTISTE" && !form.imageUrl) {
       setError("Ajoute une image avant de publier.");
       return;
@@ -136,6 +156,9 @@ export function PublishCreatorPostButton({
 
     setLoading(true);
     try {
+      if (needsAcceptance) {
+        await acceptCreatorRules();
+      }
       await createCreatorPost({
         type,
         imageUrl: type === "ARTISTE" ? form.imageUrl : undefined,
@@ -349,6 +372,43 @@ export function PublishCreatorPostButton({
                 />
               </div>
 
+              {needsAcceptance && (
+                <div className="flex flex-col gap-1.5 rounded-md border border-border bg-elevated p-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setRulesOpen((o) => !o)}
+                    className="flex items-center gap-1 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors"
+                  >
+                    Règles de publication
+                    <ChevronDown
+                      className={`h-3 w-3 transition-transform ${rulesOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {rulesOpen && (
+                    <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                      {CREATOR_RULES.map((rule, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-1.5 text-[11px] text-text-muted"
+                        >
+                          <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-accent/50" />
+                          {rule}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <label className="flex items-start gap-2 text-[11px] text-text-secondary">
+                    <input
+                      type="checkbox"
+                      checked={acceptedRules}
+                      onChange={(e) => setAcceptedRules(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    J&apos;ai lu et j&apos;accepte les règles de publication
+                  </label>
+                </div>
+              )}
+
               {error && <p className="text-[12px] text-red-400">{error}</p>}
             </div>
           )}
@@ -366,7 +426,11 @@ export function PublishCreatorPostButton({
               <Button
                 size="sm"
                 onClick={submit}
-                disabled={loading}
+                disabled={
+                  loading ||
+                  alreadyAccepted === null ||
+                  (needsAcceptance && !acceptedRules)
+                }
                 className="bg-accent hover:bg-accent-hover text-white border-0 cursor-pointer"
               >
                 {loading ? "…" : "Publier"}
