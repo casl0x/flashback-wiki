@@ -2,6 +2,7 @@
 
 import { useSearch } from "@/app/_composents/SearchContext";
 import { PublishCreatorPostButton } from "@/app/_composents/user/PublishCreatorPostButton";
+import { ReportButton } from "@/app/_composents/user/ReportButton";
 import { deleteCreatorPost } from "@/app/profil/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
@@ -45,10 +46,7 @@ type Creator = {
   bio: string | null;
   profilePseudo: string | null;
   types: ("ARTISTE" | "EDITEUR")[];
-  roles: {
-    type: "ARTISTE" | "EDITEUR";
-    socialLinks: { platform: string; url: string }[];
-  }[];
+  socialLinks: { platform: string; url: string }[];
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -76,15 +74,12 @@ type Tab = (typeof TABS)[number]["key"];
 export default function CreateursPage() {
   const ctx = useSearch();
   const query = ctx?.query ?? "";
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { user } = useUser();
   const [data, setData] = useState<CreatorPost[]>([]);
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("all");
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [approvedTypes, setApprovedTypes] = useState<("ARTISTE" | "EDITEUR")[]>(
-    [],
-  );
   const [viewer, setViewer] = useState<CreatorPost | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -119,21 +114,6 @@ export default function CreateursPage() {
       .then((r) => r.json())
       .then(setCreators);
   }, [load]);
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
-    fetch("/api/me")
-      .then((r) => r.json())
-      .then((d) => {
-        const roles = (d?.creatorRoles ?? []) as {
-          type: "ARTISTE" | "EDITEUR";
-          status?: string;
-        }[];
-        setApprovedTypes(
-          roles.filter((r) => r.status === "approved").map((r) => r.type),
-        );
-      });
-  }, [isLoaded, isSignedIn]);
 
   const filtered = data.filter((p) => {
     const matchTab = tab === "all" || p.type === tab;
@@ -187,10 +167,9 @@ export default function CreateursPage() {
                 )}
               />
             </button>
-            <ShareCreationButton
-              approvedTypes={approvedTypes}
-              isSignedIn={!!isSignedIn}
+            <PublishCreatorPostButton
               onPublished={load}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#2F6FEB]/90 transition-colors"
             />
           </div>
         </div>
@@ -207,8 +186,7 @@ export default function CreateursPage() {
               "Le pseudo doit correspondre à ton pseudo habituel dans la communauté",
               "Les liens partagés doivent pointer vers ton propre contenu",
               "Les comptes de clipfarming ne seront pas acceptés",
-              "Ton profil créateur est examiné manuellement avant de pouvoir publier",
-              "Aucun délai de validation garanti - sois patient",
+              "Un signalement abusif peut entraîner le retrait de ton contenu",
             ].map((rule, i) => (
               <div
                 key={i}
@@ -415,44 +393,6 @@ export default function CreateursPage() {
   );
 }
 
-function ShareCreationButton({
-  approvedTypes,
-  isSignedIn,
-  onPublished,
-}: {
-  approvedTypes: ("ARTISTE" | "EDITEUR")[];
-  isSignedIn: boolean;
-  onPublished: () => void;
-}) {
-  const btnClass =
-    "inline-flex min-h-11 items-center gap-1.5 rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#2F6FEB]/90 transition-colors";
-
-  if (approvedTypes.length > 0) {
-    return (
-      <PublishCreatorPostButton
-        defaultType={approvedTypes[0]}
-        allowedTypes={approvedTypes}
-        onPublished={onPublished}
-        className={btnClass}
-      />
-    );
-  }
-
-  if (isSignedIn) {
-    return (
-      <Link href="/profil#createur" className={btnClass}>
-        + Partager une création
-      </Link>
-    );
-  }
-
-  return (
-    <Link href="/sign-in?redirect_url=/createurs" className={btnClass}>
-      + Partager une création
-    </Link>
-  );
-}
-
 function PostCard({
   post,
   isOwn,
@@ -470,7 +410,7 @@ function PostCard({
 
   return (
     <div className="group relative mb-3 break-inside-avoid overflow-hidden rounded-xl border border-[#23262D] bg-[#15171B] transition-colors hover:border-[#3A3E47]">
-      {isOwn && (
+      {isOwn ? (
         <button
           onClick={() => onDelete(post.id)}
           aria-label="Supprimer cette création"
@@ -478,6 +418,14 @@ function PostCard({
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
+      ) : (
+        <ReportButton
+          targetType="POST"
+          targetId={post.id}
+          label=""
+          ariaLabel="Signaler cette création"
+          className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        />
       )}
 
       <button
@@ -590,7 +538,7 @@ function AuthorName({
 }
 
 function CreatorCard({ creator }: { creator: Creator }) {
-  const links = creator.roles.flatMap((r) => r.socialLinks);
+  const links = creator.socialLinks;
   const bio = creator.bio;
 
   return (

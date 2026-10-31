@@ -6,7 +6,8 @@ import { prisma } from "@/lib/db";
 import { notifyUser } from "@/lib/notifications";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
 
-const label = (nom: string | null | undefined) => (nom ? ` pour « ${nom} »` : "");
+const label = (nom: string | null | undefined) =>
+  nom ? ` pour « ${nom} »` : "";
 
 export async function acceptSuggestion(
   id: string,
@@ -16,7 +17,11 @@ export async function acceptSuggestion(
     await requireAdmin();
     const s = await prisma.suggestion.update({
       where: { id, status: "pending" },
-      data: { status: "accepted", reviewedAt: new Date(), moderatorMessage: clean(message) },
+      data: {
+        status: "accepted",
+        reviewedAt: new Date(),
+        moderatorMessage: clean(message),
+      },
       include: { character: { select: { nom: true } } },
     });
     const characterId = await applyAcceptedSuggestion(s);
@@ -34,12 +39,21 @@ export async function acceptSuggestion(
   }
 }
 
-export async function rejectSuggestion(id: string, reason: string, message: string): Promise<ActionResult> {
+export async function rejectSuggestion(
+  id: string,
+  reason: string,
+  message: string,
+): Promise<ActionResult> {
   try {
     await requireAdmin();
     const s = await prisma.suggestion.update({
       where: { id, status: "pending" },
-      data: { status: "rejected", reviewedAt: new Date(), rejectReason: clean(reason), moderatorMessage: clean(message) },
+      data: {
+        status: "rejected",
+        reviewedAt: new Date(),
+        rejectReason: clean(reason),
+        moderatorMessage: clean(message),
+      },
       include: { character: { select: { nom: true } } },
     });
     if (s.clerkUserId) {
@@ -57,32 +71,55 @@ export async function rejectSuggestion(id: string, reason: string, message: stri
 }
 
 /** Envoie une question à l'auteur sans changer le statut de la proposition. */
-export async function askSuggestionDetails(id: string, message: string): Promise<ActionResult> {
+export async function askSuggestionDetails(
+  id: string,
+  message: string,
+): Promise<ActionResult> {
   try {
     await requireAdmin();
     const text = clean(message);
-    if (!text) return { ok: false, error: "Écris ta question dans le message à l’auteur." };
+    if (!text)
+      return {
+        ok: false,
+        error: "Écris ta question dans le message à l’auteur.",
+      };
     const s = await prisma.suggestion.findUniqueOrThrow({
       where: { id },
       include: { character: { select: { nom: true } } },
     });
-    if (!s.clerkUserId) return { ok: false, error: "Cette proposition n’a pas d’auteur connu." };
-    await notifyUser(s.clerkUserId, "suggestion_question", `Question sur ta proposition${label(s.character?.nom ?? s.nom)} : ${text}`);
+    if (!s.clerkUserId)
+      return { ok: false, error: "Cette proposition n’a pas d’auteur connu." };
+    await notifyUser(
+      s.clerkUserId,
+      "suggestion_question",
+      `Question sur ta proposition${label(s.character?.nom ?? s.nom)} : ${text}`,
+    );
     return { ok: true };
   } catch (e) {
     return failure(e);
   }
 }
 
-export async function reviewCreation(id: string, decision: "approved" | "rejected", message?: string): Promise<ActionResult> {
+export async function reviewCreation(
+  id: string,
+  decision: "approved" | "rejected",
+  message?: string,
+): Promise<ActionResult> {
   try {
     await requireAdmin();
     const post = await prisma.creatorPost.findUniqueOrThrow({
       where: { id },
-      include: { creatorRole: { include: { userProfile: { select: { clerkUserId: true } } } } },
+      include: {
+        creatorRole: {
+          include: { userProfile: { select: { clerkUserId: true } } },
+        },
+      },
     });
     if (decision === "approved") {
-      await prisma.creatorPost.update({ where: { id }, data: { status: "approved" } });
+      await prisma.creatorPost.update({
+        where: { id },
+        data: { status: "approved" },
+      });
     } else {
       // Une création refusée est retirée du wiki.
       await prisma.creatorPost.delete({ where: { id } });
@@ -99,22 +136,28 @@ export async function reviewCreation(id: string, decision: "approved" | "rejecte
   }
 }
 
-export async function reviewCreatorRole(id: string, decision: "approved" | "rejected", message?: string): Promise<ActionResult> {
+export async function reviewReport(
+  id: string,
+  decision: "remove" | "ignore",
+): Promise<ActionResult> {
   try {
     await requireAdmin();
-    const role = await prisma.creatorRole.update({
-      where: { id },
-      data: { status: decision },
-      include: { userProfile: true },
-    });
-    const roleLabel = role.type === "ARTISTE" ? "Artiste (fan art)" : "Edit-maker";
-    await notifyUser(
-      role.userProfile.clerkUserId,
-      decision === "approved" ? "creator_role_approved" : "creator_role_rejected",
-      decision === "approved"
-        ? `Ton profil créateur « ${roleLabel} » a été validé ! Tu peux maintenant publier.`
-        : `Ta demande de profil créateur « ${roleLabel} » a été refusée.${clean(message) ? ` ${clean(message)}` : ""}`,
-    );
+    const report = await prisma.report.findUniqueOrThrow({ where: { id } });
+    if (decision === "remove") {
+      if (report.targetType === "POST") {
+        await prisma.creatorPost
+          .delete({ where: { id: report.targetId } })
+          .catch(() => null);
+      } else {
+        await prisma.userProfile
+          .update({
+            where: { id: report.targetId },
+            data: { profilePublic: false },
+          })
+          .catch(() => null);
+      }
+    }
+    await prisma.report.update({ where: { id }, data: { status: "resolved" } });
     await refreshAll();
     return { ok: true };
   } catch (e) {
@@ -122,7 +165,11 @@ export async function reviewCreatorRole(id: string, decision: "approved" | "reje
   }
 }
 
-export async function reviewLinkRequest(id: string, decision: "accepted" | "rejected", message?: string): Promise<ActionResult> {
+export async function reviewLinkRequest(
+  id: string,
+  decision: "accepted" | "rejected",
+  message?: string,
+): Promise<ActionResult> {
   try {
     await requireAdmin();
     const req = await prisma.playerLinkRequest.findUniqueOrThrow({
@@ -133,16 +180,28 @@ export async function reviewLinkRequest(id: string, decision: "accepted" | "reje
     if (decision === "accepted") {
       await prisma.$transaction([
         // Une fiche joueur ne peut être liée qu'à un seul compte.
-        prisma.userProfile.updateMany({ where: { playerId: req.playerId }, data: { playerId: null } }),
-        prisma.userProfile.update({ where: { id: req.userProfileId }, data: { playerId: req.playerId } }),
-        prisma.playerLinkRequest.update({ where: { id }, data: { status: "accepted", reviewedAt: new Date() } }),
+        prisma.userProfile.updateMany({
+          where: { playerId: req.playerId },
+          data: { playerId: null },
+        }),
+        prisma.userProfile.update({
+          where: { id: req.userProfileId },
+          data: { playerId: req.playerId },
+        }),
+        prisma.playerLinkRequest.update({
+          where: { id },
+          data: { status: "accepted", reviewedAt: new Date() },
+        }),
         prisma.playerLinkRequest.updateMany({
           where: { playerId: req.playerId, status: "pending", NOT: { id } },
           data: { status: "rejected", reviewedAt: new Date() },
         }),
       ]);
     } else {
-      await prisma.playerLinkRequest.update({ where: { id }, data: { status: "rejected", reviewedAt: new Date() } });
+      await prisma.playerLinkRequest.update({
+        where: { id },
+        data: { status: "rejected", reviewedAt: new Date() },
+      });
     }
 
     await notifyUser(
@@ -160,12 +219,17 @@ export async function reviewLinkRequest(id: string, decision: "accepted" | "reje
 }
 
 /** Ajoute une entrée « mise à jour du site » au journal public. */
-export async function addSiteUpdate(label: string, detail: string): Promise<ActionResult> {
+export async function addSiteUpdate(
+  label: string,
+  detail: string,
+): Promise<ActionResult> {
   try {
     await requireAdmin();
     const l = clean(label);
     if (!l) return { ok: false, error: "Le titre est requis." };
-    await prisma.changelogEntry.create({ data: { type: "site", label: l, detail: clean(detail) } });
+    await prisma.changelogEntry.create({
+      data: { type: "site", label: l, detail: clean(detail) },
+    });
     await refreshAll();
     return { ok: true };
   } catch (e) {

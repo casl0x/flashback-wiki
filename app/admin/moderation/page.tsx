@@ -4,9 +4,9 @@ import {
   MOD_TABS,
   countPending,
   loadCreationDetail,
-  loadCreatorRoleDetail,
   loadLinkRequestDetail,
   loadQueue,
+  loadReportDetail,
   loadSuggestionDetail,
   type ModTab,
 } from "@/lib/admin/moderation";
@@ -14,8 +14,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import {
   CreationReview,
-  CreatorRoleReview,
   LinkRequestReview,
+  ReportReview,
   SuggestionReview,
 } from "./Reviews";
 
@@ -44,9 +44,9 @@ export default async function ModerationPage({ searchParams }: Props) {
     } else if (tab === "creations") {
       const d = await loadCreationDetail(selectedId);
       if (d) detail = <CreationReview d={d} nextHref={nextHref} />;
-    } else if (tab === "createurs") {
-      const d = await loadCreatorRoleDetail(selectedId);
-      if (d) detail = <CreatorRoleReview d={d} nextHref={nextHref} />;
+    } else if (tab === "signalements") {
+      const d = await loadReportDetail(selectedId);
+      if (d) detail = <ReportReview d={d} nextHref={nextHref} />;
     } else {
       const d = await loadLinkRequestDetail(selectedId);
       if (d) detail = <LinkRequestReview d={d} nextHref={nextHref} />;

@@ -16,6 +16,7 @@ import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { cn, matchesSearch, profileHref } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/nextjs";
+import type { SocialPlatform } from "@prisma/client";
 import {
   Camera,
   Check,
@@ -23,7 +24,6 @@ import {
   ExternalLink,
   Film,
   Info,
-  Link2,
   Lock,
   LogOut,
   Plus,
@@ -41,6 +41,7 @@ import {
   deleteCreatorPost,
   requestPlayerLink,
   updatePublicProfile,
+  updateSocialLinks,
 } from "./actions";
 
 type SocialLink = { platform: string; url: string };
@@ -57,8 +58,6 @@ type CreatorPost = {
 type CreatorRole = {
   type: "ARTISTE" | "EDITEUR";
   displayOnWiki: boolean;
-  status?: string;
-  socialLinks: SocialLink[];
   posts: CreatorPost[];
 };
 type Suggestion = {
@@ -73,6 +72,7 @@ type MeData = {
   pseudo: string;
   profilePseudo: string | null;
   bio: string | null;
+  socialLinks: SocialLink[];
   profilePublic: boolean;
   showStats: boolean;
   avatarUrl: string | null;
@@ -132,12 +132,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   oauth_discord: "Discord",
   oauth_google: "Google",
   oauth_github: "GitHub",
-};
-
-const STATUS_STYLE: Record<string, { color: string; label: string }> = {
-  pending: { color: "#F6B26B", label: "En attente de validation" },
-  approved: { color: "#6EE7A0", label: "Validé" },
-  rejected: { color: "#FF8A8E", label: "Refusé" },
 };
 
 const SUGGESTION_STYLE: Record<string, { color: string; label: string }> = {
@@ -219,15 +213,7 @@ function ProfilePageContent() {
     setRoles((prev) =>
       prev.find((r) => r.type === type)
         ? prev.filter((r) => r.type !== type)
-        : [
-            ...prev,
-            {
-              type,
-              displayOnWiki: false,
-              socialLinks: [],
-              posts: [],
-            },
-          ],
+        : [...prev, { type, displayOnWiki: false, posts: [] }],
     );
   }
 
@@ -239,49 +225,6 @@ function ProfilePageContent() {
     );
   }
 
-  function addLink(type: "ARTISTE" | "EDITEUR") {
-    setRoles((prev) =>
-      prev.map((r) =>
-        r.type === type
-          ? {
-              ...r,
-              socialLinks: [...r.socialLinks, { platform: "TIKTOK", url: "" }],
-            }
-          : r,
-      ),
-    );
-  }
-
-  function updateLink(
-    type: "ARTISTE" | "EDITEUR",
-    i: number,
-    field: keyof SocialLink,
-    value: string,
-  ) {
-    setRoles((prev) =>
-      prev.map((r) =>
-        r.type === type
-          ? {
-              ...r,
-              socialLinks: r.socialLinks.map((l, idx) =>
-                idx === i ? { ...l, [field]: value } : l,
-              ),
-            }
-          : r,
-      ),
-    );
-  }
-
-  function removeLink(type: "ARTISTE" | "EDITEUR", i: number) {
-    setRoles((prev) =>
-      prev.map((r) =>
-        r.type === type
-          ? { ...r, socialLinks: r.socialLinks.filter((_, idx) => idx !== i) }
-          : r,
-      ),
-    );
-  }
-
   async function handleSave() {
     setSaving(true);
     try {
@@ -289,10 +232,6 @@ function ProfilePageContent() {
         roles: roles.map((r) => ({
           type: r.type,
           displayOnWiki: r.displayOnWiki,
-          socialLinks: r.socialLinks.map((l) => ({
-            platform: l.platform as never,
-            url: l.url,
-          })),
         })),
       });
       setData((prev) => (prev ? { ...prev, creatorRoles: roles } : prev));
@@ -334,9 +273,7 @@ function ProfilePageContent() {
   }
 
   const totalCreations = roles.reduce((n, r) => n + r.posts.length, 0);
-  const hasApprovedRole = (data?.creatorRoles ?? []).some(
-    (r) => r.status === "approved",
-  );
+  const isCreator = roles.length > 0;
 
   return (
     <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
@@ -344,7 +281,7 @@ function ProfilePageContent() {
       <div
         className="h-35 w-full sm:h-50"
         style={{
-          background: hasApprovedRole
+          background: isCreator
             ? "linear-gradient(135deg, #2F6FEB, #0E0F12)"
             : "repeating-linear-gradient(135deg, #1A1C21 0 14px, #17191D 14px 28px)",
         }}
@@ -384,7 +321,7 @@ function ProfilePageContent() {
                   {data?.pseudo}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2">
-                  {hasApprovedRole && (
+                  {isCreator && (
                     <ProfilePill bg="#2A2113" color="#F6B26B">
                       Créateur
                     </ProfilePill>
@@ -482,9 +419,21 @@ function ProfilePageContent() {
                     }
                   />
 
+                  <SocialLinksCard
+                    data={data}
+                    onSaved={(socialLinks) =>
+                      setData((prev) =>
+                        prev ? { ...prev, socialLinks } : prev,
+                      )
+                    }
+                  />
+
                   <div className="flex min-w-65 flex-1 flex-col gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
                     <div className="flex flex-wrap gap-6">
-                      <Stat value={data.stats.accepted} label="Ajouts validés" />
+                      <Stat
+                        value={data.stats.accepted}
+                        label="Ajouts validés"
+                      />
                       <Stat value={data.points} label="Points" />
                       <Stat value={totalCreations} label="Créations" />
                     </div>
@@ -536,12 +485,10 @@ function ProfilePageContent() {
                       <p className="m-0 text-[13px] text-[#9AA0AA]">
                         Aucune création pour l&apos;instant.
                       </p>
-                      {roles.some((r) => r.status === "approved") && (
-                        <PublishCreatorPostButton
-                          onPublished={loadMe}
-                          className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[13px] font-semibold text-[#ECECEE] hover:border-[#6E7380]"
-                        />
-                      )}
+                      <PublishCreatorPostButton
+                        onPublished={loadMe}
+                        className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[13px] font-semibold text-[#ECECEE] hover:border-[#6E7380]"
+                      />
                     </div>
                   ) : (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2.5">
@@ -734,8 +681,7 @@ function ProfilePageContent() {
                     Apparaître sur la page Créations
                   </label>
                   <p className="m-0 text-[13px] text-[#9AA0AA]">
-                    Tes créations validées s&apos;affichent dans la galerie avec
-                    ton nom.
+                    Tes créations s&apos;affichent dans la galerie avec ton nom.
                   </p>
                 </div>
 
@@ -747,9 +693,6 @@ function ProfilePageContent() {
                     {(["ARTISTE", "EDITEUR"] as const).map((type) => {
                       const role = roles.find((r) => r.type === type);
                       const active = !!role;
-                      const statusStyle = role?.status
-                        ? STATUS_STYLE[role.status]
-                        : null;
                       return (
                         <button
                           key={type}
@@ -775,17 +718,6 @@ function ProfilePageContent() {
                                 : "Edit-maker"}
                             </span>
                           </div>
-                          {statusStyle && (
-                            <span
-                              className="w-fit rounded-full border px-2 py-0.5 text-[11px] font-bold"
-                              style={{
-                                color: statusStyle.color,
-                                borderColor: `${statusStyle.color}60`,
-                              }}
-                            >
-                              {statusStyle.label}
-                            </span>
-                          )}
                         </button>
                       );
                     })}
@@ -807,88 +739,6 @@ function ProfilePageContent() {
                         {role.type === "ARTISTE" ? "Fan art" : "Edits"}
                       </span>
                     </div>
-
-                    <div>
-                      <p className="mb-1.5 flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wide text-[#9AA0AA]">
-                        <Link2 className="h-2.5 w-2.5" />
-                        Réseaux
-                      </p>
-                      {!editing ? (
-                        role.socialLinks.length ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {role.socialLinks.map((l, i) => (
-                              <a
-                                key={i}
-                                href={l.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="rounded-md border border-[#3A3E47] px-2 py-0.5 text-[13px] text-[#C4C7CF] hover:text-[#ECECEE]"
-                              >
-                                {PLATFORM_LABELS[l.platform] ?? l.platform}
-                              </a>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-[13px] text-[#9AA0AA]">
-                            Aucun lien renseigné.
-                          </p>
-                        )
-                      ) : (
-                        <div className="flex flex-col gap-1.5">
-                          {role.socialLinks.map((link, i) => (
-                            <div key={i} className="flex gap-2">
-                              <select
-                                value={link.platform}
-                                onChange={(e) =>
-                                  updateLink(
-                                    role.type,
-                                    i,
-                                    "platform",
-                                    e.target.value,
-                                  )
-                                }
-                                className="h-12 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-2 text-[14px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
-                              >
-                                {PLATFORMS.map((p) => (
-                                  <option key={p} value={p}>
-                                    {PLATFORM_LABELS[p]}
-                                  </option>
-                                ))}
-                              </select>
-                              <input
-                                type="url"
-                                value={link.url}
-                                onChange={(e) =>
-                                  updateLink(
-                                    role.type,
-                                    i,
-                                    "url",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder="https://..."
-                                aria-label="URL du lien"
-                                className="h-12 flex-1 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 text-[14px] text-[#ECECEE] placeholder-[#6E7380] outline-none focus:border-[#2F6FEB]"
-                              />
-                              <button
-                                onClick={() => removeLink(role.type, i)}
-                                aria-label="Retirer ce lien"
-                                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-[#3A3E47] text-[#9AA0AA] hover:text-[#FF8A8E]"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ))}
-                          <button
-                            onClick={() => addLink(role.type)}
-                            className="flex items-center gap-1.5 text-[14px] font-semibold text-[#8AB4FF] hover:underline"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            Ajouter un lien
-                          </button>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 ))}
 
@@ -909,11 +759,9 @@ function ProfilePageContent() {
                       {saving ? "…" : "Enregistrer"}
                     </button>
                   )}
-                  {roles.some((r) => r.status === "approved") && (
+                  {roles.length > 0 && (
                     <PublishCreatorPostButton
-                      allowedTypes={roles
-                        .filter((r) => r.status === "approved")
-                        .map((r) => r.type)}
+                      allowedTypes={roles.map((r) => r.type)}
                       onPublished={loadMe}
                       className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#ECECEE] hover:border-[#6E7380]"
                     />
@@ -1162,6 +1010,167 @@ function BioCard({
   );
 }
 
+function SocialLinksCard({
+  data,
+  onSaved,
+}: {
+  data: MeData;
+  onSaved: (socialLinks: SocialLink[]) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [links, setLinks] = useState<SocialLink[]>(data.socialLinks);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+
+  function addLink() {
+    setLinks((prev) => [...prev, { platform: PLATFORMS[0], url: "" }]);
+  }
+  function updateLink(i: number, patch: Partial<SocialLink>) {
+    setLinks((prev) =>
+      prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)),
+    );
+  }
+  function removeLink(i: number) {
+    setLinks((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const cleaned = links
+        .map((l) => ({
+          platform: l.platform as SocialPlatform,
+          url: l.url.trim(),
+        }))
+        .filter((l) => l.url !== "");
+      await updateSocialLinks(cleaned);
+      onSaved(cleaned);
+      setEditing(false);
+      toast({ tone: "success", title: "Réseaux enregistrés" });
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Enregistrement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex min-w-65 flex-1 flex-col gap-2.5 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-[#A3A8B3]">
+          Réseaux
+        </p>
+        {!editing && data.socialLinks.length > 0 && (
+          <button
+            onClick={() => {
+              setLinks(data.socialLinks);
+              setEditing(true);
+            }}
+            className="text-[13px] font-semibold text-[#8AB4FF] hover:underline"
+          >
+            Modifier
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <>
+          <div className="flex flex-col gap-2">
+            {links.map((l, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <select
+                  value={l.platform}
+                  onChange={(e) => updateLink(i, { platform: e.target.value })}
+                  aria-label="Plateforme"
+                  className="min-h-10 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-2 text-[13px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
+                >
+                  {PLATFORMS.map((p) => (
+                    <option key={p} value={p}>
+                      {PLATFORM_LABELS[p]}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={l.url}
+                  onChange={(e) => updateLink(i, { url: e.target.value })}
+                  placeholder="https://…"
+                  aria-label="URL"
+                  className="min-h-10 flex-1 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 text-[13px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
+                />
+                <button
+                  onClick={() => removeLink(i)}
+                  aria-label="Retirer ce lien"
+                  className="flex h-10 w-10 flex-none items-center justify-center rounded-md border border-[#3A3E47] text-[#9AA0AA] hover:border-[#FF8A8E] hover:text-[#FF8A8E]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={addLink}
+            className="flex min-h-9 w-fit items-center gap-1.5 rounded-md border border-[#3A3E47] px-3 text-[13px] font-semibold text-[#C4C7CF] hover:border-[#6E7380]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Ajouter un lien
+          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex min-h-11 items-center gap-1.5 rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#2F6FEB]/90 disabled:opacity-50"
+            >
+              <Check className="h-3.5 w-3.5" />
+              {saving ? "…" : "Enregistrer"}
+            </button>
+            <button
+              onClick={() => {
+                setLinks(data.socialLinks);
+                setEditing(false);
+              }}
+              className="flex min-h-11 items-center rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#C4C7CF] hover:border-[#6E7380]"
+            >
+              Annuler
+            </button>
+          </div>
+        </>
+      ) : data.socialLinks.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {data.socialLinks.map((l, i) => (
+            <a
+              key={i}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-8 items-center gap-1 rounded-md border border-[#3A3E47] px-2.5 text-[12px] font-semibold text-[#C4C7CF] hover:border-[#6E7380] hover:text-[#ECECEE]"
+            >
+              {PLATFORM_LABELS[l.platform] ?? l.platform}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="m-0 text-[17px] text-[#9AA0AA]">
+          Aucun réseau ajouté.{" "}
+          <button
+            onClick={() => {
+              setLinks([{ platform: PLATFORMS[0], url: "" }]);
+              setEditing(true);
+            }}
+            className="font-semibold text-[#8AB4FF] hover:underline"
+          >
+            Ajouter
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
+
 const AVATAR_MAX_BYTES = 10 * 1024 * 1024;
 
 /** Photo de profil : stockée chez Clerk, donc reprise partout sur le site. */
@@ -1184,7 +1193,11 @@ function AvatarSettings({
       return;
     }
     if (file && file.size > AVATAR_MAX_BYTES) {
-      toast({ tone: "error", title: "Image trop lourde", text: "10 Mo maximum." });
+      toast({
+        tone: "error",
+        title: "Image trop lourde",
+        text: "10 Mo maximum.",
+      });
       return;
     }
     setSaving(true);

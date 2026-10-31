@@ -19,9 +19,9 @@ export async function GET() {
           where: { status: "pending" },
           include: { player: { select: { pseudo: true } } },
         },
+        socialLinks: true,
         creatorRoles: {
           include: {
-            socialLinks: true, // ← liens dans le rôle
             posts: {
               orderBy: { createdAt: "desc" },
               include: {
@@ -71,6 +71,9 @@ export async function GET() {
     // Pseudo du wiki, qui sert d'adresse au profil public.
     profilePseudo: profile?.pseudo ?? null,
     bio: profile?.bio ?? null,
+    socialLinks:
+      profile?.socialLinks.map((l) => ({ platform: l.platform, url: l.url })) ??
+      [],
     profilePublic: profile?.profilePublic ?? true,
     showStats: profile?.showStats ?? true,
     avatarUrl: user.imageUrl,
@@ -88,9 +91,10 @@ export async function GET() {
       nom: c.nom,
       imageUrl: c.imageUrl,
       etatVie: c.etatVie,
-      version: [...c.versions]
-        .sort((a, b) => versionRank(a.id) - versionRank(b.id))
-        .at(-1) ?? null,
+      version:
+        [...c.versions]
+          .sort((a, b) => versionRank(a.id) - versionRank(b.id))
+          .at(-1) ?? null,
     })),
     suggestions: suggestions.map((s) => ({
       id: s.id,
@@ -104,11 +108,6 @@ export async function GET() {
       profile?.creatorRoles.map((r) => ({
         type: r.type,
         displayOnWiki: r.displayOnWiki,
-        status: r.status,
-        socialLinks: r.socialLinks.map((l) => ({
-          platform: l.platform,
-          url: l.url,
-        })),
         posts: r.posts.map((p) => ({
           id: p.id,
           status: p.status,

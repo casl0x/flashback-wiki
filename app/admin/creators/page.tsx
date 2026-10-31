@@ -1,34 +1,10 @@
 "use client";
 
 import { PageHeader } from "@/app/_composents/admin/ui";
-import {
-  Check,
-  ExternalLink,
-  Film,
-  Sparkles,
-  Trash2,
-  User,
-  X,
-} from "lucide-react";
+import { ExternalLink, Film, Sparkles, Trash2, User } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { deleteCreatorPostAdmin, updateCreatorRoleStatus } from "./actions";
-
-type SocialLink = { platform: string; url: string };
-
-type CreatorRequest = {
-  id: string;
-  type: "ARTISTE" | "EDITEUR";
-  status: "pending" | "approved" | "rejected";
-  displayOnWiki: boolean;
-  createdAt: string;
-  user: {
-    pseudo: string | null;
-    avatarUrl: string | null;
-    clerkUsername: string;
-  };
-  socialLinks: SocialLink[];
-};
+import { deleteCreatorPostAdmin } from "./actions";
 
 type CreatorPostRequest = {
   id: string;
@@ -55,48 +31,19 @@ const PLATFORM_LABELS: Record<string, string> = {
   AUTRE: "Autre",
 };
 
-const VIEWS = [
-  { key: "posts", label: "Publications" },
-  { key: "accounts", label: "Comptes" },
-] as const;
-type View = (typeof VIEWS)[number]["key"];
-
-const STATUS_TABS = [
-  { key: "pending", label: "En attente" },
-  { key: "approved", label: "Approuvés" },
-  { key: "rejected", label: "Refusés" },
-] as const;
-
-type StatusTab = (typeof STATUS_TABS)[number]["key"];
-
 export default function AdminCreatorsPage() {
-  const [view, setView] = useState<View>("posts");
-  const [data, setData] = useState<CreatorRequest[]>([]);
   const [posts, setPosts] = useState<CreatorPostRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<StatusTab>("pending");
   const [pending, setPending] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/admin/creators").then((r) => r.json()),
-      fetch("/api/admin/creator-posts").then((r) => r.json()),
-    ]).then(([roles, posts]) => {
-      setData(roles);
-      setPosts(posts);
-      setLoading(false);
-    });
+    fetch("/api/admin/creator-posts")
+      .then((r) => r.json())
+      .then((posts) => {
+        setPosts(posts);
+        setLoading(false);
+      });
   }, []);
-
-  async function handleAction(id: string, status: "approved" | "rejected") {
-    setPending((p) => ({ ...p, [id]: true }));
-    try {
-      await updateCreatorRoleStatus(id, status);
-      setData((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-    } finally {
-      setPending((p) => ({ ...p, [id]: false }));
-    }
-  }
 
   async function handleDeletePost(id: string) {
     setPending((p) => ({ ...p, [id]: true }));
@@ -108,69 +55,13 @@ export default function AdminCreatorsPage() {
     }
   }
 
-  const filtered = data.filter((r) => r.status === tab);
-  const pendingCount = data.filter((r) => r.status === "pending").length;
-
   return (
     <div className="flex flex-col gap-4 min-h-0">
       <PageHeader
         title="Créateurs"
-        meta={
-          <>
-            Comptes créateurs et publications.
-            {pendingCount > 0 &&
-              ` · ${pendingCount} compte(s) en attente (aussi visibles dans Modération)`}
-          </>
-        }
+        meta="Publications des créateurs (fan arts, edits). Les signalements sont dans Modération."
       />
 
-      {/* Vue */}
-      <div className="flex gap-1 px-6 pt-4">
-        {VIEWS.map((v) => (
-          <button
-            key={v.key}
-            onClick={() => setView(v.key)}
-            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-              view === v.key
-                ? "bg-elevated text-text-primary"
-                : "text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            {v.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tabs statut (comptes uniquement) */}
-      {view === "accounts" && (
-        <div className="flex gap-1 px-6 pt-2">
-          {STATUS_TABS.map((t) => {
-            const count = data.filter((r) => r.status === t.key).length;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-                  tab === t.key
-                    ? "bg-accent/10 text-accent-light"
-                    : "text-text-muted hover:text-text-secondary hover:bg-elevated"
-                }`}
-              >
-                {t.label}
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                    tab === t.key ? "bg-accent/20" : "bg-elevated"
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Liste */}
       <div className="flex-1 p-6 space-y-3">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
@@ -179,187 +70,94 @@ export default function AdminCreatorsPage() {
               className="h-20 rounded-xl border border-border bg-card animate-pulse"
             />
           ))
-        ) : view === "posts" ? (
-          posts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-text-muted">
-              <p className="text-sm">Aucune publication pour l&apos;instant</p>
-            </div>
-          ) : (
-            posts.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-start gap-4 rounded-xl border border-border bg-card p-4"
-              >
-                {/* Aperçu */}
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-muted overflow-hidden">
-                  {p.imageUrl ? (
-                    <img
-                      src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_56,h_56,c_fill/${p.imageUrl}`}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Film className="h-4 w-4 text-blue-400" />
-                  )}
-                </div>
-
-                {/* Infos */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-muted overflow-hidden">
-                      {p.user.avatarUrl ? (
-                        <Image
-                          src={p.user.avatarUrl}
-                          width={20}
-                          height={20}
-                          alt=""
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <User className="h-3 w-3 text-muted-foreground" />
-                      )}
-                    </div>
-                    <span className="text-[13px] font-medium text-text-primary">
-                      {p.user.pseudo ?? p.user.clerkUsername}
-                    </span>
-                    <span
-                      className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border ${
-                        p.type === "ARTISTE"
-                          ? "border-violet-500/30 bg-violet-500/10 text-violet-400"
-                          : "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                      }`}
-                    >
-                      {p.type === "ARTISTE" ? (
-                        <Sparkles className="h-2.5 w-2.5" />
-                      ) : (
-                        <Film className="h-2.5 w-2.5" />
-                      )}
-                      {p.type === "ARTISTE" ? "Fan art" : "Edit-maker"}
-                    </span>
-                    {p.characters.map((c) => (
-                      <span
-                        key={c.id}
-                        className="text-[10px] px-2 py-0.5 rounded-full border border-border text-text-muted"
-                      >
-                        {c.nom}
-                      </span>
-                    ))}
-                  </div>
-
-                  {p.caption && (
-                    <p className="text-[12px] text-text-secondary mt-1.5">
-                      {p.caption}
-                    </p>
-                  )}
-
-                  {p.linkUrl && (
-                    <a
-                      href={p.linkUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-accent-light border border-border bg-elevated rounded-md px-2 py-0.5 transition-colors"
-                    >
-                      {p.platform ? PLATFORM_LABELS[p.platform] : "Lien"}
-                      <ExternalLink className="h-2.5 w-2.5" />
-                    </a>
-                  )}
-
-                  <p className="text-[10px] text-text-muted mt-1.5">
-                    Publié le{" "}
-                    {new Date(p.createdAt).toLocaleDateString("fr-FR", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => handleDeletePost(p.id)}
-                    disabled={pending[p.id]}
-                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-muted hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))
-          )
-        ) : filtered.length === 0 ? (
+        ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-text-muted">
-            <p className="text-sm">
-              Aucun compte{" "}
-              {STATUS_TABS.find((t) => t.key === tab)?.label.toLowerCase()}
-            </p>
+            <p className="text-sm">Aucune publication pour l&apos;instant</p>
           </div>
         ) : (
-          filtered.map((r) => (
+          posts.map((p) => (
             <div
-              key={r.id}
+              key={p.id}
               className="flex items-start gap-4 rounded-xl border border-border bg-card p-4"
             >
-              {/* Avatar */}
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted overflow-hidden">
-                {r.user.avatarUrl ? (
-                  <Image
-                    src={r.user.avatarUrl}
-                    width={36}
-                    height={36}
-                    alt={r.user.pseudo ?? ""}
+              {/* Aperçu */}
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-muted overflow-hidden">
+                {p.imageUrl ? (
+                  <img
+                    src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_56,h_56,c_fill/${p.imageUrl}`}
+                    alt=""
                     className="w-full h-full object-cover"
-                    unoptimized
                   />
                 ) : (
-                  <User className="h-4 w-4 text-muted-foreground" />
+                  <Film className="h-4 w-4 text-blue-400" />
                 )}
               </div>
 
               {/* Infos */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-muted overflow-hidden">
+                    {p.user.avatarUrl ? (
+                      <Image
+                        src={p.user.avatarUrl}
+                        width={20}
+                        height={20}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <User className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </div>
                   <span className="text-[13px] font-medium text-text-primary">
-                    {r.user.pseudo ?? r.user.clerkUsername}
+                    {p.user.pseudo ?? p.user.clerkUsername}
                   </span>
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                      r.type === "ARTISTE"
+                    className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border ${
+                      p.type === "ARTISTE"
                         ? "border-violet-500/30 bg-violet-500/10 text-violet-400"
                         : "border-blue-500/30 bg-blue-500/10 text-blue-400"
                     }`}
                   >
-                    {r.type === "ARTISTE" ? "Artiste" : "Edit-maker"}
+                    {p.type === "ARTISTE" ? (
+                      <Sparkles className="h-2.5 w-2.5" />
+                    ) : (
+                      <Film className="h-2.5 w-2.5" />
+                    )}
+                    {p.type === "ARTISTE" ? "Fan art" : "Edit-maker"}
                   </span>
-                  {r.displayOnWiki && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-text-muted">
-                      Souhaite être affiché
+                  {p.characters.map((c) => (
+                    <span
+                      key={c.id}
+                      className="text-[10px] px-2 py-0.5 rounded-full border border-border text-text-muted"
+                    >
+                      {c.nom}
                     </span>
-                  )}
+                  ))}
                 </div>
 
-                {/* Liens */}
-                {r.socialLinks.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {r.socialLinks.map((l, i) => (
-                      <a
-                        key={i}
-                        href={l.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[11px] text-text-muted hover:text-accent-light border border-border bg-elevated rounded-md px-2 py-0.5 transition-colors"
-                      >
-                        {PLATFORM_LABELS[l.platform] ?? l.platform}
-                        <ExternalLink className="h-2.5 w-2.5" />
-                      </a>
-                    ))}
-                  </div>
+                {p.caption && (
+                  <p className="text-[12px] text-text-secondary mt-1.5">
+                    {p.caption}
+                  </p>
+                )}
+
+                {p.linkUrl && (
+                  <a
+                    href={p.linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-accent-light border border-border bg-elevated rounded-md px-2 py-0.5 transition-colors"
+                  >
+                    {p.platform ? PLATFORM_LABELS[p.platform] : "Lien"}
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
                 )}
 
                 <p className="text-[10px] text-text-muted mt-1.5">
-                  Demande le{" "}
-                  {new Date(r.createdAt).toLocaleDateString("fr-FR", {
+                  Publié le{" "}
+                  {new Date(p.createdAt).toLocaleDateString("fr-FR", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -367,57 +165,16 @@ export default function AdminCreatorsPage() {
                 </p>
               </div>
 
-              {/* Actions pending */}
-              {tab === "pending" && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => handleAction(r.id, "rejected")}
-                    disabled={pending[r.id]}
-                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-muted hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleAction(r.id, "approved")}
-                    disabled={pending[r.id]}
-                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-muted hover:text-green-400 hover:border-green-500/30 transition-colors disabled:opacity-50"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
-
-              {/* Badge statut approuvé/refusé */}
-              {tab !== "pending" && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                      r.status === "approved"
-                        ? "border-green-500/30 bg-green-500/10 text-green-400"
-                        : "border-red-500/30 bg-red-500/10 text-red-400"
-                    }`}
-                  >
-                    {r.status === "approved" ? "Approuvé" : "Refusé"}
-                  </span>
-                  {/* Permettre de changer le statut depuis les autres tabs aussi */}
-                  <button
-                    onClick={() =>
-                      handleAction(
-                        r.id,
-                        r.status === "approved" ? "rejected" : "approved",
-                      )
-                    }
-                    disabled={pending[r.id]}
-                    className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-text-muted hover:bg-elevated transition-colors disabled:opacity-50"
-                  >
-                    {r.status === "approved" ? (
-                      <X className="h-3 w-3" />
-                    ) : (
-                      <Check className="h-3 w-3" />
-                    )}
-                  </button>
-                </div>
-              )}
+              {/* Actions */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => handleDeletePost(p.id)}
+                  disabled={pending[p.id]}
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-muted hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           ))
         )}

@@ -24,23 +24,21 @@ export async function createCreatorPost(data: {
     throw new Error("Un lien est requis pour un edit");
   }
 
-  const profile = await prisma.userProfile.findUnique({
+  const profile = await prisma.userProfile.upsert({
     where: { clerkUserId: userId },
+    create: { clerkUserId: userId },
+    update: {},
   });
 
-  const role = profile
-    ? await prisma.creatorRole.findUnique({
-        where: {
-          userProfileId_type: { userProfileId: profile.id, type: data.type },
-        },
-      })
-    : null;
-
-  if (!role || role.status !== "approved") {
-    throw new Error(
-      "Ton profil créateur doit être validé par un admin avant de pouvoir publier.",
-    );
-  }
+  // Aucune validation admin requise : le rôle est créé (ou réutilisé)
+  // directement, seulement pour classer les publications par type.
+  const role = await prisma.creatorRole.upsert({
+    where: {
+      userProfileId_type: { userProfileId: profile.id, type: data.type },
+    },
+    create: { userProfileId: profile.id, type: data.type, status: "approved" },
+    update: {},
+  });
 
   const characterIds = [...new Set(data.characterIds ?? [])];
 
@@ -48,7 +46,6 @@ export async function createCreatorPost(data: {
     data: {
       creatorRoleId: role.id,
       type: data.type,
-      // Pas de validation par publication : seul le profil créateur est validé par un admin.
       status: "approved",
       imageUrl: data.imageUrl,
       linkUrl: data.linkUrl?.trim() || null,
@@ -67,19 +64,19 @@ export async function createCreatorPost(data: {
   await invalidateProfilesCache();
 
   const posts = await prisma.creatorPost.findMany({
-    where: { creatorRole: { userProfileId: profile!.id }, status: "approved" },
+    where: { creatorRole: { userProfileId: profile.id }, status: "approved" },
     select: { type: true },
   });
   const computedBadges = computeCreatorBadges(posts.map((p) => p.type));
   if (computedBadges.length) {
     const current = await prisma.userProfile.findUnique({
-      where: { id: profile!.id },
+      where: { id: profile.id },
       select: { badges: true },
     });
     const existing = current?.badges ?? [];
     const merged = [...new Set([...existing, ...computedBadges])];
     await prisma.userProfile.update({
-      where: { id: profile!.id },
+      where: { id: profile.id },
       data: { badges: merged },
     });
 
@@ -167,4 +164,49 @@ export async function updatePublicProfile(data: {
     update: fields,
   });
   await invalidateProfilesCache();
+}
+
+/** Réseaux sociaux du profil (un seul jeu de liens, partagé par toutes les créations). */
+export async function updateSocialLinks(
+  links: { platform: SocialPlatform; url: string }[],
+) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+
+  const profile = await prisma.userProfile.upsert({
+    where: { clerkUserId: userId },
+    create: { clerkUserId: userId },
+    update: {},
+  });
+
+  const cleaned = links
+    .map((l) => ({ platform: l.platform, url: l.url.trim() }))
+    .filter((l) => l.url !== "");
+
+  await prisma.$transaction([
+    prisma.socialLink.deleteMany({ where: { userProfileId: profile.id } }),
+    prisma.socialLink.createMany({
+      data: cleaned.map((l) => ({ ...l, userProfileId: profile.id })),
+    }),
+  ]);
+  await invalidateProfilesCache();
+}
+
+/** Signale une publication ou un profil abusif ; part directement dans la file admin. */
+export async function createReport(data: {
+  targetType: "POST" | "PROFILE";
+  targetId: string;
+  reason?: string;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+
+  await prisma.report.create({
+    data: {
+      targetType: data.targetType,
+      targetId: data.targetId,
+      reporterClerkUserId: userId,
+      reason: data.reason?.trim() || null,
+    },
+  });
 }

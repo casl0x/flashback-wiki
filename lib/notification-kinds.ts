@@ -5,14 +5,18 @@ import {
   Link2,
   Mail,
   Megaphone,
-  Sparkles,
   Trophy,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
 
 // Tons partagés par la cloche, les toasts et les bandeaux (refonte notifications).
-export type NotificationTone = "success" | "error" | "info" | "warning" | "live";
+export type NotificationTone =
+  | "success"
+  | "error"
+  | "info"
+  | "warning"
+  | "live";
 
 export type NotificationKind = {
   icon: LucideIcon;
@@ -52,18 +56,6 @@ export const NOTIFICATION_KINDS: Record<string, NotificationKind> = {
     tone: "warning",
     label: "Question sur ta proposition",
     href: "/profil#propositions",
-  },
-  creator_role_approved: {
-    icon: Sparkles,
-    tone: "success",
-    label: "Profil créateur validé",
-    href: "/profil#createur",
-  },
-  creator_role_rejected: {
-    icon: XCircle,
-    tone: "error",
-    label: "Profil créateur refusé",
-    href: "/profil#createur",
   },
   creator_post_rejected: {
     icon: XCircle,
