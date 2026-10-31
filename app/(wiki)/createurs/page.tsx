@@ -5,20 +5,11 @@ import { PublishCreatorPostButton } from "@/app/_composents/user/PublishCreatorP
 import { ReportButton } from "@/app/_composents/user/ReportButton";
 import { deleteCreatorPost } from "@/app/profil/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
-import { CREATOR_RULES } from "@/lib/creator-rules";
 import { anton } from "@/lib/fonts";
 import { youtubeThumbnail } from "@/lib/media-embed";
 import { cn, matchesSearch, profileHref } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
-import {
-  ChevronDown,
-  ExternalLink,
-  Film,
-  Play,
-  Trash2,
-  User,
-  X,
-} from "lucide-react";
+import { ExternalLink, Film, Play, Trash2, User, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -80,7 +71,6 @@ export default function CreateursPage() {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("all");
-  const [rulesOpen, setRulesOpen] = useState(false);
   const [viewer, setViewer] = useState<CreatorPost | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -155,43 +145,12 @@ export default function CreateursPage() {
             </p>
           </div>
           <div className="flex flex-none items-center gap-4">
-            <button
-              onClick={() => setRulesOpen((o) => !o)}
-              aria-expanded={rulesOpen}
-              className="flex min-h-11 items-center gap-1 text-[13px] font-semibold text-[#8AB4FF] hover:underline"
-            >
-              Lire les règles
-              <ChevronDown
-                className={cn(
-                  "h-3.5 w-3.5 transition-transform",
-                  rulesOpen && "rotate-180",
-                )}
-              />
-            </button>
             <PublishCreatorPostButton
               onPublished={load}
               className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#2F6FEB]/90 transition-colors"
             />
           </div>
         </div>
-
-        {rulesOpen && (
-          <div className="mt-5 flex flex-col gap-1.5 rounded-[10px] border border-[#23262D] bg-[#15171B] p-4">
-            <p className="mb-1 text-[13px] leading-relaxed text-[#9AA0AA]">
-              Quelques règles pour que cet endroit reste une place de
-              bienveillance et de partage :
-            </p>
-            {CREATOR_RULES.map((rule, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-2 text-[13px] text-[#C4C7CF]"
-              >
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2F6FEB]" />
-                {rule}
-              </div>
-            ))}
-          </div>
-        )}
       </header>
 
       <main className="mx-auto flex max-w-295 flex-col gap-6 px-4 pb-16 sm:px-5">

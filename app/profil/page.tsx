@@ -22,12 +22,10 @@ import {
   Check,
   Eye,
   ExternalLink,
-  Film,
   Info,
   Lock,
   LogOut,
   Plus,
-  Sparkles,
   Trash2,
   User,
   X,
@@ -90,24 +88,18 @@ type MeData = {
 
 type PlayerOption = { id: string; pseudo: string };
 
-type TabKey =
-  | "public"
-  | "propositions"
-  | "createur"
-  | "notifications"
-  | "compte";
+type TabKey = "public" | "propositions" | "notifications" | "compte";
 
 const TABS: { key: TabKey; label: string; locked: boolean }[] = [
   { key: "public", label: "Profil public", locked: false },
   { key: "propositions", label: "Mes propositions", locked: true },
-  { key: "createur", label: "Profil créateur", locked: true },
   { key: "notifications", label: "Notifications", locked: true },
   { key: "compte", label: "Compte", locked: true },
 ];
 
 const HASH_TO_TAB: Record<string, TabKey> = {
   propositions: "propositions",
-  createur: "createur",
+  createur: "public",
   notifications: "notifications",
 };
 
@@ -152,8 +144,6 @@ function ProfilePageContent() {
   const { isLoaded, isSignedIn } = useUser();
   const [data, setData] = useState<MeData | null>(null);
   const [fetched, setFetched] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [roles, setRoles] = useState<CreatorRole[]>([]);
   const toast = useToast();
 
@@ -209,38 +199,31 @@ function ProfilePageContent() {
     }
   }
 
-  function toggleRole(type: "ARTISTE" | "EDITEUR") {
-    setRoles((prev) =>
-      prev.find((r) => r.type === type)
-        ? prev.filter((r) => r.type !== type)
-        : [...prev, { type, displayOnWiki: false, posts: [] }],
-    );
-  }
-
-  function toggleDisplay(type: "ARTISTE" | "EDITEUR") {
-    setRoles((prev) =>
-      prev.map((r) =>
-        r.type === type ? { ...r, displayOnWiki: !r.displayOnWiki } : r,
-      ),
-    );
-  }
-
-  async function handleSave() {
-    setSaving(true);
+  async function toggleDisplayOnWiki() {
+    const previous = roles;
+    const next = !roles.some((r) => r.displayOnWiki);
+    const updated = roles.map((r) => ({ ...r, displayOnWiki: next }));
+    setRoles(updated);
     try {
       await updateCreatorProfile({
-        roles: roles.map((r) => ({
+        roles: updated.map((r) => ({
           type: r.type,
           displayOnWiki: r.displayOnWiki,
         })),
       });
-      setData((prev) => (prev ? { ...prev, creatorRoles: roles } : prev));
-      setEditing(false);
-      toast({ tone: "success", title: "Profil créateur enregistré" });
+      toast({
+        tone: "success",
+        title: next
+          ? "Visible sur la page Créations"
+          : "Masqué de la page Créations",
+      });
     } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
+      setRoles(previous);
+      toast({
+        tone: "error",
+        title: "Enregistrement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
     }
   }
 
@@ -471,15 +454,36 @@ function ProfilePageContent() {
                   aria-labelledby="creations-h"
                   className="flex flex-col gap-4"
                 >
-                  <h2
-                    id="creations-h"
-                    className={cn(
-                      anton.className,
-                      "m-0 text-[28px] uppercase tracking-[0.02em]",
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2
+                      id="creations-h"
+                      className={cn(
+                        anton.className,
+                        "m-0 text-[28px] uppercase tracking-[0.02em]",
+                      )}
+                    >
+                      Ses créations
+                    </h2>
+                    {totalCreations > 0 && (
+                      <PublishCreatorPostButton
+                        onPublished={loadMe}
+                        className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[13px] font-semibold text-[#ECECEE] hover:border-[#6E7380]"
+                      />
                     )}
-                  >
-                    Ses créations
-                  </h2>
+                  </div>
+
+                  {roles.length > 0 && (
+                    <label className="flex w-fit cursor-pointer items-center gap-2 text-[13px] font-semibold text-[#ECECEE]">
+                      <input
+                        type="checkbox"
+                        checked={roles.some((r) => r.displayOnWiki)}
+                        onChange={toggleDisplayOnWiki}
+                        className="accent-[#2F6FEB]"
+                      />
+                      Apparaître sur la page Créations
+                    </label>
+                  )}
+
                   {totalCreations === 0 ? (
                     <div className="flex flex-col items-center gap-3 rounded-[10px] border border-dashed border-[#3A3E47] px-5 py-8 text-center">
                       <p className="m-0 text-[13px] text-[#9AA0AA]">
@@ -636,140 +640,6 @@ function ProfilePageContent() {
             )}
 
             {/* Profil créateur */}
-            {tab === "createur" && (
-              <section
-                id="createur"
-                aria-labelledby="createur-h"
-                className="flex max-w-190 flex-col gap-5"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h2
-                    id="createur-h"
-                    className={cn(
-                      anton.className,
-                      "m-0 text-[28px] uppercase tracking-[0.02em]",
-                    )}
-                  >
-                    Profil créateur
-                  </h2>
-                  {!editing && (
-                    <button
-                      onClick={() => setEditing(true)}
-                      className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#C4C7CF] hover:border-[#6E7380] hover:text-[#ECECEE]"
-                    >
-                      Modifier
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1.5 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
-                  <label
-                    className={cn(
-                      "flex items-center gap-2 text-[14px] font-semibold text-[#ECECEE]",
-                      editing ? "cursor-pointer" : "cursor-default",
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={roles.some((r) => r.displayOnWiki)}
-                      disabled={!editing}
-                      onChange={() =>
-                        roles.forEach((r) => toggleDisplay(r.type))
-                      }
-                      className="accent-[#2F6FEB]"
-                    />
-                    Apparaître sur la page Créations
-                  </label>
-                  <p className="m-0 text-[13px] text-[#9AA0AA]">
-                    Tes créations s&apos;affichent dans la galerie avec ton nom.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-[#A3A8B3]">
-                    Rôle créateur
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {(["ARTISTE", "EDITEUR"] as const).map((type) => {
-                      const role = roles.find((r) => r.type === type);
-                      const active = !!role;
-                      return (
-                        <button
-                          key={type}
-                          disabled={!editing}
-                          onClick={() => toggleRole(type)}
-                          className={cn(
-                            "flex min-w-55 flex-1 flex-col gap-2 rounded-xl border p-4 text-left transition-colors",
-                            active
-                              ? "border-[#2F6FEB]/60 bg-[#2F6FEB]/10"
-                              : "border-[#23262D] bg-[#15171B]",
-                            editing ? "cursor-pointer" : "cursor-default",
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            {type === "ARTISTE" ? (
-                              <Sparkles className="h-4 w-4 text-[#E5A3F0]" />
-                            ) : (
-                              <Film className="h-4 w-4 text-[#8AB4FF]" />
-                            )}
-                            <span className="text-[15px] font-bold text-[#ECECEE]">
-                              {type === "ARTISTE"
-                                ? "Artiste (fan art)"
-                                : "Edit-maker"}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {roles.map((role) => (
-                  <div
-                    key={role.type}
-                    className="flex flex-col gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-5"
-                  >
-                    <div className="flex items-center gap-2">
-                      {role.type === "ARTISTE" ? (
-                        <Sparkles className="h-3.5 w-3.5 text-[#E5A3F0]" />
-                      ) : (
-                        <Film className="h-3.5 w-3.5 text-[#8AB4FF]" />
-                      )}
-                      <span className="text-[14px] font-semibold text-[#ECECEE]">
-                        {role.type === "ARTISTE" ? "Fan art" : "Edits"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-
-                {roles.length === 0 && !editing && (
-                  <p className="text-[14px] text-[#9AA0AA]">
-                    Aucun rôle créateur défini.
-                  </p>
-                )}
-
-                <div className="flex flex-wrap gap-3">
-                  {editing && (
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex min-h-11 items-center gap-1.5 rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#2F6FEB]/90 disabled:opacity-50"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                      {saving ? "…" : "Enregistrer"}
-                    </button>
-                  )}
-                  {roles.length > 0 && (
-                    <PublishCreatorPostButton
-                      allowedTypes={roles.map((r) => r.type)}
-                      onPublished={loadMe}
-                      className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#ECECEE] hover:border-[#6E7380]"
-                    />
-                  )}
-                </div>
-              </section>
-            )}
-
             {/* Notifications */}
             {tab === "notifications" && <NotificationsSection />}
 
