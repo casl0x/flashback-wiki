@@ -5,11 +5,13 @@ import {
   ProfileSectionTitle,
   Stat,
 } from "@/app/_composents/user/ProfileParts";
+import { ReportButton } from "@/app/_composents/user/ReportButton";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { youtubeThumbnail } from "@/lib/media-embed";
 import { getPublicProfile } from "@/lib/public-profile";
 import { cn } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 import { ExternalLink, Film, User } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -58,6 +60,8 @@ export default async function PublicProfilePage({ params }: Props) {
   const p = await getPublicProfile(decodePseudo(pseudo));
   if (!p) notFound();
 
+  const { userId } = await auth();
+  const isOwnProfile = userId === p.clerkUserId;
   const isCreator = p.creatorTypes.length > 0;
 
   return (
@@ -110,6 +114,14 @@ export default async function PublicProfilePage({ params }: Props) {
                     Joueur : {p.player.pseudo} →
                   </ProfilePill>
                 </Link>
+              )}
+              {!isOwnProfile && (
+                <ReportButton
+                  targetType="PROFILE"
+                  targetId={p.id}
+                  label="Signaler ce profil"
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[#3A3E47] px-3 text-[12px] font-semibold text-[#9AA0AA] hover:border-[#FF8A8E] hover:text-[#FF8A8E]"
+                />
               )}
             </div>
           </div>
@@ -174,8 +186,13 @@ export default async function PublicProfilePage({ params }: Props) {
         )}
 
         {isCreator && (
-          <section aria-labelledby="creations-h" className="flex flex-col gap-4">
-            <ProfileSectionTitle id="creations-h">Ses créations</ProfileSectionTitle>
+          <section
+            aria-labelledby="creations-h"
+            className="flex flex-col gap-4"
+          >
+            <ProfileSectionTitle id="creations-h">
+              Ses créations
+            </ProfileSectionTitle>
             {p.posts.length === 0 ? (
               <p className="rounded-[10px] border border-dashed border-[#3A3E47] px-5 py-8 text-center text-[13px] text-[#9AA0AA]">
                 Aucune création pour l&apos;instant.
@@ -194,7 +211,9 @@ export default async function PublicProfilePage({ params }: Props) {
   );
 }
 
-type Post = NonNullable<Awaited<ReturnType<typeof getPublicProfile>>>["posts"][number];
+type Post = NonNullable<
+  Awaited<ReturnType<typeof getPublicProfile>>
+>["posts"][number];
 
 function PostTile({ post }: { post: Post }) {
   const style = TYPE_STYLE[post.type];
@@ -213,7 +232,14 @@ function PostTile({ post }: { post: Post }) {
           className="object-cover"
         />
       ) : thumb ? (
-        <Image src={thumb} alt={alt} fill unoptimized sizes="240px" className="object-cover" />
+        <Image
+          src={thumb}
+          alt={alt}
+          fill
+          unoptimized
+          sizes="240px"
+          className="object-cover"
+        />
       ) : (
         <span className="flex h-full w-full items-center justify-center">
           <Film className="h-6 w-6 text-[#8AB4FF]" />

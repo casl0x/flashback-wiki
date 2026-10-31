@@ -58,11 +58,14 @@ model UserProfile {
   // Profil public (/profil/[pseudo]) : masquable, stats affichables ou non
   profilePublic          Boolean   @default(true)
   showStats              Boolean   @default(true)
+  // Acceptation des règles de publication créateur (pas de validation admin, trace en cas de litige).
+  creatorRulesAcceptedAt DateTime?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
   creatorRoles  CreatorRole[]
   notifications Notification[]
+  socialLinks   SocialLink[]
 
   // Fiche joueur liée à ce compte (validée par un admin)
   playerId           String?             @unique @map("player_id")
@@ -119,7 +122,6 @@ model CreatorRole {
 
   userProfileId String
   userProfile   UserProfile   @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  socialLinks   SocialLink[] // ← déplacé ici
   posts         CreatorPost[]
 
   @@unique([userProfileId, type])
@@ -161,10 +163,25 @@ model SocialLink {
   url       String
   createdAt DateTime       @default(now())
 
-  creatorRoleId String // ← lié au rôle, plus au profil
-  creatorRole   CreatorRole @relation(fields: [creatorRoleId], references: [id], onDelete: Cascade)
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@map("social_links")
+}
+
+// Signalement d'un abus (publication ou profil), examiné par un admin.
+// Pas de clé étrangère : la cible est polymorphe (même convention que
+// Suggestion.clerkUserId, qui référence Clerk sans FK).
+model Report {
+  id                  String   @id @default(cuid())
+  targetType          String // "POST" | "PROFILE"
+  targetId            String
+  reporterClerkUserId String?
+  reason              String?
+  status              String   @default("pending") // pending | resolved
+  createdAt           DateTime @default(now())
+
+  @@map("reports")
 }
 
 model Version {
@@ -291,10 +308,10 @@ model GroupeCategorie {
 
 // Grades d'un groupe, du plus haut (ordre 0) au plus bas
 model GroupeGrade {
-  id      String  @id @default(cuid())
-  nom     String
-  ordre   Int     @default(0)
-  color   String? // couleur hex de la rangée sur la page groupe ; libre, adapté à tout type de groupe
+  id    String  @id @default(cuid())
+  nom   String
+  ordre Int     @default(0)
+  color String? // couleur hex de la rangée sur la page groupe ; libre, adapté à tout type de groupe
 
   groupeId String @map("groupe_id")
   groupe   Groupe @relation(fields: [groupeId], references: [id], onDelete: Cascade)
@@ -382,26 +399,26 @@ model ChangelogEntry {
 }
 
 model Poll {
-  id        String       @id @default(cuid())
-  question  String
-  active    Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  endsAt    DateTime?
+  id             String       @id @default(cuid())
+  question       String
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  endsAt         DateTime?
   // Public : les visiteurs non connectés peuvent aussi voter / proposer
-  isPublic  Boolean      @default(false)
+  isPublic       Boolean      @default(false)
   // Les votants peuvent ajouter leurs propres options
-  allowProposals Boolean @default(false)
-  options   PollOption[]
+  allowProposals Boolean      @default(false)
+  options        PollOption[]
 }
 
 model PollOption {
-  id     String     @id @default(cuid())
-  label  String
-  pollId String
+  id         String     @id @default(cuid())
+  label      String
+  pollId     String
   // Auteur de la proposition (null = option créée par l'admin)
   proposedBy String?
-  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  votes  PollVote[]
+  poll       Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes      PollVote[]
 }
 
 model PollVote {

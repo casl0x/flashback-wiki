@@ -10,19 +10,15 @@ type GroupedCreator = {
   /** Lien vers le profil public, absent si le membre l'a masqué. */
   profilePseudo: string | null;
   types: ("ARTISTE" | "EDITEUR")[];
-  roles: {
-    type: "ARTISTE" | "EDITEUR";
-    socialLinks: { platform: string; url: string }[];
-  }[];
+  socialLinks: { platform: string; url: string }[];
 };
 
 export async function GET() {
   const roles = await prisma.creatorRole.findMany({
-    where: { status: "approved", displayOnWiki: true },
+    where: { displayOnWiki: true },
     orderBy: { createdAt: "asc" },
     include: {
-      userProfile: true,
-      socialLinks: true,
+      userProfile: { include: { socialLinks: true } },
     },
   });
 
@@ -45,21 +41,18 @@ export async function GET() {
         pseudo: r.userProfile.pseudo ?? clerkUser?.username ?? "Anonyme",
         avatarUrl: clerkUser?.imageUrl ?? null,
         bio: r.userProfile.bio,
-        profilePseudo: r.userProfile.profilePublic ? r.userProfile.pseudo : null,
+        profilePseudo: r.userProfile.profilePublic
+          ? r.userProfile.pseudo
+          : null,
         types: [],
-        roles: [],
+        socialLinks: r.userProfile.socialLinks.map((l) => ({
+          platform: l.platform,
+          url: l.url,
+        })),
       });
     }
 
-    const entry = grouped.get(profileId)!;
-    entry.types.push(r.type);
-    entry.roles.push({
-      type: r.type,
-      socialLinks: r.socialLinks.map((l) => ({
-        platform: l.platform,
-        url: l.url,
-      })),
-    });
+    grouped.get(profileId)!.types.push(r.type);
   }
 
   return NextResponse.json([...grouped.values()]);

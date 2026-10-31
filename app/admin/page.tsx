@@ -47,7 +47,7 @@ export default async function AdminDashboard() {
     topViewed(),
     loadQueue("propositions", 5),
     loadQueue("creations", 5),
-    loadQueue("createurs", 5),
+    loadQueue("signalements", 5),
     loadQueue("liens", 5),
   ]);
 
@@ -73,7 +73,7 @@ export default async function AdminDashboard() {
     {
       label: "À modérer",
       value: pending.total,
-      sub: "propositions, créations, liens",
+      sub: "propositions, créations, signalements, liens",
       c: "#E5484D",
     },
   ];

@@ -5,17 +5,11 @@ import { invalidateProfilesCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { isPseudoTaken } from "@/lib/public-profile";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { CreatorType, SocialPlatform } from "@prisma/client";
-
-type SocialLinkInput = {
-  platform: SocialPlatform;
-  url: string;
-};
+import { CreatorType } from "@prisma/client";
 
 type CreatorRoleInput = {
   type: CreatorType;
   displayOnWiki: boolean;
-  socialLinks: SocialLinkInput[];
 };
 
 export async function completeOnboarding(data: {
@@ -42,12 +36,7 @@ export async function completeOnboarding(data: {
         create: data.roles.map((r) => ({
           type: r.type,
           displayOnWiki: r.displayOnWiki,
-          status: "pending",
-          socialLinks: {
-            createMany: {
-              data: r.socialLinks.filter((l) => l.url.trim() !== ""),
-            },
-          },
+          status: "approved",
         })),
       },
     },
@@ -83,9 +72,8 @@ export async function updateCreatorProfile(data: {
     where: { userProfileId: profile.id },
     select: { id: true, type: true },
   });
-  const existingTypes = existingRoles.map((r) => r.type);
 
-  // Supprimer les rôles décochés (cascade supprime leurs liens)
+  // Supprimer les rôles décochés
   await prisma.creatorRole.deleteMany({
     where: { userProfileId: profile.id, type: { notIn: newTypes } },
   });
@@ -94,32 +82,17 @@ export async function updateCreatorProfile(data: {
     const existing = existingRoles.find((r) => r.type === role.type);
 
     if (existing) {
-      // Rôle existant → update displayOnWiki + remplace les liens
       await prisma.creatorRole.update({
         where: { id: existing.id },
-        data: {
-          displayOnWiki: role.displayOnWiki,
-          socialLinks: {
-            deleteMany: {},
-            createMany: {
-              data: role.socialLinks.filter((l) => l.url.trim() !== ""),
-            },
-          },
-        },
+        data: { displayOnWiki: role.displayOnWiki },
       });
     } else {
-      // Nouveau rôle → pending
       await prisma.creatorRole.create({
         data: {
           userProfileId: profile.id,
           type: role.type,
           displayOnWiki: role.displayOnWiki,
-          status: "pending",
-          socialLinks: {
-            createMany: {
-              data: role.socialLinks.filter((l) => l.url.trim() !== ""),
-            },
-          },
+          status: "approved",
         },
       });
     }

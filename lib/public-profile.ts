@@ -9,6 +9,8 @@ import { unstable_cache } from "next/cache";
 // Tout utilisateur ayant un pseudo a un profil public, sauf s'il l'a masqué.
 
 export type PublicProfileData = {
+  id: string;
+  clerkUserId: string;
   pseudo: string;
   avatarUrl: string | null;
   bio: string | null;
@@ -61,7 +63,9 @@ async function avatarOf(clerkUserId: string): Promise<string | null> {
   }
 }
 
-async function loadPublicProfile(pseudo: string): Promise<PublicProfileData | null> {
+async function loadPublicProfile(
+  pseudo: string,
+): Promise<PublicProfileData | null> {
   const found = await findProfileByPseudo(pseudo);
   if (!found?.pseudo || !found.profilePublic) return null;
 
@@ -70,14 +74,15 @@ async function loadPublicProfile(pseudo: string): Promise<PublicProfileData | nu
       where: { id: found.id },
       include: {
         player: { select: { id: true, pseudo: true } },
+        socialLinks: true,
         creatorRoles: {
-          where: { status: "approved" },
           include: {
-            socialLinks: true,
             posts: {
               orderBy: { createdAt: "desc" },
               include: {
-                characters: { include: { character: { select: { id: true, nom: true } } } },
+                characters: {
+                  include: { character: { select: { id: true, nom: true } } },
+                },
               },
             },
           },
@@ -106,17 +111,24 @@ async function loadPublicProfile(pseudo: string): Promise<PublicProfileData | nu
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   return {
+    id: profile.id,
+    clerkUserId: profile.clerkUserId,
     pseudo: profile.pseudo!,
     avatarUrl,
     bio: profile.bio,
     badges: profile.badges,
     stats: profile.showStats
-      ? { accepted: profile.acceptedCount, points: profile.totalPoints, creations: posts.length }
+      ? {
+          accepted: profile.acceptedCount,
+          points: profile.totalPoints,
+          creations: posts.length,
+        }
       : null,
     creatorTypes: profile.creatorRoles.map((r) => r.type),
-    socialLinks: profile.creatorRoles.flatMap((r) =>
-      r.socialLinks.map((l) => ({ platform: l.platform, url: l.url })),
-    ),
+    socialLinks: profile.socialLinks.map((l) => ({
+      platform: l.platform,
+      url: l.url,
+    })),
     player: profile.player,
     characters: characters.map((c) => ({
       id: c.id,
@@ -124,7 +136,9 @@ async function loadPublicProfile(pseudo: string): Promise<PublicProfileData | nu
       imageUrl: c.imageUrl,
       etatVie: c.etatVie as EtatVie,
       version:
-        [...c.versions].sort((a, b) => versionRank(a.id) - versionRank(b.id)).at(-1) ?? null,
+        [...c.versions]
+          .sort((a, b) => versionRank(a.id) - versionRank(b.id))
+          .at(-1) ?? null,
     })),
     posts: posts.map((p) => ({
       id: p.id,
@@ -138,10 +152,14 @@ async function loadPublicProfile(pseudo: string): Promise<PublicProfileData | nu
   };
 }
 
-export const getPublicProfile = unstable_cache(loadPublicProfile, ["public-profile"], {
-  revalidate: 300,
-  tags: ["profiles"],
-});
+export const getPublicProfile = unstable_cache(
+  loadPublicProfile,
+  ["public-profile"],
+  {
+    revalidate: 300,
+    tags: ["profiles"],
+  },
+);
 
 // ─── Contributeurs d'une fiche personnage ────────────────────────────────────
 
@@ -151,15 +169,24 @@ export type Contributor = { pseudo: string; avatarUrl: string | null };
  * Membres ayant une proposition acceptée sur ce perso ou une création qui le
  * mentionne. Les profils masqués ne sont pas listés.
  */
-async function loadCharacterContributors(characterId: string): Promise<Contributor[]> {
+async function loadCharacterContributors(
+  characterId: string,
+): Promise<Contributor[]> {
   const [suggestions, posts] = await Promise.all([
     prisma.suggestion.findMany({
       where: { characterId, status: "accepted", clerkUserId: { not: null } },
       select: { clerkUserId: true },
     }),
     prisma.creatorPost.findMany({
-      where: { creatorRole: { status: "approved" }, characters: { some: { characterId } } },
-      select: { creatorRole: { select: { userProfile: { select: { clerkUserId: true } } } } },
+      where: {
+        creatorRole: { status: "approved" },
+        characters: { some: { characterId } },
+      },
+      select: {
+        creatorRole: {
+          select: { userProfile: { select: { clerkUserId: true } } },
+        },
+      },
     }),
   ]);
 
@@ -172,7 +199,11 @@ async function loadCharacterContributors(characterId: string): Promise<Contribut
   if (!clerkIds.length) return [];
 
   const profiles = await prisma.userProfile.findMany({
-    where: { clerkUserId: { in: clerkIds }, profilePublic: true, pseudo: { not: null } },
+    where: {
+      clerkUserId: { in: clerkIds },
+      profilePublic: true,
+      pseudo: { not: null },
+    },
     select: { clerkUserId: true, pseudo: true },
     orderBy: { pseudo: "asc" },
   });

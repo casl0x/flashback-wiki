@@ -6,14 +6,14 @@ import {
   askSuggestionDetails,
   rejectSuggestion,
   reviewCreation,
-  reviewCreatorRole,
   reviewLinkRequest,
+  reviewReport,
 } from "@/lib/admin/actions/moderation";
 import { ago } from "@/lib/admin/format";
 import type {
   loadCreationDetail,
-  loadCreatorRoleDetail,
   loadLinkRequestDetail,
+  loadReportDetail,
   loadSuggestionDetail,
 } from "@/lib/admin/moderation";
 import { cloudinaryUrl } from "@/lib/cloudinary";
@@ -454,71 +454,67 @@ export function CreationReview({
   );
 }
 
-// ─── Demandes de profil créateur ─────────────────────────────────────────────
+// ─── Signalements ─────────────────────────────────────────────────────────
 
-export function CreatorRoleReview({
+export function ReportReview({
   d,
   nextHref,
 }: {
-  d: D<typeof loadCreatorRoleDetail>;
+  d: D<typeof loadReportDetail>;
   nextHref: string;
 }) {
   const { pending, error, run } = useReview(nextHref);
-  const [refusing, setRefusing] = useState(false);
   return (
     <Shell
-      kind={d.type === "ARTISTE" ? "DEMANDE ARTISTE" : "DEMANDE ÉDITEUR"}
-      kindColor="#F6B26B"
-      title={d.author}
-      meta={`Demande envoyée ${ago(d.createdAt)}`}
+      kind={
+        d.targetType === "POST"
+          ? "SIGNALEMENT · CRÉATION"
+          : "SIGNALEMENT · PROFIL"
+      }
+      kindColor="#FF8A8E"
+      title={d.target.label}
+      meta={`Signalé par ${d.reporter} · ${ago(d.createdAt)}`}
     >
-      {d.bio && <p className="m-0 whitespace-pre-line">{d.bio}</p>}
-      {d.links.length > 0 ? (
-        <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-          {d.links.map((l) => (
-            <li key={l.url}>
-              <span className="text-[#9AA0AA]">{l.platform} · </span>
-              <a
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#8AB4FF]"
-              >
-                {l.url}
-              </a>
-            </li>
-          ))}
-        </ul>
+      {d.target.preview && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={cloudinaryUrl(d.target.preview, "w_600,c_limit")}
+          alt=""
+          className="max-h-80 w-auto max-w-full self-start rounded-[10px] border border-[#23262D]"
+        />
+      )}
+      {d.reason ? (
+        <div className="flex flex-col gap-1.5 rounded-lg bg-[#1A1C21] px-3.5 py-3">
+          <span className="text-[12px] font-bold text-[#A3A8B3]">
+            Motif du signalement
+          </span>
+          <span className="whitespace-pre-line">{d.reason}</span>
+        </div>
       ) : (
-        <p className="m-0 text-[#9AA0AA]">Aucun lien fourni.</p>
+        <p className="m-0 text-[#9AA0AA]">Aucun motif fourni.</p>
+      )}
+      {!d.target.exists && (
+        <Notice tone="ok">Ce contenu n’existe déjà plus.</Notice>
       )}
       <div className="flex flex-wrap gap-2.5">
         <Button
-          variant="success"
+          variant="danger"
           className="min-h-11 px-5"
-          disabled={pending}
-          onClick={() => run(() => reviewCreatorRole(d.id, "approved"))}
+          disabled={pending || !d.target.exists}
+          onClick={() => run(() => reviewReport(d.id, "remove"))}
         >
-          Valider le profil
+          {d.targetType === "POST"
+            ? "Supprimer la création"
+            : "Masquer le profil"}
         </Button>
         <Button
-          variant="danger"
           className="min-h-11"
-          onClick={() => setRefusing(true)}
+          disabled={pending}
+          onClick={() => run(() => reviewReport(d.id, "ignore"))}
         >
-          Refuser
+          Ignorer le signalement
         </Button>
       </div>
-      {refusing && (
-        <RefusePanel
-          withReasons={false}
-          pending={pending}
-          onCancel={() => setRefusing(false)}
-          onConfirm={(_, message) =>
-            run(() => reviewCreatorRole(d.id, "rejected", message))
-          }
-        />
-      )}
       {error && <Notice tone="error">{error}</Notice>}
     </Shell>
   );

@@ -4,27 +4,35 @@ import { prisma } from "@/lib/db";
 import { stripMentions } from "@/lib/utils";
 import { clerkClient } from "@clerk/nextjs/server";
 
-export type ModTab = "propositions" | "creations" | "createurs" | "liens";
+export type ModTab = "propositions" | "creations" | "signalements" | "liens";
 
 export const MOD_TABS: { key: ModTab; label: string }[] = [
   { key: "propositions", label: "Propositions" },
   { key: "creations", label: "Créations" },
-  { key: "createurs", label: "Créateurs" },
+  { key: "signalements", label: "Signalements" },
   { key: "liens", label: "Liens joueur" },
 ];
 
 export async function countPending() {
-  const [propositions, creations, createurs, liens] = await Promise.all([
+  const [propositions, creations, signalements, liens] = await Promise.all([
     prisma.suggestion.count({ where: { status: "pending" } }),
     prisma.creatorPost.count({ where: { status: "pending" } }),
-    prisma.creatorRole.count({ where: { status: "pending" } }),
+    prisma.report.count({ where: { status: "pending" } }),
     prisma.playerLinkRequest.count({ where: { status: "pending" } }),
   ]);
-  return { propositions, creations, createurs, liens, total: propositions + creations + createurs + liens };
+  return {
+    propositions,
+    creations,
+    signalements,
+    liens,
+    total: propositions + creations + signalements + liens,
+  };
 }
 
 /** Nom affichable d'un compte : pseudo du profil, sinon nom Clerk. */
-export async function displayNames(clerkIds: (string | null | undefined)[]): Promise<Map<string, string>> {
+export async function displayNames(
+  clerkIds: (string | null | undefined)[],
+): Promise<Map<string, string>> {
   const ids = [...new Set(clerkIds.filter((x): x is string => !!x))];
   const map = new Map<string, string>();
   if (!ids.length) return map;
@@ -39,8 +47,12 @@ export async function displayNames(clerkIds: (string | null | undefined)[]): Pro
   if (missing.length) {
     try {
       const client = await clerkClient();
-      const { data } = await client.users.getUserList({ userId: missing.slice(0, 100), limit: 100 });
-      for (const u of data) map.set(u.id, u.username ?? u.firstName ?? "Utilisateur");
+      const { data } = await client.users.getUserList({
+        userId: missing.slice(0, 100),
+        limit: 100,
+      });
+      for (const u of data)
+        map.set(u.id, u.username ?? u.firstName ?? "Utilisateur");
     } catch {
       // Clerk indisponible : on affiche « Utilisateur ».
     }
@@ -58,7 +70,13 @@ export type QueueItem = {
   createdAt: string;
 };
 
-const COLORS = { edit: "#F6B26B", add: "#8AB4FF", art: "#E5A3F0", link: "#6EE7A0" };
+const COLORS = {
+  edit: "#F6B26B",
+  add: "#8AB4FF",
+  art: "#E5A3F0",
+  link: "#6EE7A0",
+  report: "#FF8A8E",
+};
 
 export async function loadQueue(tab: ModTab, take = 50): Promise<QueueItem[]> {
   if (tab === "propositions") {
@@ -86,37 +104,48 @@ export async function loadQueue(tab: ModTab, take = 50): Promise<QueueItem[]> {
       orderBy: { createdAt: "asc" },
       take,
       include: {
-        creatorRole: { include: { userProfile: { select: { clerkUserId: true } } } },
+        creatorRole: {
+          include: { userProfile: { select: { clerkUserId: true } } },
+        },
         characters: { include: { character: { select: { nom: true } } } },
       },
     });
-    const names = await displayNames(rows.map((r) => r.creatorRole.userProfile.clerkUserId));
+    const names = await displayNames(
+      rows.map((r) => r.creatorRole.userProfile.clerkUserId),
+    );
     return rows.map((r) => ({
       id: r.id,
       tab,
       kind: `${r.type === "ARTISTE" ? "ARTISTE" : "ÉDITEUR"} · POST`,
       color: COLORS.art,
-      title: r.characters.map((c) => c.character.nom).join(", ") || r.caption || "Création",
+      title:
+        r.characters.map((c) => c.character.nom).join(", ") ||
+        r.caption ||
+        "Création",
       author: names.get(r.creatorRole.userProfile.clerkUserId) ?? "Utilisateur",
       createdAt: r.createdAt.toISOString(),
     }));
   }
 
-  if (tab === "createurs") {
-    const rows = await prisma.creatorRole.findMany({
+  if (tab === "signalements") {
+    const rows = await prisma.report.findMany({
       where: { status: "pending" },
       orderBy: { createdAt: "asc" },
       take,
-      include: { userProfile: { select: { clerkUserId: true } } },
     });
-    const names = await displayNames(rows.map((r) => r.userProfile.clerkUserId));
+    const names = await displayNames(rows.map((r) => r.reporterClerkUserId));
     return rows.map((r) => ({
       id: r.id,
       tab,
-      kind: r.type === "ARTISTE" ? "DEMANDE ARTISTE" : "DEMANDE ÉDITEUR",
-      color: COLORS.edit,
-      title: names.get(r.userProfile.clerkUserId) ?? "Utilisateur",
-      author: names.get(r.userProfile.clerkUserId) ?? "Utilisateur",
+      kind:
+        r.targetType === "POST"
+          ? "SIGNALEMENT · CRÉATION"
+          : "SIGNALEMENT · PROFIL",
+      color: COLORS.report,
+      title: r.reason || "Sans motif précisé",
+      author:
+        (r.reporterClerkUserId && names.get(r.reporterClerkUserId)) ||
+        "Utilisateur",
       createdAt: r.createdAt.toISOString(),
     }));
   }
@@ -125,7 +154,10 @@ export async function loadQueue(tab: ModTab, take = 50): Promise<QueueItem[]> {
     where: { status: "pending" },
     orderBy: { createdAt: "asc" },
     take,
-    include: { player: { select: { pseudo: true } }, userProfile: { select: { clerkUserId: true } } },
+    include: {
+      player: { select: { pseudo: true } },
+      userProfile: { select: { clerkUserId: true } },
+    },
   });
   const names = await displayNames(rows.map((r) => r.userProfile.clerkUserId));
   return rows.map((r) => {
@@ -171,22 +203,40 @@ export async function loadSuggestionDetail(id: string) {
   });
   if (!s) return null;
   const c = s.character;
-  const author = s.clerkUserId ? (await displayNames([s.clerkUserId])).get(s.clerkUserId) : null;
+  const author = s.clerkUserId
+    ? (await displayNames([s.clerkUserId])).get(s.clerkUserId)
+    : null;
 
   const rows: DiffRow[] = [];
-  const push = (field: string, before: string | null | undefined, after: string | null | undefined) => {
+  const push = (
+    field: string,
+    before: string | null | undefined,
+    after: string | null | undefined,
+  ) => {
     if (!after) return;
     if ((before ?? "") === after) return;
     rows.push({ field, before: before || "—", after });
   };
   push("Nom", c?.nom, s.nom);
   push("Joueur", c?.player?.pseudo, s.joueur);
-  push("Version", c ? c.versions.map((v) => v.id).join(", ") : null, s.version ? `+ ${s.version.id}` : null);
-  push("Groupe", c ? c.groupes.map((g) => g.groupe.nom).join(", ") : null, s.groupe ? `+ ${s.groupe}` : null);
+  push(
+    "Version",
+    c ? c.versions.map((v) => v.id).join(", ") : null,
+    s.version ? `+ ${s.version.id}` : null,
+  );
+  push(
+    "Groupe",
+    c ? c.groupes.map((g) => g.groupe.nom).join(", ") : null,
+    s.groupe ? `+ ${s.groupe}` : null,
+  );
   push("Rôle", c?.role ? ROLE[c.role] : null, s.role ? ROLE[s.role] : null);
   push("État", c ? ETAT[c.etatVie] : null, s.etatVie ? ETAT[s.etatVie] : null);
   push("Lien rediffusion", c?.lienReddif, s.lienReddif);
-  push("Description", c?.description ? stripMentions(c.description) : null, s.description ? stripMentions(s.description) : null);
+  push(
+    "Description",
+    c?.description ? stripMentions(c.description) : null,
+    s.description ? stripMentions(s.description) : null,
+  );
 
   return {
     id: s.id,
@@ -204,12 +254,18 @@ export async function loadCreationDetail(id: string) {
   const p = await prisma.creatorPost.findUnique({
     where: { id },
     include: {
-      creatorRole: { include: { userProfile: { select: { clerkUserId: true } } } },
-      characters: { include: { character: { select: { id: true, nom: true } } } },
+      creatorRole: {
+        include: { userProfile: { select: { clerkUserId: true } } },
+      },
+      characters: {
+        include: { character: { select: { id: true, nom: true } } },
+      },
     },
   });
   if (!p) return null;
-  const author = (await displayNames([p.creatorRole.userProfile.clerkUserId])).get(p.creatorRole.userProfile.clerkUserId);
+  const author = (
+    await displayNames([p.creatorRole.userProfile.clerkUserId])
+  ).get(p.creatorRole.userProfile.clerkUserId);
   return {
     id: p.id,
     type: p.type,
@@ -223,20 +279,53 @@ export async function loadCreationDetail(id: string) {
   };
 }
 
-export async function loadCreatorRoleDetail(id: string) {
-  const r = await prisma.creatorRole.findUnique({
-    where: { id },
-    include: { userProfile: { select: { clerkUserId: true, pseudo: true, bio: true } }, socialLinks: true },
-  });
+export async function loadReportDetail(id: string) {
+  const r = await prisma.report.findUnique({ where: { id } });
   if (!r) return null;
-  const author = (await displayNames([r.userProfile.clerkUserId])).get(r.userProfile.clerkUserId);
+  const reporter = r.reporterClerkUserId
+    ? (await displayNames([r.reporterClerkUserId])).get(r.reporterClerkUserId)
+    : null;
+
+  let target: { label: string; preview: string | null; exists: boolean };
+  if (r.targetType === "POST") {
+    const post = await prisma.creatorPost.findUnique({
+      where: { id: r.targetId },
+      include: {
+        characters: { include: { character: { select: { nom: true } } } },
+      },
+    });
+    target = post
+      ? {
+          label:
+            post.characters.map((c) => c.character.nom).join(", ") ||
+            post.caption ||
+            "Création",
+          preview: post.imageUrl,
+          exists: true,
+        }
+      : { label: "Création déjà supprimée", preview: null, exists: false };
+  } else {
+    const profile = await prisma.userProfile.findUnique({
+      where: { id: r.targetId },
+      select: { pseudo: true },
+    });
+    target = profile
+      ? {
+          label: profile.pseudo ?? "Profil sans pseudo",
+          preview: null,
+          exists: true,
+        }
+      : { label: "Profil introuvable", preview: null, exists: false };
+  }
+
   return {
     id: r.id,
-    type: r.type,
-    bio: r.userProfile.bio,
+    targetType: r.targetType as "POST" | "PROFILE",
+    targetId: r.targetId,
+    reason: r.reason,
+    reporter: reporter ?? "Utilisateur",
     createdAt: r.createdAt.toISOString(),
-    author: author ?? "Utilisateur",
-    links: r.socialLinks.map((l) => ({ platform: l.platform, url: l.url })),
+    target,
   };
 }
 
@@ -244,18 +333,32 @@ export async function loadLinkRequestDetail(id: string) {
   const r = await prisma.playerLinkRequest.findUnique({
     where: { id },
     include: {
-      player: { include: { userProfile: { select: { clerkUserId: true } }, _count: { select: { characters: true } } } },
+      player: {
+        include: {
+          userProfile: { select: { clerkUserId: true } },
+          _count: { select: { characters: true } },
+        },
+      },
       userProfile: { select: { clerkUserId: true } },
     },
   });
   if (!r) return null;
-  const names = await displayNames([r.userProfile.clerkUserId, r.player.userProfile?.clerkUserId]);
+  const names = await displayNames([
+    r.userProfile.clerkUserId,
+    r.player.userProfile?.clerkUserId,
+  ]);
   return {
     id: r.id,
     message: r.message,
     createdAt: r.createdAt.toISOString(),
     author: names.get(r.userProfile.clerkUserId) ?? "Utilisateur",
-    player: { id: r.player.id, pseudo: r.player.pseudo, characters: r.player._count.characters },
-    alreadyLinkedTo: r.player.userProfile ? names.get(r.player.userProfile.clerkUserId) ?? "un autre compte" : null,
+    player: {
+      id: r.player.id,
+      pseudo: r.player.pseudo,
+      characters: r.player._count.characters,
+    },
+    alreadyLinkedTo: r.player.userProfile
+      ? (names.get(r.player.userProfile.clerkUserId) ?? "un autre compte")
+      : null,
   };
 }
