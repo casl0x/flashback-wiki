@@ -1,6 +1,7 @@
 import { ButtonLink, PageHeader, TextInput } from "@/app/_composents/admin/ui";
 import { BADGES_CONFIG } from "@/app/_composents/admin/PlayerBadges";
 import { prisma } from "@/lib/db";
+import { RESEAUX_OPTIONS } from "@/lib/reseaux";
 import { detectStreamPlatform } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
 import Link from "next/link";
@@ -9,6 +10,16 @@ export const dynamic = "force-dynamic";
 const PER_PAGE = 30;
 
 type Props = { searchParams: Promise<{ q?: string; page?: string }> };
+
+const normalizeReseaux = (value: unknown): Record<string, string> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, string] =>
+        typeof entry[1] === "string" && entry[1] !== "",
+    ),
+  );
+};
 
 export default async function AdminPlayers({ searchParams }: Props) {
   const sp = await searchParams;
@@ -86,6 +97,9 @@ export default async function AdminPlayers({ searchParams }: Props) {
                 Badges
               </th>
               <th scope="col" className="px-3 py-2.5">
+                Réseaux
+              </th>
+              <th scope="col" className="px-3 py-2.5">
                 Compte lié
               </th>
               <th scope="col" className="px-3 py-2.5">
@@ -97,7 +111,7 @@ export default async function AdminPlayers({ searchParams }: Props) {
             {rows.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="bg-[#15171B] px-3 py-8 text-center text-[#9AA0AA]"
                 >
                   Aucun joueur.
@@ -106,6 +120,10 @@ export default async function AdminPlayers({ searchParams }: Props) {
             )}
             {rows.map((p) => {
               const plat = detectStreamPlatform(p.lienChaine);
+              const reseaux = normalizeReseaux(p.reseaux);
+              const linkedReseaux = RESEAUX_OPTIONS.filter(
+                (r) => reseaux[r.key],
+              );
               return (
                 <tr
                   key={p.id}
@@ -158,6 +176,26 @@ export default async function AdminPlayers({ searchParams }: Props) {
                           </span>
                         );
                       })}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className="flex flex-wrap gap-1">
+                      {linkedReseaux.length === 0 && (
+                        <span className="text-[#6E7380]">—</span>
+                      )}
+                      {linkedReseaux.map((r) => (
+                        <a
+                          key={r.key}
+                          href={reseaux[r.key]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={r.label}
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+                          style={{ background: `${r.color}26`, color: r.color }}
+                        >
+                          {r.icon}
+                        </a>
+                      ))}
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-[#C4C7CF]">
