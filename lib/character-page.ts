@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { parseRediffusions, prisma, type Rediffusion } from "@/lib/db";
 import { PARCOURS_TYPES, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
 import { relationKind, type RelationKind } from "@/lib/relation-kinds";
@@ -57,7 +57,7 @@ export type CharacterPageData = {
   nom: string;
   role: "civil" | "illegal" | null;
   description: string | null;
-  lienReddifs: string[];
+  lienReddifs: Rediffusion[];
   imageUrl: string | null;
   etatVie: EtatVie;
   locationX: number | null;
@@ -223,7 +223,7 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
     nom: c.nom,
     role: c.role,
     description: c.description,
-    lienReddifs: c.lienReddifs,
+    lienReddifs: parseRediffusions(c.lienReddifs),
     imageUrl: c.imageUrl,
     etatVie: c.etatVie as EtatVie,
     locationX: c.locationX,

@@ -1,4 +1,4 @@
-import { Character, Groupe, Player, Version, prisma } from "@/lib/db";
+import { Character, Groupe, parseRediffusions, Player, Version, prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { versionRank } from "@/lib/version-rank";
@@ -149,6 +149,7 @@ export async function fetchWikiData(): Promise<WikiData> {
     const enrichedCharacters = characters.map((character) => ({
       ...character,
       createdAt: character.createdAt.toISOString(),
+      lienReddifs: parseRediffusions(character.lienReddifs),
       player: buildPlayerSummary(character.player),
       version: buildVersionSummary(latestVersion(character.versions)),
       versionId: latestVersion(character.versions)?.id ?? null,
@@ -262,6 +263,7 @@ export async function fetchWikiDataWithRelations(): Promise<WikiData> {
         return {
           ...character,
           createdAt: character.createdAt.toISOString(),
+          lienReddifs: parseRediffusions(character.lienReddifs),
           player: buildPlayerSummary(character.player),
           version: buildVersionSummary(latestVersion(character.versions)),
       versionId: latestVersion(character.versions)?.id ?? null,
@@ -326,6 +328,7 @@ export const getCharacterById = unstable_cache(
     return {
       ...character,
       createdAt: character.createdAt.toISOString(),
+      lienReddifs: parseRediffusions(character.lienReddifs),
       player: buildPlayerSummary(character.player),
       version: buildVersionSummary(latestVersion(character.versions)),
       versionId: latestVersion(character.versions)?.id ?? null,
@@ -373,6 +376,7 @@ export const getCharactersByPlayerId = unstable_cache(
     return chars.map((c) => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
+      lienReddifs: parseRediffusions(c.lienReddifs),
       player: buildPlayerSummary(c.player),
       version: buildVersionSummary(latestVersion(c.versions)),
       versionId: latestVersion(c.versions)?.id ?? null,

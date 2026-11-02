@@ -1,6 +1,6 @@
 import { isAdminUser } from "@/lib/admin/auth";
 import { characterListInclude, characterWhere, currentJob } from "@/lib/admin/character-list";
-import { prisma } from "@/lib/db";
+import { parseRediffusions, prisma } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import type { NextRequest } from "next/server";
 
@@ -32,7 +32,9 @@ export async function GET(req: NextRequest) {
         c.player?.pseudo,
         ETAT[c.etatVie],
         c.role,
-        c.lienReddifs.join(" | "),
+        parseRediffusions(c.lienReddifs)
+          .map((r) => (r.titre ? `${r.titre}: ${r.url}` : r.url))
+          .join(" | "),
       ]
         .map(cell)
         .join(";"),

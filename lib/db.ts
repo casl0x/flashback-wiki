@@ -43,13 +43,30 @@ export type Groupe = {
 };
 
 // ─── Character ───────────────────────────────────────────────────────────────
+export type Rediffusion = { url: string; titre: string | null };
+
+/** Lit le champ Json `lienReddifs` sans supposer sa forme (valeurs anciennes/corrompues ignorées). */
+export function parseRediffusions(value: unknown): Rediffusion[] {
+  if (!Array.isArray(value)) return [];
+  const out: Rediffusion[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const item = raw as Record<string, unknown>;
+    const url = typeof item.url === "string" ? item.url : "";
+    if (!url) continue;
+    const titre = typeof item.titre === "string" && item.titre ? item.titre : null;
+    out.push({ url, titre });
+  }
+  return out;
+}
+
 export type Character = {
   id: string;
   nom: string;
   role: "civil" | "illegal" | null;
   groupes: Pick<Groupe, "id" | "slug" | "nom" | "color">[];
   description: string | null;
-  lienReddifs: string[];
+  lienReddifs: Rediffusion[];
   imageUrl: string | null;
   playerId: string | null;
   versionId: string | null;

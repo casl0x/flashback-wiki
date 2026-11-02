@@ -96,11 +96,11 @@ export default function CharacterPage({ c }: { c: CharacterPageData }) {
               <SectionTitle id="reddifs-h">Rediffusions</SectionTitle>
               <div className="flex flex-col gap-2">
                 {c.lienReddifs.map((reddif, i) => {
-                  const thumb = youtubeThumbnail(reddif);
+                  const thumb = youtubeThumbnail(reddif.url);
                   return (
                     <a
-                      key={reddif}
-                      href={reddif}
+                      key={`${reddif.url}-${i}`}
+                      href={reddif.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-4 rounded-[10px] border border-[#23262D] bg-[#15171B] p-3.5 hover:border-[#3A3E47] sm:gap-4.5"
@@ -130,9 +130,10 @@ export default function CharacterPage({ c }: { c: CharacterPageData }) {
                       </span>
                       <span className="flex min-w-0 flex-col gap-1">
                         <span className="text-[16px] font-semibold sm:text-[18px]">
-                          {c.lienReddifs.length > 1
-                            ? `Partie ${i + 1}`
-                            : `Revoir l’histoire de ${firstName} sur YouTube`}
+                          {reddif.titre ||
+                            (c.lienReddifs.length > 1
+                              ? `Partie ${i + 1}`
+                              : `Revoir l’histoire de ${firstName} sur YouTube`)}
                         </span>
                         <span className="text-[14px] text-[#A3A8B3]">
                           Ouvre YouTube ↗

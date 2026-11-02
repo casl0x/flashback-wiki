@@ -1,6 +1,6 @@
 import "server-only";
 
-import { prisma } from "@/lib/db";
+import { parseRediffusions, prisma } from "@/lib/db";
 import { stripMentions } from "@/lib/utils";
 import { clerkClient } from "@clerk/nextjs/server";
 
@@ -233,7 +233,11 @@ export async function loadSuggestionDetail(id: string) {
   push("État", c ? ETAT[c.etatVie] : null, s.etatVie ? ETAT[s.etatVie] : null);
   push(
     "Lien rediffusion",
-    c ? c.lienReddifs.join(", ") || null : null,
+    c
+      ? parseRediffusions(c.lienReddifs)
+          .map((r) => (r.titre ? `${r.titre}: ${r.url}` : r.url))
+          .join(", ") || null
+      : null,
     s.lienReddif ? `+ ${s.lienReddif}` : null,
   );
   push(

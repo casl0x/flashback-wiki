@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { parseRediffusions, prisma } from "@/lib/db";
 import { versionRank } from "@/lib/version-rank";
 import { notFound } from "next/navigation";
 import CharacterEditor, { type EditorCharacter } from "./CharacterEditor";
@@ -49,7 +49,7 @@ export default async function EditCharacterPage({ params, searchParams }: Props)
         role: c.role,
         etatVie: c.etatVie,
         description: c.description ?? "",
-        lienReddifs: c.lienReddifs,
+        lienReddifs: parseRediffusions(c.lienReddifs),
         imageUrl: c.imageUrl,
         playerId: c.playerId,
         versionIds: c.versions.map((v) => v.id),

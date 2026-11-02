@@ -228,8 +228,10 @@ model Character {
   role        Role?
   description String?
   // Playlists/liens de rediffusion, dans l'ordre de visionnage choisi par
-  // l'admin (pas de lien avec les versions).
-  lienReddifs String[] @default([]) @map("liens_reddif")
+  // l'admin (pas de lien avec les versions). Chaque entrée est
+  // { url, titre } ; titre est un libellé personnalisé optionnel
+  // (sinon "Partie N" par défaut côté affichage).
+  lienReddifs Json @default("[]") @map("liens_reddif")
   imageUrl    String?  @map("image_url")
   createdAt   DateTime @default(now()) @map("created_at")
   etatVie     EtatVie  @default(EN_VIE) @map("etat_vie")
