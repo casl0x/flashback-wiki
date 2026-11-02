@@ -2,12 +2,12 @@
 
 import { requireAdmin } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
-import { clean, failure, refreshAll, type ActionResult } from "./shared";
+import { failure, refreshAll, type ActionResult } from "./shared";
 
 export type PlayerInput = {
   pseudo: string;
   badges: string[];
-  lienChaine: string | null;
+  chaines: string[];
   reseaux: Record<string, string>;
 };
 
@@ -22,11 +22,12 @@ export async function savePlayer(id: string | null, input: PlayerInput): Promise
         .filter(([, v]) => v),
     );
     const badges = [...new Set(input.badges)];
+    const chaines = input.chaines.map((c) => c.trim()).filter(Boolean);
     const data = {
       pseudo,
       badges,
       reseaux,
-      lienChaine: clean(input.lienChaine),
+      chaines,
       // Ancien champ : gardé synchronisé avec le badge « streamer ».
       stream: badges.includes("streamer"),
     };

@@ -299,7 +299,7 @@ export default function CharacterEditor({
     const r = await savePlayer(null, {
       pseudo,
       badges: [],
-      lienChaine: null,
+      chaines: [],
       reseaux: {},
     });
     if (!r.ok) return setMsg({ tone: "error", text: r.error });

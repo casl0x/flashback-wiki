@@ -1,10 +1,6 @@
 import type { EtatVie, VersionTag } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
-import {
-  detectStreamPlatform,
-  extractStreamUsername,
-  type StreamPlatform,
-} from "@/lib/utils";
+import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
 import { versionRank } from "@/lib/version-rank";
 import { unstable_cache } from "next/cache";
 
@@ -17,9 +13,7 @@ const NONE = "__none__";
 export type PlayerListItem = {
   id: string;
   pseudo: string;
-  lienChaine: string | null;
-  platform: StreamPlatform | null;
-  username: string | null;
+  chaines: PlayerChannel[];
   badges: string[];
   characterCount: number;
 };
@@ -33,9 +27,7 @@ async function loadPlayersList(): Promise<PlayerListItem[]> {
   return players.map((p) => ({
     id: p.id,
     pseudo: p.pseudo.trim() || "Joueur",
-    lienChaine: p.lienChaine,
-    platform: detectStreamPlatform(p.lienChaine),
-    username: extractStreamUsername(p.lienChaine),
+    chaines: p.chaines.map(toPlayerChannel),
     badges: p.badges,
     characterCount: p._count.characters,
   }));
@@ -73,9 +65,7 @@ export type PlayerBannerCharacter = {
 export type PlayerPageData = {
   id: string;
   pseudo: string;
-  lienChaine: string | null;
-  platform: StreamPlatform | null;
-  username: string | null;
+  chaines: PlayerChannel[];
   reseaux: Record<string, string>;
   badges: string[];
   characterCount: number;
@@ -176,9 +166,7 @@ async function loadPlayerPage(id: string): Promise<PlayerPageData | null> {
   return {
     id: p.id,
     pseudo: p.pseudo.trim() || "Joueur",
-    lienChaine: p.lienChaine,
-    platform: detectStreamPlatform(p.lienChaine),
-    username: extractStreamUsername(p.lienChaine),
+    chaines: p.chaines.map(toPlayerChannel),
     reseaux: normalizeReseaux(p.reseaux),
     badges: p.badges,
     characterCount: p.characters.length,

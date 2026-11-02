@@ -30,7 +30,7 @@ type P = {
   id: string | null;
   pseudo: string;
   badges: string[];
-  lienChaine: string;
+  chaines: string[];
   reseaux: Record<string, string>;
 };
 type C = {
@@ -67,7 +67,7 @@ export default function PlayerEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [newReseau, setNewReseau] = useState<string>("");
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);
-  const plat = detectStreamPlatform(f.lienChaine);
+  const plat = detectStreamPlatform(f.chaines[0] ?? null);
   const unusedReseaux = RESEAUX_OPTIONS.filter((r) => !(r.key in f.reseaux));
 
   const save = () =>
@@ -187,32 +187,63 @@ export default function PlayerEditor({
           </Panel>
 
           <Panel legend="Stream">
-            <Field
-              label={
-                <span className="flex items-center gap-2">
-                  Lien de la chaîne
-                  {plat && (
-                    <span
-                      className="rounded px-2 py-px text-[11px] font-extrabold"
-                      style={{
-                        background: PLAT[plat].bg,
-                        color: PLAT[plat].fg,
-                      }}
+            <div className="flex flex-col gap-2">
+              <span className="text-[12px] text-[#9AA0AA]">
+                La plateforme de chaque lien est déduite automatiquement
+                (twitch.tv ou kick.com).
+              </span>
+              {f.chaines.map((url, i) => {
+                const chainPlat = detectStreamPlatform(url);
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    {chainPlat && (
+                      <span
+                        className="flex-none rounded px-2 py-0.5 text-[11px] font-extrabold"
+                        style={{
+                          background: PLAT[chainPlat].bg,
+                          color: PLAT[chainPlat].fg,
+                        }}
+                      >
+                        {PLAT[chainPlat].label}
+                      </span>
+                    )}
+                    <TextInput
+                      type="url"
+                      aria-label={`Lien de la chaîne ${i + 1}`}
+                      value={url}
+                      onChange={(e) =>
+                        setF({
+                          ...f,
+                          chaines: f.chaines.map((c, j) =>
+                            j === i ? e.target.value : c,
+                          ),
+                        })
+                      }
+                      placeholder="https://www.twitch.tv/pseudo"
+                    />
+                    <button
+                      type="button"
+                      aria-label={`Retirer la chaîne ${i + 1}`}
+                      onClick={() =>
+                        setF({
+                          ...f,
+                          chaines: f.chaines.filter((_, j) => j !== i),
+                        })
+                      }
+                      className="flex h-9 w-9 flex-none items-center justify-center rounded-md border border-[#2C3038] text-[#A3A8B3] hover:text-[#FF8A8E]"
                     >
-                      {PLAT[plat].label} détecté
-                    </span>
-                  )}
-                </span>
-              }
-              hint="La plateforme est déduite du lien (twitch.tv ou kick.com)."
-            >
-              <TextInput
-                type="url"
-                value={f.lienChaine}
-                onChange={(e) => setF({ ...f, lienChaine: e.target.value })}
-                placeholder="https://www.twitch.tv/pseudo"
-              />
-            </Field>
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+              <Button
+                className="self-start"
+                onClick={() => setF({ ...f, chaines: [...f.chaines, ""] })}
+              >
+                + Ajouter une chaîne
+              </Button>
+            </div>
           </Panel>
 
           <Panel legend="Réseaux">

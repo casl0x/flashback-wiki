@@ -106,14 +106,15 @@ async function twitchHelixGet<T>(
 export async function GET() {
   try {
     const players = await prisma.player.findMany({
-      where: { lienChaine: { not: null }, badges: { has: "streamer" } },
-      select: { lienChaine: true },
+      where: { badges: { has: "streamer" } },
+      select: { chaines: true },
     });
 
     const usernames = Array.from(
       new Set(
         players
-          .map((p) => extractTwitchUsername(p.lienChaine))
+          .flatMap((p) => p.chaines)
+          .map((url) => extractTwitchUsername(url))
           .filter((u): u is string => !!u),
       ),
     );

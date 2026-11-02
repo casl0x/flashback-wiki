@@ -71,7 +71,7 @@ const buildPlayerSummary = (
     id: string;
     pseudo: string;
     stream: boolean;
-    lienChaine: string | null;
+    chaines: string[];
     reseaux: Prisma.JsonValue;
     badges: string[];
   } | null,
@@ -81,7 +81,7 @@ const buildPlayerSummary = (
         id: player.id,
         pseudo: player.pseudo,
         stream: player.stream,
-        lienChaine: player.lienChaine,
+        chaines: player.chaines,
         reseaux: normalizeReseaux(player.reseaux),
         badges: player.badges,
       }

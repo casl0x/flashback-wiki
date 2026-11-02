@@ -23,14 +23,16 @@ const RESEAUX: { key: string; label: string }[] = [
 type Player = NonNullable<CharacterPageData["player"]>;
 
 export function PlayerPanel({ player }: { player: Player }) {
-  const stream = player.platform ? PLATFORM[player.platform] : null;
+  const primaryPlatform = player.chaines[0]?.platform ?? null;
+  const stream = primaryPlatform ? PLATFORM[primaryPlatform] : null;
   const band = stream?.color ?? "#2F6FEB";
   const streamer = player.badges.includes("streamer");
   const otherBadges = player.badges.filter((b) => b !== "streamer");
   const links = [
-    ...(player.lienChaine
-      ? [{ href: player.lienChaine, label: stream?.label ?? "Chaîne" }]
-      : []),
+    ...player.chaines.map((c) => ({
+      href: c.url,
+      label: c.platform ? PLATFORM[c.platform].label : "Chaîne",
+    })),
     ...RESEAUX.filter((r) => player.reseaux[r.key]).map((r) => ({
       href: player.reseaux[r.key],
       label: r.label,
