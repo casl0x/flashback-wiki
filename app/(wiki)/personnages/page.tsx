@@ -19,7 +19,7 @@ export default async function CharactersPage() {
               "m-0 text-[clamp(48px,10vw,80px)] uppercase leading-[0.95] text-[#ECECEE]",
             )}
           >
-            Joueurs
+            Personnages
           </h1>
           <p>{characters.length} fiches · toutes versions confondues</p>
         </div>
