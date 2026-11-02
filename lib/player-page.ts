@@ -1,10 +1,6 @@
 import type { EtatVie, VersionTag } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
-import {
-  detectStreamPlatform,
-  extractStreamUsername,
-  type StreamPlatform,
-} from "@/lib/utils";
+import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
 import { versionRank } from "@/lib/version-rank";
 import { unstable_cache } from "next/cache";
 
@@ -17,28 +13,29 @@ const NONE = "__none__";
 export type PlayerListItem = {
   id: string;
   pseudo: string;
-  lienChaine: string | null;
-  platform: StreamPlatform | null;
-  username: string | null;
+  chaines: PlayerChannel[];
   badges: string[];
   characterCount: number;
 };
 
 async function loadPlayersList(): Promise<PlayerListItem[]> {
-  const players = await prisma.player.findMany({
-    orderBy: { pseudo: "asc" },
-    include: { _count: { select: { characters: true } } },
-  });
+  try {
+    const players = await prisma.player.findMany({
+      orderBy: { pseudo: "asc" },
+      include: { _count: { select: { characters: true } } },
+    });
 
-  return players.map((p) => ({
-    id: p.id,
-    pseudo: p.pseudo.trim() || "Joueur",
-    lienChaine: p.lienChaine,
-    platform: detectStreamPlatform(p.lienChaine),
-    username: extractStreamUsername(p.lienChaine),
-    badges: p.badges,
-    characterCount: p._count.characters,
-  }));
+    return players.map((p) => ({
+      id: p.id,
+      pseudo: p.pseudo.trim() || "Joueur",
+      chaines: p.chaines.map(toPlayerChannel),
+      badges: p.badges,
+      characterCount: p._count.characters,
+    }));
+  } catch (error) {
+    console.error("Failed to load players list", error);
+    return [];
+  }
 }
 
 export const getPlayersList = unstable_cache(loadPlayersList, ["players-list"], {
@@ -73,9 +70,7 @@ export type PlayerBannerCharacter = {
 export type PlayerPageData = {
   id: string;
   pseudo: string;
-  lienChaine: string | null;
-  platform: StreamPlatform | null;
-  username: string | null;
+  chaines: PlayerChannel[];
   reseaux: Record<string, string>;
   badges: string[];
   characterCount: number;
@@ -101,6 +96,15 @@ const normalizeReseaux = (value: unknown): Record<string, string> => {
 };
 
 async function loadPlayerPage(id: string): Promise<PlayerPageData | null> {
+  try {
+    return await loadPlayerPageUnsafe(id);
+  } catch (error) {
+    console.error("Failed to load player page", error);
+    return null;
+  }
+}
+
+async function loadPlayerPageUnsafe(id: string): Promise<PlayerPageData | null> {
   const p = await prisma.player.findUnique({
     where: { id },
     include: {
@@ -176,9 +180,7 @@ async function loadPlayerPage(id: string): Promise<PlayerPageData | null> {
   return {
     id: p.id,
     pseudo: p.pseudo.trim() || "Joueur",
-    lienChaine: p.lienChaine,
-    platform: detectStreamPlatform(p.lienChaine),
-    username: extractStreamUsername(p.lienChaine),
+    chaines: p.chaines.map(toPlayerChannel),
     reseaux: normalizeReseaux(p.reseaux),
     badges: p.badges,
     characterCount: p.characters.length,

@@ -102,13 +102,14 @@ export async function GET() {
   try {
     const players = await prisma.player.findMany({
       where: { badges: { has: "streamer" } },
-      select: { lienChaine: true },
+      select: { chaines: true },
     });
 
     const slugs = Array.from(
       new Set(
         players
-          .map((p) => extractKickUsername(p.lienChaine))
+          .flatMap((p) => p.chaines)
+          .map((url) => extractKickUsername(url))
           .filter((s): s is string => !!s),
       ),
     );

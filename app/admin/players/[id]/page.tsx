@@ -51,7 +51,7 @@ export default async function EditPlayerPage({ params, searchParams }: Props) {
         id: p?.id ?? null,
         pseudo: p?.pseudo ?? "",
         badges: p?.badges ?? [],
-        lienChaine: p?.lienChaine ?? "",
+        chaines: p?.chaines ?? [],
         reseaux: p ? reseaux(p.reseaux) : {},
       }}
       account={accountName}

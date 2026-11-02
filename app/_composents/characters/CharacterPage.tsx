@@ -35,7 +35,7 @@ function toSuggestCharacter(c: CharacterPageData): Character {
           id: c.player.id,
           pseudo: c.player.pseudo,
           stream: false,
-          lienChaine: c.player.lienChaine,
+          chaines: c.player.chaines.map((ch) => ch.url),
           reseaux: c.player.reseaux,
           badges: c.player.badges,
         }

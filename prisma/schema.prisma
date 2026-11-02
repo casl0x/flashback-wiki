@@ -205,13 +205,15 @@ model Version {
 }
 
 model Player {
-  id         String   @id @default(uuid())
-  pseudo     String
-  stream     Boolean  @default(false)
-  lienChaine String?  @map("lien_chaine")
-  reseaux    Json     @default("{}")
-  badges     String[] @default([])
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  pseudo    String
+  stream    Boolean  @default(false)
+  // Chaînes de stream (Twitch et/ou Kick) ; la plateforme de chacune est
+  // déduite de son URL (voir detectStreamPlatform dans lib/utils.ts).
+  chaines   String[] @default([])
+  reseaux   Json     @default("{}")
+  badges    String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
 
   characters   Character[]
   userProfile  UserProfile?

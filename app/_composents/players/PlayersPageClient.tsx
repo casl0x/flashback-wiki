@@ -34,22 +34,28 @@ export default function PlayersPageClient({
 
   const { twitch, kick } = useLiveStatus();
 
-  const lives: LivePlayer[] = useMemo(
-    () =>
-      players
-        .filter(
-          (p) => p.badges.includes("streamer") && p.platform && p.username,
-        )
-        .map((player) => ({
-          player,
-          status: liveStatusFor(player.platform, player.username, twitch, kick),
-        }))
-        .filter((e): e is LivePlayer => !!e.status?.isLive),
-    [players, twitch, kick],
-  );
+  const lives: LivePlayer[] = useMemo(() => {
+    const result: LivePlayer[] = [];
+    for (const player of players) {
+      if (!player.badges.includes("streamer")) continue;
+      for (const channel of player.chaines) {
+        const status = liveStatusFor(
+          channel.platform,
+          channel.username,
+          twitch,
+          kick,
+        );
+        if (status?.isLive) {
+          result.push({ player, channel, status });
+          break;
+        }
+      }
+    }
+    return result;
+  }, [players, twitch, kick]);
 
   const streamerCount = players.filter(
-    (p) => p.badges.includes("streamer") && p.platform,
+    (p) => p.badges.includes("streamer") && p.chaines.length > 0,
   ).length;
   const liveIds = useMemo(
     () => new Set(lives.map((l) => l.player.id)),
@@ -62,10 +68,12 @@ export default function PlayersPageClient({
 
   const filtered = useMemo(() => {
     const result = players.filter((p) => {
-      if (!p.badges.includes("streamer") || !p.platform) return false;
+      if (!p.badges.includes("streamer") || p.chaines.length === 0)
+        return false;
       const matchSearch = matchesSearch(p.pseudo, query);
       const matchPlatform =
-        platformFilter === "all" || p.platform === platformFilter;
+        platformFilter === "all" ||
+        p.chaines.some((c) => c.platform === platformFilter);
       const matchLive = !liveOnly || liveIds.has(p.id);
       return matchSearch && matchPlatform && matchLive;
     });
@@ -273,10 +281,17 @@ function PlayerGridCard({
   player: PlayerListItem;
   isLive: boolean;
 }) {
-  const ringColor = player.platform
-    ? PLATFORM_RING[player.platform]
+  const primaryPlatform = player.chaines[0]?.platform ?? null;
+  const ringColor = primaryPlatform
+    ? PLATFORM_RING[primaryPlatform]
     : "#3A3E47";
-  const PlatformIcon = player.platform === "kick" ? KickIcon : TwitchIcon;
+  const platforms = [
+    ...new Set(
+      player.chaines
+        .map((c) => c.platform)
+        .filter((p): p is StreamPlatform => p !== null),
+    ),
+  ];
 
   return (
     <Link
@@ -303,8 +318,13 @@ function PlayerGridCard({
           {player.characterCount} perso{player.characterCount > 1 ? "s" : ""}
         </span>
       </span>
-      {player.platform && (
-        <PlatformIcon className="ml-auto h-4 w-4 flex-none" aria-hidden />
+      {platforms.length > 0 && (
+        <span className="ml-auto flex flex-none items-center gap-1">
+          {platforms.map((p) => {
+            const Icon = p === "kick" ? KickIcon : TwitchIcon;
+            return <Icon key={p} className="h-4 w-4 flex-none" aria-hidden />;
+          })}
+        </span>
       )}
     </Link>
   );

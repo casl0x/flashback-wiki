@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { PARCOURS_TYPES, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
 import { relationKind, type RelationKind } from "@/lib/relation-kinds";
-import { detectStreamPlatform, type StreamPlatform } from "@/lib/utils";
+import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 
@@ -71,8 +71,7 @@ export type CharacterPageData = {
   player: {
     id: string;
     pseudo: string;
-    lienChaine: string | null;
-    platform: StreamPlatform | null;
+    chaines: PlayerChannel[];
     reseaux: Record<string, string>;
     badges: string[];
     totalCharacters: number;
@@ -163,6 +162,15 @@ function toLinked(relationId: string, label: string | null, c: Linked): LinkedCh
 }
 
 async function loadCharacterPage(id: string): Promise<CharacterPageData | null> {
+  try {
+    return await loadCharacterPageUnsafe(id);
+  } catch (error) {
+    console.error("Failed to load character page", error);
+    return null;
+  }
+}
+
+async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | null> {
   const c = await prisma.character.findUnique({
     where: { id },
     include: {
@@ -238,8 +246,7 @@ async function loadCharacterPage(id: string): Promise<CharacterPageData | null> 
       ? {
           id: c.player.id,
           pseudo: c.player.pseudo.trim() || "Joueur",
-          lienChaine: c.player.lienChaine,
-          platform: detectStreamPlatform(c.player.lienChaine),
+          chaines: c.player.chaines.map(toPlayerChannel),
           reseaux: normalizeReseaux(c.player.reseaux),
           badges: c.player.badges,
           totalCharacters: others.length + 1,

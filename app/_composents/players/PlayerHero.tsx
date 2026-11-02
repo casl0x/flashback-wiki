@@ -21,24 +21,27 @@ const PLATFORM = {
 
 export default function PlayerHero({ p }: { p: PlayerPageData }) {
   const { twitch, kick } = useLiveStatus();
-  const status = liveStatusFor(p.platform, p.username, twitch, kick);
+  const channelStatuses = p.chaines.map((c) => ({
+    ...c,
+    status: liveStatusFor(c.platform, c.username, twitch, kick),
+  }));
+  const liveChannel = channelStatuses.find((c) => c.status?.isLive) ?? null;
+  const status = liveChannel?.status ?? null;
   const isLive = !!status?.isLive;
-  const stream = p.platform ? PLATFORM[p.platform] : null;
+  const primaryPlatform =
+    liveChannel?.platform ?? p.chaines[0]?.platform ?? null;
+  const stream = primaryPlatform ? PLATFORM[primaryPlatform] : null;
   const lineColor = isLive ? "#E5484D" : (stream?.color ?? "#3A3E47");
   const ringColor = stream?.color ?? "#4A4E58";
   const streamerActive = !isLive && p.badges.includes("streamer");
   const badgesWithoutStreamer = p.badges.filter((b) => b !== "streamer");
 
   const links = [
-    ...(p.lienChaine
-      ? [
-          {
-            href: p.lienChaine,
-            label: stream?.label ?? "Chaîne",
-            color: stream?.color ?? null,
-          },
-        ]
-      : []),
+    ...p.chaines.map((c) => ({
+      href: c.url,
+      label: c.platform ? PLATFORM[c.platform].label : "Chaîne",
+      color: c.platform ? PLATFORM[c.platform].color : null,
+    })),
     ...RESEAUX_OPTIONS.filter((r) => p.reseaux[r.key]).map((r) => ({
       href: p.reseaux[r.key],
       label: r.label,
@@ -81,7 +84,7 @@ export default function PlayerHero({ p }: { p: PlayerPageData }) {
                 )}
               </div>
               <a
-                href={p.lienChaine!}
+                href={liveChannel!.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-11 items-center rounded-md px-4 text-[14px] font-bold"

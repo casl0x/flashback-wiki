@@ -11,7 +11,7 @@ export type Player = {
   id: string;
   pseudo: string;
   stream: boolean;
-  lienChaine: string | null;
+  chaines: string[];
   reseaux: Record<string, string>;
   badges: string[];
   createdAt: string;
@@ -59,7 +59,7 @@ export type Character = {
   // Relations incluses par /api/data
   player?: Pick<
     Player,
-    "id" | "pseudo" | "stream" | "lienChaine" | "reseaux" | "badges"
+    "id" | "pseudo" | "stream" | "chaines" | "reseaux" | "badges"
   > | null;
   version?: Pick<
     Version,

@@ -119,7 +119,10 @@ export default async function AdminPlayers({ searchParams }: Props) {
               </tr>
             )}
             {rows.map((p) => {
-              const plat = detectStreamPlatform(p.lienChaine);
+              const plat = p.chaines[0]
+                ? detectStreamPlatform(p.chaines[0])
+                : null;
+              const extraChaines = Math.max(0, p.chaines.length - 1);
               const reseaux = normalizeReseaux(p.reseaux);
               const linkedReseaux = RESEAUX_OPTIONS.filter(
                 (r) => reseaux[r.key],
@@ -142,15 +145,22 @@ export default async function AdminPlayers({ searchParams }: Props) {
                   </td>
                   <td className="px-3 py-2.5">
                     {plat ? (
-                      <span
-                        className="rounded px-2 py-0.5 text-[11px] font-extrabold"
-                        style={
-                          plat === "twitch"
-                            ? { background: "#9146FF", color: "#fff" }
-                            : { background: "#53FC18", color: "#0E0F12" }
-                        }
-                      >
-                        {plat === "twitch" ? "Twitch" : "Kick"}
+                      <span className="inline-flex items-center gap-1">
+                        <span
+                          className="rounded px-2 py-0.5 text-[11px] font-extrabold"
+                          style={
+                            plat === "twitch"
+                              ? { background: "#9146FF", color: "#fff" }
+                              : { background: "#53FC18", color: "#0E0F12" }
+                          }
+                        >
+                          {plat === "twitch" ? "Twitch" : "Kick"}
+                        </span>
+                        {extraChaines > 0 && (
+                          <span className="text-[11px] text-[#6E7380]">
+                            +{extraChaines}
+                          </span>
+                        )}
                       </span>
                     ) : (
                       <span className="text-[#6E7380]">—</span>

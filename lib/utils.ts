@@ -79,6 +79,20 @@ export function extractStreamUsername(
   return username?.trim().toLowerCase() || null;
 }
 
+export type PlayerChannel = {
+  url: string;
+  platform: StreamPlatform | null;
+  username: string | null;
+};
+
+export function toPlayerChannel(url: string): PlayerChannel {
+  return {
+    url,
+    platform: detectStreamPlatform(url),
+    username: extractStreamUsername(url),
+  };
+}
+
 export function authHeaders(token: string) {
   return { "Content-Type": "application/json", "x-admin-token": token };
 }

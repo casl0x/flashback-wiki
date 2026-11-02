@@ -1,13 +1,14 @@
 import { KickIcon, TwitchIcon } from "@/app/_composents/icons/PlatformIcons";
 import type { PlayerListItem } from "@/lib/player-page";
 import { anton } from "@/lib/fonts";
-import { cn } from "@/lib/utils";
+import { cn, type PlayerChannel } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import type { LiveStatus } from "./useLiveStatus";
 
 export type LivePlayer = {
   player: PlayerListItem;
+  channel: PlayerChannel;
   status: LiveStatus;
 };
 
@@ -30,8 +31,8 @@ export default function LiveSection({ lives }: { lives: LivePlayer[] }) {
         En live sur Flashback
       </h2>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3.5">
-        {sorted.map(({ player, status }) => {
-          const PlatformIcon = player.platform === "kick" ? KickIcon : TwitchIcon;
+        {sorted.map(({ player, channel, status }) => {
+          const PlatformIcon = channel.platform === "kick" ? KickIcon : TwitchIcon;
           return (
             <Link
               key={player.id}
