@@ -19,18 +19,23 @@ export type PlayerListItem = {
 };
 
 async function loadPlayersList(): Promise<PlayerListItem[]> {
-  const players = await prisma.player.findMany({
-    orderBy: { pseudo: "asc" },
-    include: { _count: { select: { characters: true } } },
-  });
+  try {
+    const players = await prisma.player.findMany({
+      orderBy: { pseudo: "asc" },
+      include: { _count: { select: { characters: true } } },
+    });
 
-  return players.map((p) => ({
-    id: p.id,
-    pseudo: p.pseudo.trim() || "Joueur",
-    chaines: p.chaines.map(toPlayerChannel),
-    badges: p.badges,
-    characterCount: p._count.characters,
-  }));
+    return players.map((p) => ({
+      id: p.id,
+      pseudo: p.pseudo.trim() || "Joueur",
+      chaines: p.chaines.map(toPlayerChannel),
+      badges: p.badges,
+      characterCount: p._count.characters,
+    }));
+  } catch (error) {
+    console.error("Failed to load players list", error);
+    return [];
+  }
 }
 
 export const getPlayersList = unstable_cache(loadPlayersList, ["players-list"], {
@@ -91,6 +96,15 @@ const normalizeReseaux = (value: unknown): Record<string, string> => {
 };
 
 async function loadPlayerPage(id: string): Promise<PlayerPageData | null> {
+  try {
+    return await loadPlayerPageUnsafe(id);
+  } catch (error) {
+    console.error("Failed to load player page", error);
+    return null;
+  }
+}
+
+async function loadPlayerPageUnsafe(id: string): Promise<PlayerPageData | null> {
   const p = await prisma.player.findUnique({
     where: { id },
     include: {

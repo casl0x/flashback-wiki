@@ -162,6 +162,15 @@ function toLinked(relationId: string, label: string | null, c: Linked): LinkedCh
 }
 
 async function loadCharacterPage(id: string): Promise<CharacterPageData | null> {
+  try {
+    return await loadCharacterPageUnsafe(id);
+  } catch (error) {
+    console.error("Failed to load character page", error);
+    return null;
+  }
+}
+
+async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | null> {
   const c = await prisma.character.findUnique({
     where: { id },
     include: {
