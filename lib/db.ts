@@ -49,7 +49,7 @@ export type Character = {
   role: "civil" | "illegal" | null;
   groupes: Pick<Groupe, "id" | "slug" | "nom" | "color">[];
   description: string | null;
-  lienReddif: string | null;
+  lienReddifs: string[];
   imageUrl: string | null;
   playerId: string | null;
   versionId: string | null;

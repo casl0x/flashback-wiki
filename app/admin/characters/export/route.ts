@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         c.player?.pseudo,
         ETAT[c.etatVie],
         c.role,
-        c.lienReddif,
+        c.lienReddifs.join(" | "),
       ]
         .map(cell)
         .join(";"),

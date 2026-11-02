@@ -231,7 +231,11 @@ export async function loadSuggestionDetail(id: string) {
   );
   push("Rôle", c?.role ? ROLE[c.role] : null, s.role ? ROLE[s.role] : null);
   push("État", c ? ETAT[c.etatVie] : null, s.etatVie ? ETAT[s.etatVie] : null);
-  push("Lien rediffusion", c?.lienReddif, s.lienReddif);
+  push(
+    "Lien rediffusion",
+    c ? c.lienReddifs.join(", ") || null : null,
+    s.lienReddif ? `+ ${s.lienReddif}` : null,
+  );
   push(
     "Description",
     c?.description ? stripMentions(c.description) : null,

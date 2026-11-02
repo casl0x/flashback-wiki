@@ -34,7 +34,6 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
 
   const fields = {
     ...(s.description ? { description: s.description } : {}),
-    ...(s.lienReddif ? { lienReddif: s.lienReddif } : {}),
     ...(s.role ? { role: s.role } : {}),
     ...(s.etatVie ? { etatVie: s.etatVie } : {}),
     ...(joueur ? { playerId: joueur.id } : {}),
@@ -43,15 +42,27 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
 
   let characterId: string | null = null;
 
+  // Un lien de rediffusion proposé s'ajoute à la liste existante du perso,
+  // il ne la remplace pas.
   if (s.characterId) {
     const c = await prisma.character.update({
       where: { id: s.characterId },
-      data: { ...(s.nom ? { nom: s.nom } : {}), ...fields },
+      data: {
+        ...(s.nom ? { nom: s.nom } : {}),
+        ...fields,
+        ...(s.lienReddif ? { lienReddifs: { push: s.lienReddif } } : {}),
+      },
     });
     characterId = c.id;
     await logChange("edit_info", c.nom);
   } else if (s.nom) {
-    const c = await prisma.character.create({ data: { nom: s.nom, ...fields } });
+    const c = await prisma.character.create({
+      data: {
+        nom: s.nom,
+        ...fields,
+        ...(s.lienReddif ? { lienReddifs: [s.lienReddif] } : {}),
+      },
+    });
     characterId = c.id;
     await prisma.suggestion.update({ where: { id: s.id }, data: { characterId: c.id } });
     await logChange("add_global", c.nom, s.versionId ?? undefined);

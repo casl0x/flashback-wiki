@@ -24,7 +24,7 @@ export type CharacterInput = {
   role: Role | null;
   etatVie: EtatVie;
   description: string | null;
-  lienReddif: string | null;
+  lienReddifs: string[];
   imageUrl: string | null;
   playerId: string | null;
   versionIds: string[];
@@ -65,7 +65,7 @@ export async function saveCharacter(
       role: input.role,
       etatVie: input.etatVie,
       description: clean(input.description),
-      lienReddif: clean(input.lienReddif),
+      lienReddifs: input.lienReddifs.map((u) => u.trim()).filter(Boolean),
       imageUrl: clean(input.imageUrl),
       playerId: input.playerId || null,
     };
