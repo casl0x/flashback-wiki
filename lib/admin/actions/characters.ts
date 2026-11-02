@@ -2,9 +2,9 @@
 
 import { requireAdmin } from "@/lib/admin/auth";
 import { logChange } from "@/lib/changelog";
-import { prisma } from "@/lib/db";
+import { prisma, type Rediffusion } from "@/lib/db";
 import { detectSoundPlatform } from "@/lib/media-embed";
-import type { EtatVie, Role } from "@prisma/client";
+import type { EtatVie, Prisma, Role } from "@prisma/client";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
 
 export type MembershipInput = {
@@ -24,7 +24,7 @@ export type CharacterInput = {
   role: Role | null;
   etatVie: EtatVie;
   description: string | null;
-  lienReddifs: string[];
+  lienReddifs: Rediffusion[];
   imageUrl: string | null;
   playerId: string | null;
   versionIds: string[];
@@ -65,7 +65,9 @@ export async function saveCharacter(
       role: input.role,
       etatVie: input.etatVie,
       description: clean(input.description),
-      lienReddifs: input.lienReddifs.map((u) => u.trim()).filter(Boolean),
+      lienReddifs: input.lienReddifs
+        .map((r) => ({ url: r.url.trim(), titre: r.titre?.trim() || null }))
+        .filter((r) => r.url) as Prisma.InputJsonValue,
       imageUrl: clean(input.imageUrl),
       playerId: input.playerId || null,
     };

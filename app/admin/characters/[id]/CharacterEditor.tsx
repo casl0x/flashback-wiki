@@ -24,7 +24,7 @@ import {
 import { savePlayer } from "@/lib/admin/actions/players";
 import { shortDate } from "@/lib/admin/format";
 import { cloudinaryUrl, initials } from "@/lib/cloudinary";
-import type { Character } from "@/lib/db";
+import type { Character, Rediffusion } from "@/lib/db";
 import { PLATFORM_STYLE, detectSoundPlatform } from "@/lib/media-embed";
 import { relationKind } from "@/lib/relation-kinds";
 import { cn } from "@/lib/utils";
@@ -46,7 +46,7 @@ export type EditorCharacter = {
   role: "civil" | "illegal" | null;
   etatVie: EtatVie;
   description: string;
-  lienReddifs: string[];
+  lienReddifs: Rediffusion[];
   imageUrl: string | null;
   playerId: string | null;
   versionIds: string[];
@@ -708,7 +708,7 @@ export default function CharacterEditor({
                 <span className="text-[13px] font-semibold text-[#C4C7CF]">
                   Rediffusions (dans l&apos;ordre de visionnage)
                 </span>
-                {f.lienReddifs.map((url, i) => (
+                {f.lienReddifs.map((r, i) => (
                   <div
                     key={i}
                     className="flex flex-wrap items-center gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
@@ -716,21 +716,37 @@ export default function CharacterEditor({
                     <OrderButtons
                       index={i}
                       length={f.lienReddifs.length}
-                      label={`le lien ${i + 1}`}
+                      label={r.titre || `le lien ${i + 1}`}
                       onMove={(to) => set("lienReddifs", move(f.lienReddifs, i, to))}
                     />
                     <TextInput
                       type="url"
                       aria-label={`Lien de rediffusion ${i + 1}`}
-                      value={url}
+                      value={r.url}
                       onChange={(e) =>
                         set(
                           "lienReddifs",
-                          f.lienReddifs.map((x, j) => (j === i ? e.target.value : x)),
+                          f.lienReddifs.map((x, j) =>
+                            j === i ? { ...x, url: e.target.value } : x,
+                          ),
                         )
                       }
                       placeholder="https://www.youtube.com/playlist?list=…"
-                      className="min-w-50 flex-1"
+                      className="min-w-50 flex-[2_1_240px]"
+                    />
+                    <TextInput
+                      aria-label={`Titre du lien ${i + 1}`}
+                      value={r.titre ?? ""}
+                      onChange={(e) =>
+                        set(
+                          "lienReddifs",
+                          f.lienReddifs.map((x, j) =>
+                            j === i ? { ...x, titre: e.target.value } : x,
+                          ),
+                        )
+                      }
+                      placeholder={`Titre (facultatif, ex. « Partie ${i + 1} »)`}
+                      className="min-w-35 flex-[1_1_180px]"
                     />
                     <RemoveButton
                       label={`Retirer le lien ${i + 1}`}
@@ -745,7 +761,9 @@ export default function CharacterEditor({
                 ))}
                 <Button
                   className="self-start"
-                  onClick={() => set("lienReddifs", [...f.lienReddifs, ""])}
+                  onClick={() =>
+                    set("lienReddifs", [...f.lienReddifs, { url: "", titre: null }])
+                  }
                 >
                   + Ajouter un lien de rediffusion
                 </Button>

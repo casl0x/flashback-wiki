@@ -2,9 +2,9 @@ import "server-only";
 
 import { invalidateWikiCache } from "@/lib/actions";
 import { logChange } from "@/lib/changelog";
-import { prisma } from "@/lib/db";
+import { parseRediffusions, prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
-import type { Suggestion } from "@prisma/client";
+import type { Prisma, Suggestion } from "@prisma/client";
 
 function computeBadges(acceptedCount: number): string[] {
   const badges: string[] = [];
@@ -43,14 +43,26 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
   let characterId: string | null = null;
 
   // Un lien de rediffusion proposé s'ajoute à la liste existante du perso,
-  // il ne la remplace pas.
+  // il ne la remplace pas (le champ est un Json, pas un tableau scalaire :
+  // on ne peut pas faire un simple `push`, on relit puis on réécrit tout).
   if (s.characterId) {
+    let lienReddifsUpdate: Prisma.InputJsonValue | undefined;
+    if (s.lienReddif) {
+      const current = await prisma.character.findUnique({
+        where: { id: s.characterId },
+        select: { lienReddifs: true },
+      });
+      lienReddifsUpdate = [
+        ...parseRediffusions(current?.lienReddifs),
+        { url: s.lienReddif, titre: null },
+      ] as Prisma.InputJsonValue;
+    }
     const c = await prisma.character.update({
       where: { id: s.characterId },
       data: {
         ...(s.nom ? { nom: s.nom } : {}),
         ...fields,
-        ...(s.lienReddif ? { lienReddifs: { push: s.lienReddif } } : {}),
+        ...(lienReddifsUpdate ? { lienReddifs: lienReddifsUpdate } : {}),
       },
     });
     characterId = c.id;
@@ -60,7 +72,9 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
       data: {
         nom: s.nom,
         ...fields,
-        ...(s.lienReddif ? { lienReddifs: [s.lienReddif] } : {}),
+        ...(s.lienReddif
+          ? { lienReddifs: [{ url: s.lienReddif, titre: null }] as Prisma.InputJsonValue }
+          : {}),
       },
     });
     characterId = c.id;

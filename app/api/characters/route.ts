@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { invalidateWikiCache } from "@/lib/actions";
 import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
               })),
             }
           : undefined,
-        lienReddifs: lien_reddif ? [lien_reddif] : [],
+        lienReddifs: (lien_reddif ? [{ url: lien_reddif, titre: null }] : []) as Prisma.InputJsonValue,
         imageUrl: image_url ?? null,
         etatVie: etat_vie ?? null,
       },
@@ -87,7 +88,7 @@ export async function PATCH(request: NextRequest) {
             ordre,
           })),
         },
-        lienReddifs: lien_reddif ? [lien_reddif] : [],
+        lienReddifs: (lien_reddif ? [{ url: lien_reddif, titre: null }] : []) as Prisma.InputJsonValue,
         imageUrl: image_url ?? null,
         etatVie: etat_vie ?? null,
       },
