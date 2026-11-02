@@ -46,7 +46,7 @@ export type EditorCharacter = {
   role: "civil" | "illegal" | null;
   etatVie: EtatVie;
   description: string;
-  lienReddif: string;
+  lienReddifs: string[];
   imageUrl: string | null;
   playerId: string | null;
   versionIds: string[];
@@ -255,7 +255,7 @@ export default function CharacterEditor({
       role: f.role,
       etatVie: f.etatVie,
       description: f.description,
-      lienReddif: f.lienReddif,
+      lienReddifs: f.lienReddifs,
       imageUrl: f.imageUrl,
       playerId: f.playerId,
       versionIds: f.versionIds,
@@ -704,14 +704,52 @@ export default function CharacterEditor({
           {/* Médias */}
           <Panel legend="Médias">
             <div className="flex flex-col gap-4">
-              <Field label="Rediffusions (playlist YouTube)">
-                <TextInput
-                  type="url"
-                  value={f.lienReddif}
-                  onChange={(e) => set("lienReddif", e.target.value)}
-                  placeholder="https://www.youtube.com/playlist?list=…"
-                />
-              </Field>
+              <div className="flex flex-col gap-2">
+                <span className="text-[13px] font-semibold text-[#C4C7CF]">
+                  Rediffusions (dans l&apos;ordre de visionnage)
+                </span>
+                {f.lienReddifs.map((url, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-wrap items-center gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
+                  >
+                    <OrderButtons
+                      index={i}
+                      length={f.lienReddifs.length}
+                      label={`le lien ${i + 1}`}
+                      onMove={(to) => set("lienReddifs", move(f.lienReddifs, i, to))}
+                    />
+                    <TextInput
+                      type="url"
+                      aria-label={`Lien de rediffusion ${i + 1}`}
+                      value={url}
+                      onChange={(e) =>
+                        set(
+                          "lienReddifs",
+                          f.lienReddifs.map((x, j) => (j === i ? e.target.value : x)),
+                        )
+                      }
+                      placeholder="https://www.youtube.com/playlist?list=…"
+                      className="min-w-50 flex-1"
+                    />
+                    <RemoveButton
+                      label={`Retirer le lien ${i + 1}`}
+                      onClick={() =>
+                        set(
+                          "lienReddifs",
+                          f.lienReddifs.filter((_, j) => j !== i),
+                        )
+                      }
+                    />
+                  </div>
+                ))}
+                <Button
+                  className="self-start"
+                  onClick={() => set("lienReddifs", [...f.lienReddifs, ""])}
+                >
+                  + Ajouter un lien de rediffusion
+                </Button>
+              </div>
               <div className="flex flex-col gap-2">
                 <span className="text-[13px] font-semibold text-[#C4C7CF]">
                   Sons du perso

@@ -24,7 +24,7 @@ function toSuggestCharacter(c: CharacterPageData): Character {
     role: c.role,
     groupes: c.parcours.map((p) => p.groupe),
     description: c.description,
-    lienReddif: c.lienReddif,
+    lienReddifs: c.lienReddifs,
     imageUrl: c.imageUrl,
     playerId: c.player?.id ?? null,
     versionId: c.versions.at(-1)?.id ?? null,
@@ -45,8 +45,6 @@ function toSuggestCharacter(c: CharacterPageData): Character {
 
 /** Fiche personnage (refonte), sans le header du site. */
 export default function CharacterPage({ c }: { c: CharacterPageData }) {
-  const reddif = c.lienReddif;
-  const thumb = youtubeThumbnail(reddif);
   const firstName = c.nom.split(/\s+/)[0];
   const hasLocation = c.locationX != null && c.locationY != null;
 
@@ -58,7 +56,7 @@ export default function CharacterPage({ c }: { c: CharacterPageData }) {
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-7">
           <CharacterUserNotices characterId={c.id} />
 
-          {!c.lienReddif && !c.description && (
+          {c.lienReddifs.length === 0 && !c.description && (
             <InlineNotice
               tone="info"
               action={{
@@ -90,48 +88,61 @@ export default function CharacterPage({ c }: { c: CharacterPageData }) {
 
           <CharacterParcours steps={c.parcours} etatVie={c.etatVie} />
 
-          {reddif && (
-            <a
-              href={reddif}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-4 rounded-[10px] border border-[#23262D] bg-[#15171B] p-3.5 hover:border-[#3A3E47] sm:gap-[4.5"
+          {c.lienReddifs.length > 0 && (
+            <section
+              aria-labelledby="reddifs-h"
+              className="flex flex-col gap-3"
             >
-              <span className="relative flex h-17 w-30 flex-none items-center justify-center overflow-hidden rounded-md bg-[#22252B] text-[#FF0033] sm:h-24 sm:w-42">
-                {thumb ? (
-                  <Image
-                    src={thumb}
-                    alt=""
-                    fill
-                    unoptimized
-                    sizes="168px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <svg
-                    aria-hidden
-                    width="34"
-                    height="24"
-                    viewBox="0 0 34 24"
-                    fill="currentColor"
-                  >
-                    <rect width="34" height="24" rx="6" />
-                    <path d="M14 7l7 5-7 5z" fill="#fff" />
-                  </svg>
-                )}
-              </span>
-              <span className="flex min-w-0 flex-col gap-1">
-                <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#A3A8B3]">
-                  Rediffusions
-                </span>
-                <span className="text-[16px] font-semibold sm:text-[18px]">
-                  Revoir l’histoire de {firstName} sur YouTube
-                </span>
-                <span className="text-[14px] text-[#A3A8B3]">
-                  Ouvre YouTube ↗
-                </span>
-              </span>
-            </a>
+              <SectionTitle id="reddifs-h">Rediffusions</SectionTitle>
+              <div className="flex flex-col gap-2">
+                {c.lienReddifs.map((reddif, i) => {
+                  const thumb = youtubeThumbnail(reddif);
+                  return (
+                    <a
+                      key={reddif}
+                      href={reddif}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 rounded-[10px] border border-[#23262D] bg-[#15171B] p-3.5 hover:border-[#3A3E47] sm:gap-4.5"
+                    >
+                      <span className="relative flex h-17 w-30 flex-none items-center justify-center overflow-hidden rounded-md bg-[#22252B] text-[#FF0033] sm:h-24 sm:w-42">
+                        {thumb ? (
+                          <Image
+                            src={thumb}
+                            alt=""
+                            fill
+                            unoptimized
+                            sizes="168px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <svg
+                            aria-hidden
+                            width="34"
+                            height="24"
+                            viewBox="0 0 34 24"
+                            fill="currentColor"
+                          >
+                            <rect width="34" height="24" rx="6" />
+                            <path d="M14 7l7 5-7 5z" fill="#fff" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="flex min-w-0 flex-col gap-1">
+                        <span className="text-[16px] font-semibold sm:text-[18px]">
+                          {c.lienReddifs.length > 1
+                            ? `Partie ${i + 1}`
+                            : `Revoir l’histoire de ${firstName} sur YouTube`}
+                        </span>
+                        <span className="text-[14px] text-[#A3A8B3]">
+                          Ouvre YouTube ↗
+                        </span>
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
           )}
 
           <CharacterSounds sounds={c.sounds} />

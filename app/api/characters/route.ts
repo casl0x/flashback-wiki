@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
               })),
             }
           : undefined,
-        lienReddif: lien_reddif ?? null,
+        lienReddifs: lien_reddif ? [lien_reddif] : [],
         imageUrl: image_url ?? null,
         etatVie: etat_vie ?? null,
       },
@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest) {
             ordre,
           })),
         },
-        lienReddif: lien_reddif ?? null,
+        lienReddifs: lien_reddif ? [lien_reddif] : [],
         imageUrl: image_url ?? null,
         etatVie: etat_vie ?? null,
       },

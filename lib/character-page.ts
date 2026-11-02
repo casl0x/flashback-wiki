@@ -57,7 +57,7 @@ export type CharacterPageData = {
   nom: string;
   role: "civil" | "illegal" | null;
   description: string | null;
-  lienReddif: string | null;
+  lienReddifs: string[];
   imageUrl: string | null;
   etatVie: EtatVie;
   locationX: number | null;
@@ -223,7 +223,7 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
     nom: c.nom,
     role: c.role,
     description: c.description,
-    lienReddif: c.lienReddif,
+    lienReddifs: c.lienReddifs,
     imageUrl: c.imageUrl,
     etatVie: c.etatVie as EtatVie,
     locationX: c.locationX,

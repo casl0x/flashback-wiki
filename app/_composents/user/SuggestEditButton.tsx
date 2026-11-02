@@ -90,7 +90,9 @@ export function SuggestButton({
           etatVie: character.etatVie ?? "",
           joueur: character.player?.pseudo ?? "",
           versionId: character.versionId ?? "",
-          lienReddif: character.lienReddif ?? "",
+          // Un lien proposé s'ajoute aux liens existants, il ne les
+          // remplace pas — on ne préremplit donc pas avec la liste actuelle.
+          lienReddif: "",
           description: character.description ?? "",
           note: "",
         }
@@ -371,18 +373,14 @@ export function SuggestButton({
 
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Lien Reddif
+                  {isEdit ? "Ajouter un lien de rediffusion" : "Lien de rediffusion"}
                 </label>
                 <Input
                   value={form.lienReddif}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, lienReddif: e.target.value }))
                   }
-                  placeholder={
-                    isEdit
-                      ? (character?.lienReddif ?? "https://youtube.com/...")
-                      : "https://youtube.com/..."
-                  }
+                  placeholder="https://youtube.com/..."
                 />
               </div>
 
