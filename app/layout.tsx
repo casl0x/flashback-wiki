@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Anton, Archivo } from "next/font/google";
+import { AutoRefresh } from "./_composents/ui/AutoRefresh";
 import Header from "./_composents/ui/Header";
 import "./globals.css";
 
@@ -51,6 +52,7 @@ export default async function RootLayout({
             {children}
 
             <NotificationWatcher />
+            <AutoRefresh />
             <Analytics />
           </ToastProvider>
         </body>
