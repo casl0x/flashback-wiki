@@ -34,7 +34,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { updateCreatorProfile } from "../onboarding/action";
 import {
   deleteCreatorPost,
   requestPlayerLink,
@@ -55,7 +54,6 @@ type CreatorPost = {
 };
 type CreatorRole = {
   type: "ARTISTE" | "EDITEUR";
-  displayOnWiki: boolean;
   posts: CreatorPost[];
 };
 type Suggestion = {
@@ -196,34 +194,6 @@ function ProfilePageContent() {
         text: err instanceof Error ? err.message : undefined,
       });
       loadMe();
-    }
-  }
-
-  async function toggleDisplayOnWiki() {
-    const previous = roles;
-    const next = !roles.some((r) => r.displayOnWiki);
-    const updated = roles.map((r) => ({ ...r, displayOnWiki: next }));
-    setRoles(updated);
-    try {
-      await updateCreatorProfile({
-        roles: updated.map((r) => ({
-          type: r.type,
-          displayOnWiki: r.displayOnWiki,
-        })),
-      });
-      toast({
-        tone: "success",
-        title: next
-          ? "Visible sur la page Créations"
-          : "Masqué de la page Créations",
-      });
-    } catch (err) {
-      setRoles(previous);
-      toast({
-        tone: "error",
-        title: "Enregistrement impossible",
-        text: err instanceof Error ? err.message : undefined,
-      });
     }
   }
 
@@ -472,18 +442,6 @@ function ProfilePageContent() {
                     )}
                   </div>
 
-                  {roles.length > 0 && (
-                    <label className="flex w-fit cursor-pointer items-center gap-2 text-[13px] font-semibold text-[#ECECEE]">
-                      <input
-                        type="checkbox"
-                        checked={roles.some((r) => r.displayOnWiki)}
-                        onChange={toggleDisplayOnWiki}
-                        className="accent-[#2F6FEB]"
-                      />
-                      Apparaître sur la page Créations
-                    </label>
-                  )}
-
                   {totalCreations === 0 ? (
                     <div className="flex flex-col items-center gap-3 rounded-[10px] border border-dashed border-[#3A3E47] px-5 py-8 text-center">
                       <p className="m-0 text-[13px] text-[#9AA0AA]">
@@ -532,7 +490,7 @@ function ProfilePageContent() {
                             <button
                               onClick={() => handleDeletePost(post.id)}
                               aria-label="Supprimer cette création"
-                              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>

@@ -107,7 +107,6 @@ export async function GET() {
     creatorRoles:
       profile?.creatorRoles.map((r) => ({
         type: r.type,
-        displayOnWiki: r.displayOnWiki,
         posts: r.posts.map((p) => ({
           id: p.id,
           status: p.status,
