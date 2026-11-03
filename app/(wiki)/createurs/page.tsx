@@ -405,7 +405,7 @@ function PostCard({
         <button
           onClick={() => onDelete(post.id)}
           aria-label="Supprimer cette création"
-          className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -415,7 +415,7 @@ function PostCard({
           targetId={post.id}
           label=""
           ariaLabel="Signaler cette création"
-          className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
         />
       )}
 

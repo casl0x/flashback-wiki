@@ -473,15 +473,23 @@ function ProfilePageContent() {
                   </div>
 
                   {roles.length > 0 && (
-                    <label className="flex w-fit cursor-pointer items-center gap-2 text-[13px] font-semibold text-[#ECECEE]">
-                      <input
-                        type="checkbox"
-                        checked={roles.some((r) => r.displayOnWiki)}
-                        onChange={toggleDisplayOnWiki}
-                        className="accent-[#2F6FEB]"
-                      />
-                      Apparaître sur la page Créations
-                    </label>
+                    <div className="flex flex-col gap-1">
+                      <label className="flex w-fit cursor-pointer items-center gap-2 text-[13px] font-semibold text-[#ECECEE]">
+                        <input
+                          type="checkbox"
+                          checked={roles.some((r) => r.displayOnWiki)}
+                          onChange={toggleDisplayOnWiki}
+                          className="accent-[#2F6FEB]"
+                        />
+                        Apparaître dans la liste des créateurs
+                      </label>
+                      <p className="m-0 text-[13px] text-[#9AA0AA]">
+                        Ton profil (bio, réseaux) est mis en avant en bas de la
+                        page Créations. Tes créations, elles, sont toujours
+                        visibles dans la galerie — pour en retirer une, clique
+                        sur la corbeille affichée sur sa vignette ci-dessous.
+                      </p>
+                    </div>
                   )}
 
                   {totalCreations === 0 ? (
@@ -532,7 +540,7 @@ function ProfilePageContent() {
                             <button
                               onClick={() => handleDeletePost(post.id)}
                               aria-label="Supprimer cette création"
-                              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
