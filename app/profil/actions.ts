@@ -222,3 +222,25 @@ export async function acceptCreatorRules() {
     update: { creatorRulesAcceptedAt: new Date() },
   });
 }
+
+/** Like / retire le like sur une création. Retourne le nouvel état. */
+export async function toggleCreatorPostLike(
+  postId: string,
+): Promise<{ liked: boolean }> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+
+  const key = {
+    creatorPostId_clerkUserId: { creatorPostId: postId, clerkUserId: userId },
+  };
+  const existing = await prisma.creatorPostLike.findUnique({ where: key });
+
+  if (existing) {
+    await prisma.creatorPostLike.delete({ where: key });
+    return { liked: false };
+  }
+  await prisma.creatorPostLike.create({
+    data: { creatorPostId: postId, clerkUserId: userId },
+  });
+  return { liked: true };
+}

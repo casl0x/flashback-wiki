@@ -3,15 +3,16 @@
 import { useSearch } from "@/app/_composents/SearchContext";
 import { PublishCreatorPostButton } from "@/app/_composents/user/PublishCreatorPostButton";
 import { ReportButton } from "@/app/_composents/user/ReportButton";
-import { deleteCreatorPost } from "@/app/profil/actions";
+import { deleteCreatorPost, toggleCreatorPostLike } from "@/app/profil/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { youtubeThumbnail } from "@/lib/media-embed";
 import { cn, matchesSearch, profileHref } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
-import { ExternalLink, Film, Play, Trash2, User, X } from "lucide-react";
+import { ExternalLink, Film, Heart, Play, Trash2, User, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type CreatorPost = {
@@ -22,6 +23,8 @@ type CreatorPost = {
   platform: string | null;
   caption: string | null;
   createdAt: string;
+  likeCount: number;
+  likedByMe: boolean;
   characters: { id: string; nom: string }[];
   creator: {
     pseudo: string;
@@ -66,7 +69,9 @@ type Tab = (typeof TABS)[number]["key"];
 export default function CreateursPage() {
   const ctx = useSearch();
   const query = ctx?.query ?? "";
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
+  const router = useRouter();
+  const pathname = usePathname();
   const [data, setData] = useState<CreatorPost[]>([]);
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +124,29 @@ export default function CreateursPage() {
   async function handleDelete(id: string) {
     setData((prev) => prev.filter((p) => p.id !== id));
     await deleteCreatorPost(id);
+  }
+
+  function handleToggleLike(postId: string) {
+    if (!isSignedIn) {
+      router.push(`/sign-in?redirect_url=${pathname}`);
+      return;
+    }
+    const apply = (p: CreatorPost) =>
+      p.id === postId
+        ? {
+            ...p,
+            likedByMe: !p.likedByMe,
+            likeCount: p.likeCount + (p.likedByMe ? -1 : 1),
+          }
+        : p;
+
+    setData((prev) => prev.map(apply));
+    setViewer((prev) => (prev ? apply(prev) : prev));
+
+    toggleCreatorPostLike(postId).catch(() => {
+      setData((prev) => prev.map(apply));
+      setViewer((prev) => (prev ? apply(prev) : prev));
+    });
   }
 
   function openViewer(post: CreatorPost, trigger: HTMLElement) {
@@ -218,6 +246,7 @@ export default function CreateursPage() {
                 isOwn={!!user && post.creator.clerkUserId === user.id}
                 onDelete={handleDelete}
                 onOpen={openViewer}
+                onToggleLike={handleToggleLike}
               />
             ))}
           </div>
@@ -328,16 +357,23 @@ export default function CreateursPage() {
                   )}
                 </div>
               </div>
-              {viewer.linkUrl && (
-                <a
-                  href={viewer.linkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-11 flex-none items-center gap-1 text-[13px] font-semibold text-[#8AB4FF] hover:underline"
-                >
-                  Ouvrir ↗
-                </a>
-              )}
+              <div className="flex flex-none items-center gap-4">
+                <LikeButton
+                  liked={viewer.likedByMe}
+                  count={viewer.likeCount}
+                  onToggle={() => handleToggleLike(viewer.id)}
+                />
+                {viewer.linkUrl && (
+                  <a
+                    href={viewer.linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 items-center gap-1 text-[13px] font-semibold text-[#8AB4FF] hover:underline"
+                  >
+                    Ouvrir ↗
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -351,11 +387,13 @@ function PostCard({
   isOwn,
   onDelete,
   onOpen,
+  onToggleLike,
 }: {
   post: CreatorPost;
   isOwn: boolean;
   onDelete: (id: string) => void;
   onOpen: (post: CreatorPost, trigger: HTMLElement) => void;
+  onToggleLike: (postId: string) => void;
 }) {
   const style = TYPE_STYLE[post.type];
   const thumb = post.type === "EDITEUR" ? youtubeThumbnail(post.linkUrl) : null;
@@ -441,29 +479,69 @@ function PostCard({
             ))}
           </div>
         )}
-        <div className="flex items-center gap-1.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#23262D] bg-[#22252B]">
-            {post.creator.avatarUrl ? (
-              <Image
-                src={post.creator.avatarUrl}
-                width={20}
-                height={20}
-                alt=""
-                unoptimized
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <User className="h-3 w-3 text-[#9AA0AA]" />
-            )}
-          </span>
-          <AuthorName
-            pseudo={post.creator.pseudo}
-            profilePseudo={post.creator.profilePseudo}
-            className="truncate text-[12px] font-semibold text-[#C4C7CF]"
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#23262D] bg-[#22252B]">
+              {post.creator.avatarUrl ? (
+                <Image
+                  src={post.creator.avatarUrl}
+                  width={20}
+                  height={20}
+                  alt=""
+                  unoptimized
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <User className="h-3 w-3 text-[#9AA0AA]" />
+              )}
+            </span>
+            <AuthorName
+              pseudo={post.creator.pseudo}
+              profilePseudo={post.creator.profilePseudo}
+              className="truncate text-[12px] font-semibold text-[#C4C7CF]"
+            />
+          </div>
+          <LikeButton
+            liked={post.likedByMe}
+            count={post.likeCount}
+            onToggle={() => onToggleLike(post.id)}
+            className="flex-none"
           />
         </div>
       </div>
     </div>
+  );
+}
+
+function LikeButton({
+  liked,
+  count,
+  onToggle,
+  className,
+}: {
+  liked: boolean;
+  count: number;
+  onToggle: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      aria-pressed={liked}
+      aria-label={liked ? "Retirer le like" : "Liker cette création"}
+      className={cn(
+        "flex items-center gap-1 text-[12px] font-semibold transition-colors",
+        liked ? "text-[#FF6B81]" : "text-[#9AA0AA] hover:text-[#ECECEE]",
+        className,
+      )}
+    >
+      <Heart className={cn("h-3.5 w-3.5", liked && "fill-current")} />
+      {count > 0 && count}
+    </button>
   );
 }
 
