@@ -142,8 +142,20 @@ model CreatorPost {
   creatorRole   CreatorRole @relation(fields: [creatorRoleId], references: [id], onDelete: Cascade)
 
   characters CreatorPostCharacter[]
+  likes      CreatorPostLike[]
 
   @@map("creator_posts")
+}
+
+model CreatorPostLike {
+  creatorPostId String
+  clerkUserId   String
+  createdAt     DateTime @default(now())
+
+  creatorPost CreatorPost @relation(fields: [creatorPostId], references: [id], onDelete: Cascade)
+
+  @@id([creatorPostId, clerkUserId])
+  @@map("creator_post_likes")
 }
 
 model CreatorPostCharacter {
@@ -231,7 +243,7 @@ model Character {
   // l'admin (pas de lien avec les versions). Chaque entrée est
   // { url, titre } ; titre est un libellé personnalisé optionnel
   // (sinon "Partie N" par défaut côté affichage).
-  lienReddifs Json @default("[]") @map("liens_reddif")
+  lienReddifs Json     @default("[]") @map("liens_reddif")
   imageUrl    String?  @map("image_url")
   createdAt   DateTime @default(now()) @map("created_at")
   etatVie     EtatVie  @default(EN_VIE) @map("etat_vie")

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { CreatorType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -9,6 +9,8 @@ export async function GET(req: NextRequest) {
     typeParam === "ARTISTE" || typeParam === "EDITEUR"
       ? (typeParam as CreatorType)
       : undefined;
+
+  const { userId } = await auth();
 
   // Une publication est visible dès qu'elle existe : seul le profil créateur
   // (le rôle) est validé par un admin, pas chaque publication individuellement.
@@ -20,9 +22,26 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
     include: {
       creatorRole: { include: { userProfile: true } },
-      characters: { include: { character: { select: { id: true, nom: true } } } },
+      characters: {
+        include: { character: { select: { id: true, nom: true } } },
+      },
+      _count: { select: { likes: true } },
     },
   });
+
+  const likedPostIds = userId
+    ? new Set(
+        (
+          await prisma.creatorPostLike.findMany({
+            where: {
+              clerkUserId: userId,
+              creatorPostId: { in: posts.map((p) => p.id) },
+            },
+            select: { creatorPostId: true },
+          })
+        ).map((l) => l.creatorPostId),
+      )
+    : new Set<string>();
 
   const client = await clerkClient();
   const clerkIds = [
@@ -44,10 +63,14 @@ export async function GET(req: NextRequest) {
         platform: p.platform,
         caption: p.caption,
         createdAt: p.createdAt,
+        likeCount: p._count.likes,
+        likedByMe: likedPostIds.has(p.id),
         characters: p.characters.map((c) => c.character),
         creator: {
           pseudo:
-            p.creatorRole.userProfile.pseudo ?? clerkUser?.username ?? "Anonyme",
+            p.creatorRole.userProfile.pseudo ??
+            clerkUser?.username ??
+            "Anonyme",
           avatarUrl: clerkUser?.imageUrl ?? null,
           // Lien vers le profil public, absent si le membre l'a masqué.
           profilePseudo: p.creatorRole.userProfile.profilePublic
