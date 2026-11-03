@@ -13,27 +13,37 @@ import { useEffect, useState } from "react";
 
 // Sur iPad/iPhone, une app ajoutée à l'écran d'accueil reste suspendue en
 // mémoire et ne recharge pas la page à la réouverture. Quand l'app redevient
-// visible après un moment en arrière-plan, on propose d'actualiser.
-const MIN_HIDDEN_MS = 30_000;
+// visible, on compare la version chargée à celle en ligne et on ne propose
+// d'actualiser que si le site a été mis à jour.
+const CURRENT_VERSION = process.env.NEXT_PUBLIC_BUILD_VERSION;
+
+async function checkForUpdate(): Promise<boolean> {
+  try {
+    const res = await fetch("/api/version", { cache: "no-store" });
+    if (!res.ok) return false;
+    const { version } = (await res.json()) as { version?: string };
+    return !!version && version !== "dev" && version !== CURRENT_VERSION;
+  } catch {
+    return false;
+  }
+}
 
 export function AutoRefresh() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    let hiddenAt: number | null = null;
+    const check = () => {
+      checkForUpdate().then((updated) => {
+        if (updated) setOpen(true);
+      });
+    };
 
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") {
-        hiddenAt = Date.now();
-        return;
-      }
-      const away = hiddenAt ? Date.now() - hiddenAt : 0;
-      hiddenAt = null;
-      if (away >= MIN_HIDDEN_MS) setOpen(true);
+      if (document.visibilityState === "visible") check();
     };
 
     const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) setOpen(true);
+      if (e.persisted) check();
     };
 
     document.addEventListener("visibilitychange", onVisibility);
@@ -48,9 +58,9 @@ export function AutoRefresh() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Actualiser la page ?</DialogTitle>
+          <DialogTitle>Nouvelle version disponible</DialogTitle>
           <DialogDescription>
-            Tu as quitté le site un moment, le contenu a peut-être changé.
+            Le site a été mis à jour. Actualise pour profiter de la dernière version.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
