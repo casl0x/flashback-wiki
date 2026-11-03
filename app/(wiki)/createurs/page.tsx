@@ -9,7 +9,7 @@ import { anton } from "@/lib/fonts";
 import { youtubeThumbnail } from "@/lib/media-embed";
 import { cn, matchesSearch, profileHref } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
-import { ExternalLink, Film, Heart, Play, Trash2, User, X } from "lucide-react";
+import { Film, Heart, Play, Trash2, User, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -32,16 +32,6 @@ type CreatorPost = {
     profilePseudo: string | null;
     clerkUserId: string;
   };
-};
-
-type Creator = {
-  id: string;
-  pseudo: string;
-  avatarUrl: string | null;
-  bio: string | null;
-  profilePseudo: string | null;
-  types: ("ARTISTE" | "EDITEUR")[];
-  socialLinks: { platform: string; url: string }[];
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -73,7 +63,6 @@ export default function CreateursPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [data, setData] = useState<CreatorPost[]>([]);
-  const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("all");
   const [viewer, setViewer] = useState<CreatorPost | null>(null);
@@ -106,9 +95,6 @@ export default function CreateursPage() {
 
   useEffect(() => {
     load();
-    fetch("/api/creators")
-      .then((r) => r.json())
-      .then(setCreators);
   }, [load]);
 
   const filtered = data.filter((p) => {
@@ -250,28 +236,6 @@ export default function CreateursPage() {
               />
             ))}
           </div>
-        )}
-
-        {creators.length > 0 && (
-          <section
-            aria-labelledby="createurs-h"
-            className="flex flex-col gap-4 pt-4"
-          >
-            <h2
-              id="createurs-h"
-              className={cn(
-                anton.className,
-                "m-0 text-[26px] uppercase tracking-[0.02em] sm:text-[30px]",
-              )}
-            >
-              Créateurs
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {creators.map((c) => (
-                <CreatorCard key={c.id} creator={c} />
-              ))}
-            </div>
-          </section>
         )}
       </main>
 
@@ -465,6 +429,11 @@ function PostCard({
       </button>
 
       <div className="flex flex-col gap-1.5 p-3">
+        {post.caption && (
+          <p className="m-0 line-clamp-2 text-[13px] text-[#D5D7DD]">
+            {post.caption}
+          </p>
+        )}
         {post.characters.length > 0 && (
           <div className="flex flex-wrap items-baseline gap-1 text-[12px] text-[#9AA0AA]">
             avec
@@ -565,72 +534,5 @@ function AuthorName({
     >
       {pseudo}
     </Link>
-  );
-}
-
-function CreatorCard({ creator }: { creator: Creator }) {
-  const links = creator.socialLinks;
-  const bio = creator.bio;
-
-  return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#23262D] bg-[#15171B] p-4">
-      <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#23262D] bg-[#22252B]">
-          {creator.avatarUrl ? (
-            <Image
-              src={creator.avatarUrl}
-              width={44}
-              height={44}
-              alt=""
-              unoptimized
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <User className="h-5 w-5 text-[#9AA0AA]" />
-          )}
-        </span>
-        <div className="flex min-w-0 flex-col">
-          <AuthorName
-            pseudo={creator.pseudo}
-            profilePseudo={creator.profilePseudo}
-            className="truncate text-[15px] font-bold text-[#ECECEE]"
-          />
-          <span className="flex flex-wrap gap-1.5">
-            {creator.types.map((t) => (
-              <span
-                key={t}
-                className="text-[11px] font-semibold uppercase tracking-wide"
-                style={{ color: TYPE_STYLE[t].color }}
-              >
-                {TYPE_STYLE[t].label}
-              </span>
-            ))}
-          </span>
-        </div>
-      </div>
-
-      {bio && (
-        <p className="whitespace-pre-line text-[13px] leading-relaxed text-[#C4C7CF]">
-          {bio}
-        </p>
-      )}
-
-      {links.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {links.map((l, i) => (
-            <a
-              key={i}
-              href={l.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-8 items-center gap-1 rounded-md border border-[#3A3E47] px-2.5 text-[12px] font-semibold text-[#C4C7CF] hover:border-[#6E7380] hover:text-[#ECECEE]"
-            >
-              {PLATFORM_LABELS[l.platform] ?? l.platform}
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }

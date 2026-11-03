@@ -11,7 +11,6 @@ import { completeOnboarding } from "./action";
 
 type CreatorRoleInput = {
   type: "ARTISTE" | "EDITEUR";
-  displayOnWiki: boolean;
 };
 
 const ROLE_LABELS: Record<
@@ -44,15 +43,7 @@ export default function OnboardingPage() {
     setRoles((prev) =>
       prev.find((r) => r.type === type)
         ? prev.filter((r) => r.type !== type)
-        : [...prev, { type, displayOnWiki: false }],
-    );
-  }
-
-  function toggleDisplay(type: "ARTISTE" | "EDITEUR") {
-    setRoles((prev) =>
-      prev.map((r) =>
-        r.type === type ? { ...r, displayOnWiki: !r.displayOnWiki } : r,
-      ),
+        : [...prev, { type }],
     );
   }
 
@@ -324,25 +315,6 @@ export default function OnboardingPage() {
                   ))}
                 </div>
               </div>
-
-              {/* Config par rôle */}
-              {roles.map((role) => (
-                <div
-                  key={role.type}
-                  className="rounded-lg border border-border bg-elevated p-4 space-y-3"
-                >
-                  <p className="text-[12px] font-semibold text-text-primary">
-                    {role.type === "ARTISTE" ? "Fan art" : "Edits"}
-                  </p>
-
-                  <RoleOption
-                    label="M'afficher sur la page Créateurs"
-                    sub="Visible immédiatement, modifiable plus tard depuis ton profil"
-                    checked={role.displayOnWiki}
-                    onClick={() => toggleDisplay(role.type)}
-                  />
-                </div>
-              ))}
 
               <p className="text-[11px] text-text-muted">
                 Tu pourras ajouter tes réseaux sociaux et publier tes créations

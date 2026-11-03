@@ -34,7 +34,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { updateCreatorProfile } from "../onboarding/action";
 import {
   deleteCreatorPost,
   requestPlayerLink,
@@ -55,7 +54,6 @@ type CreatorPost = {
 };
 type CreatorRole = {
   type: "ARTISTE" | "EDITEUR";
-  displayOnWiki: boolean;
   posts: CreatorPost[];
 };
 type Suggestion = {
@@ -196,34 +194,6 @@ function ProfilePageContent() {
         text: err instanceof Error ? err.message : undefined,
       });
       loadMe();
-    }
-  }
-
-  async function toggleDisplayOnWiki() {
-    const previous = roles;
-    const next = !roles.some((r) => r.displayOnWiki);
-    const updated = roles.map((r) => ({ ...r, displayOnWiki: next }));
-    setRoles(updated);
-    try {
-      await updateCreatorProfile({
-        roles: updated.map((r) => ({
-          type: r.type,
-          displayOnWiki: r.displayOnWiki,
-        })),
-      });
-      toast({
-        tone: "success",
-        title: next
-          ? "Visible sur la page Créations"
-          : "Masqué de la page Créations",
-      });
-    } catch (err) {
-      setRoles(previous);
-      toast({
-        tone: "error",
-        title: "Enregistrement impossible",
-        text: err instanceof Error ? err.message : undefined,
-      });
     }
   }
 
@@ -471,26 +441,6 @@ function ProfilePageContent() {
                       />
                     )}
                   </div>
-
-                  {roles.length > 0 && (
-                    <div className="flex flex-col gap-1">
-                      <label className="flex w-fit cursor-pointer items-center gap-2 text-[13px] font-semibold text-[#ECECEE]">
-                        <input
-                          type="checkbox"
-                          checked={roles.some((r) => r.displayOnWiki)}
-                          onChange={toggleDisplayOnWiki}
-                          className="accent-[#2F6FEB]"
-                        />
-                        Apparaître dans la liste des créateurs
-                      </label>
-                      <p className="m-0 text-[13px] text-[#9AA0AA]">
-                        Ton profil (bio, réseaux) est mis en avant en bas de la
-                        page Créations. Tes créations, elles, sont toujours
-                        visibles dans la galerie — pour en retirer une, clique
-                        sur la corbeille affichée sur sa vignette ci-dessous.
-                      </p>
-                    </div>
-                  )}
 
                   {totalCreations === 0 ? (
                     <div className="flex flex-col items-center gap-3 rounded-[10px] border border-dashed border-[#3A3E47] px-5 py-8 text-center">
