@@ -15,6 +15,7 @@ export type GroupeInput = {
   description: string | null;
   imageUrl: string | null;
   type: GroupeType;
+  matriculeLabel: string | null; // services publics ; vide = valeur seule
   categorieId: string | null; // ignoré pour le type GROUPE
   grades: GradeInput[]; // du plus haut au plus bas
 };
@@ -37,6 +38,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
 
     const data = {
       type: input.type,
+      matriculeLabel: clean(input.matriculeLabel),
       categorieId: input.type === "GROUPE" ? null : input.categorieId,
       nom,
       slug,

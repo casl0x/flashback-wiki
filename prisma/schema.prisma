@@ -299,6 +299,10 @@ model Groupe {
 
   type GroupeType @default(GROUPE)
 
+  // Services publics : libellé affiché devant le numéro/texte du membre (ex. « matricule », « badge »).
+  // Vide = on n'affiche que la valeur.
+  matriculeLabel String? @default("matricule") @map("matricule_label")
+
   // Catégorie dans l'annuaire (entreprises / services publics) ; une seule par groupe.
   categorieId String?          @map("categorie_id")
   categorie   GroupeCategorie? @relation(fields: [categorieId], references: [id], onDelete: SetNull)

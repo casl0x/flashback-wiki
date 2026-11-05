@@ -127,8 +127,16 @@ function toStep(m: Membership): ParcoursStep {
     version: m.version ? toVersionTag(m.version) : null,
     groupe: { id: m.groupe.id, slug: m.groupe.slug, nom: m.groupe.nom, color: m.groupe.color, type: m.groupe.type },
     grade: m.grade?.nom ?? null,
-    matricule: m.matricule,
+    matricule: matriculeText(m),
   };
+}
+
+/** Texte à afficher pour le matricule : réservé aux services publics, précédé du libellé du groupe s'il y en a un. */
+function matriculeText(m: Membership): string | null {
+  const value = m.matricule?.trim();
+  if (!value || m.groupe.type !== "SERVICE_PUBLIC") return null;
+  const label = m.groupe.matriculeLabel?.trim();
+  return label ? `${label} ${value}` : value;
 }
 
 function jobOf(memberships: Membership[]): string | null {

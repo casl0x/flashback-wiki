@@ -20,7 +20,7 @@ export default function CharacterParcours({ steps, etatVie }: Props) {
           const last = i === steps.length - 1;
           const detail = [
             s.grade,
-            s.matricule ? `matricule ${s.matricule}` : null,
+            s.matricule,
           ]
             .filter(Boolean)
             .join(" · ");

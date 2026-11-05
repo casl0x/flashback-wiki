@@ -32,7 +32,7 @@ export default async function EditCharacterPage({ params, searchParams }: Props)
     prisma.version.findMany({ orderBy: [{ ordre: "asc" }, { id: "asc" }], select: { id: true, label: true, color: true } }),
     prisma.groupe.findMany({
       orderBy: { nom: "asc" },
-      select: { id: true, nom: true, color: true, grades: { orderBy: { ordre: "asc" }, select: { id: true, nom: true } } },
+      select: { id: true, nom: true, color: true, type: true, matriculeLabel: true, grades: { orderBy: { ordre: "asc" }, select: { id: true, nom: true } } },
     }),
     prisma.character.findMany({
       orderBy: { nom: "asc" },

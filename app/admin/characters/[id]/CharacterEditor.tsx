@@ -73,6 +73,8 @@ type Props = {
     id: string;
     nom: string;
     color: string | null;
+    type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC";
+    matriculeLabel: string | null;
     grades: { id: string; nom: string }[];
   }[];
   characters: { id: string; nom: string; pseudo: string | null }[];
@@ -555,13 +557,15 @@ export default function CharacterEditor({
                         </option>
                       ))}
                     </Select>
-                    <TextInput
-                      aria-label="Matricule"
-                      placeholder="Matricule"
-                      value={m.matricule}
-                      onChange={(e) => update({ matricule: e.target.value })}
-                      className="w-24 flex-none"
-                    />
+                    {g?.type === "SERVICE_PUBLIC" && (
+                      <TextInput
+                        aria-label={g.matriculeLabel || "Matricule"}
+                        placeholder={g.matriculeLabel || "Valeur"}
+                        value={m.matricule}
+                        onChange={(e) => update({ matricule: e.target.value })}
+                        className="w-40 flex-none"
+                      />
+                    )}
                     {last && (
                       <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
                         actuel
