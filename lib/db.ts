@@ -14,6 +14,7 @@ export type Player = {
   chaines: string[];
   reseaux: Record<string, string>;
   badges: string[];
+  imageUrl: string | null;
   createdAt: string;
 };
 

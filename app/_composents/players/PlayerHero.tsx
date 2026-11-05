@@ -151,10 +151,14 @@ export default function PlayerHero({ p }: { p: PlayerPageData }) {
             className="relative flex h-33 w-33 flex-none items-center justify-center overflow-hidden rounded-full border-4 border-[#0E0F12] bg-[#2B2E35] text-[34px] font-bold text-[#ECECEE] ring-3"
             style={{ "--tw-ring-color": ringColor } as CSSProperties}
           >
-            {isLive && status?.avatarUrl ? (
+            {p.imageUrl || (isLive && status?.avatarUrl) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={status.avatarUrl}
+                src={
+                  p.imageUrl
+                    ? cloudinaryUrl(p.imageUrl, "w_200,h_200,c_fill,g_face")
+                    : status!.avatarUrl!
+                }
                 alt=""
                 className="h-full w-full object-cover"
               />

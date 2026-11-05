@@ -12,15 +12,17 @@ import {
   Select,
   TextInput,
 } from "@/app/_composents/admin/ui";
+import ImageUpload from "@/app/_composents/admin/ImageUpload";
 import { BADGES_CONFIG } from "@/app/_composents/admin/PlayerBadges";
 import {
   deletePlayer,
+  fetchTwitchAvatar,
   savePlayer,
   unlinkPlayerAccount,
 } from "@/lib/admin/actions/players";
 import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import { RESEAUX_OPTIONS } from "@/lib/reseaux";
-import { detectStreamPlatform } from "@/lib/utils";
+import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
 import { X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -32,6 +34,7 @@ type P = {
   badges: string[];
   chaines: string[];
   reseaux: Record<string, string>;
+  imageUrl: string | null;
 };
 type C = {
   id: string;
@@ -66,9 +69,21 @@ export default function PlayerEditor({
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [newReseau, setNewReseau] = useState<string>("");
+  const [avatarMsg, setAvatarMsg] = useState<string | null>(null);
+  const [fetchingAvatar, setFetchingAvatar] = useState<string | null>(null);
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);
   const plat = detectStreamPlatform(f.chaines[0] ?? null);
   const unusedReseaux = RESEAUX_OPTIONS.filter((r) => !(r.key in f.reseaux));
+  const twitchChaines = f.chaines.filter((c) => detectStreamPlatform(c) === "twitch");
+
+  async function applyTwitchAvatar(url: string) {
+    setAvatarMsg(null);
+    setFetchingAvatar(url);
+    const r = await fetchTwitchAvatar(url);
+    setFetchingAvatar(null);
+    if (!r.ok) return setAvatarMsg(r.error);
+    setF((s) => ({ ...s, imageUrl: r.data.avatarUrl }));
+  }
 
   const save = () =>
     start(async () => {
@@ -408,19 +423,39 @@ export default function PlayerEditor({
 
         <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
           <Panel legend="Avatar">
-            <div className="flex items-center gap-3">
-              <span
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-[#2B2E35] text-[18px] font-bold"
-                style={
-                  plat ? { boxShadow: `0 0 0 3px ${PLAT[plat].bg}` } : undefined
-                }
-              >
-                {initials(f.pseudo || "?")}
-              </span>
-              <span className="text-[12px] text-[#9AA0AA]">
-                Initiales du pseudo. La bannière de la page joueur est générée
-                avec les photos de ses persos.
-              </span>
+            <div className="flex flex-col gap-3">
+              <ImageUpload
+                label="avatar du joueur"
+                value={f.imageUrl}
+                onChange={(v) => setF({ ...f, imageUrl: v })}
+                hint="Recadrage auto sur le visage"
+                preview="w_200,h_200,c_fill,g_face"
+                aspect="square"
+              />
+              {twitchChaines.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  {twitchChaines.map((url) => (
+                    <Button
+                      key={url}
+                      disabled={fetchingAvatar === url}
+                      onClick={() => applyTwitchAvatar(url)}
+                    >
+                      {fetchingAvatar === url
+                        ? "…"
+                        : `Utiliser la pp Twitch (${extractStreamUsername(url)})`}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {avatarMsg && (
+                <span className="text-[12px] text-[#FF8A8E]">{avatarMsg}</span>
+              )}
+              {!f.imageUrl && (
+                <span className="text-[12px] text-[#9AA0AA]">
+                  Sans image : initiales du pseudo, et la bannière de la page
+                  joueur est générée avec les photos de ses persos.
+                </span>
+              )}
             </div>
           </Panel>
           {f.id && (
@@ -451,12 +486,21 @@ export default function PlayerEditor({
           <Panel legend="Aperçu dans la liste">
             <div className="flex min-h-18 items-center gap-3 rounded-[10px] border border-[#23262D] bg-[#0B0C0F] p-3">
               <span
-                className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-[#2B2E35] font-bold"
+                className="relative flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full bg-[#2B2E35] font-bold"
                 style={{
                   boxShadow: `0 0 0 2px ${plat ? PLAT[plat].bg : "#3A3E47"}`,
                 }}
               >
-                {initials(f.pseudo || "?")}
+                {f.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={cloudinaryUrl(f.imageUrl, "w_96,h_96,c_fill,g_face")}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  initials(f.pseudo || "?")
+                )}
               </span>
               <span className="flex flex-1 flex-col">
                 <span className="font-bold">{f.pseudo || "Pseudo"}</span>

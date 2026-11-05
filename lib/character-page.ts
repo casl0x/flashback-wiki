@@ -74,6 +74,7 @@ export type CharacterPageData = {
     chaines: PlayerChannel[];
     reseaux: Record<string, string>;
     badges: string[];
+    imageUrl: string | null;
     totalCharacters: number;
     others: OtherCharacter[];
   } | null;
@@ -257,6 +258,7 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
           chaines: c.player.chaines.map(toPlayerChannel),
           reseaux: normalizeReseaux(c.player.reseaux),
           badges: c.player.badges,
+          imageUrl: c.player.imageUrl,
           totalCharacters: others.length + 1,
           others,
         }

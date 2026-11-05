@@ -48,9 +48,18 @@ export function PlayerPanel({ player }: { player: Player }) {
       <div className="flex flex-col gap-3 px-5 pb-5">
         <span
           aria-hidden
-          className="-mt-7.5 flex h-15 w-15 items-center justify-center rounded-full border-[3px] border-[#15171B] bg-[#2B2F37] font-bold text-[#ECECEE]"
+          className="relative -mt-7.5 flex h-15 w-15 items-center justify-center overflow-hidden rounded-full border-[3px] border-[#15171B] bg-[#2B2F37] font-bold text-[#ECECEE]"
         >
-          {initials(player.pseudo)}
+          {player.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={cloudinaryUrl(player.imageUrl, "w_120,h_120,c_fill,g_face")}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            initials(player.pseudo)
+          )}
         </span>
         <div className="flex flex-col gap-0.5">
           <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#A3A8B3]">
