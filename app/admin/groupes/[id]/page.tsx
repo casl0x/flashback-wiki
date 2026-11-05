@@ -55,6 +55,7 @@ export default async function EditGroupePage({ params, searchParams }: Props) {
         description: g?.description ?? "",
         imageUrl: g?.imageUrl ?? null,
         type: g?.type ?? "GROUPE",
+        matriculeLabel: g ? (g.matriculeLabel ?? "") : "matricule",
         categorieId: g?.categorieId ?? null,
         grades: (g?.grades ?? []).map((gr) => ({ key: gr.id, id: gr.id, nom: gr.nom, color: gr.color ?? "", members: gr._count.members })),
       }}

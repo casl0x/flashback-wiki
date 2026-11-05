@@ -42,6 +42,7 @@ type G = {
   description: string;
   imageUrl: string | null;
   type: GroupeType;
+  matriculeLabel: string;
   categorieId: string | null;
   grades: Grade[];
 };
@@ -106,6 +107,7 @@ export default function GroupeEditor({
         description: f.description,
         imageUrl: f.imageUrl,
         type: f.type,
+        matriculeLabel: f.matriculeLabel,
         categorieId: f.categorieId,
         grades: f.grades.map((g) => ({
           id: g.id,
@@ -246,6 +248,21 @@ export default function GroupeEditor({
                         </option>
                       ))}
                   </Select>
+                </Field>
+              )}
+              {f.type === "SERVICE_PUBLIC" && (
+                <Field
+                  label="Libellé du numéro"
+                  hint="Affiché devant le matricule du membre (ex. « matricule 245 »). Vide : seule la valeur est affichée."
+                  className="sm:col-span-2"
+                >
+                  <TextInput
+                    value={f.matriculeLabel}
+                    placeholder="matricule"
+                    onChange={(e) =>
+                      setF({ ...f, matriculeLabel: e.target.value })
+                    }
+                  />
                 </Field>
               )}
               <Field

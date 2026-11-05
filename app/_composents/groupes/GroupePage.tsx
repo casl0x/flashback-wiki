@@ -80,6 +80,9 @@ export default async function GroupePage({
   const meta = GROUPE_TYPE_META[g.type];
 
   const accent = g.color ?? "#2F6FEB";
+  // Le matricule n'existe que pour les services publics (les autres types l'ignorent).
+  const matriculeOf = (value: string | null) =>
+    g.type === "SERVICE_PUBLIC" ? (value?.trim() ?? "") : "";
   const onAccent = textOn(accent);
 
   // Périodes (versions) où le groupe a des membres, la plus récente d'abord.
@@ -134,7 +137,8 @@ export default async function GroupePage({
           ...r,
           people: [...r.people].sort(
             (a, b) =>
-              (Number(a.matricule) || 9999) - (Number(b.matricule) || 9999) ||
+              (matriculeOf(a.matricule) ? Number(a.matricule) || 9999 : 9999) -
+                (matriculeOf(b.matricule) ? Number(b.matricule) || 9999 : 9999) ||
               a.character.nom.localeCompare(b.character.nom, "fr"),
           ),
         }))
@@ -285,6 +289,9 @@ export default async function GroupePage({
                   <div className="grid min-w-0 flex-[999_1_400px] grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2.5">
                     {r.people.map((m) => {
                       const dead = m.character.etatVie === "MORT";
+                      const matricule = matriculeOf(m.matricule);
+                      // Court : dans le rond ; long : sous le nom (le rond garde la photo).
+                      const shortMatricule = matricule.length > 0 && matricule.length <= 4;
                       return (
                         <Link
                           key={m.id}
@@ -302,8 +309,8 @@ export default async function GroupePage({
                               anton.className,
                             )}
                           >
-                            {m.matricule ? (
-                              m.matricule
+                            {shortMatricule ? (
+                              matricule
                             ) : m.character.imageUrl ? (
                               <Image
                                 src={cloudinaryUrl(
@@ -335,6 +342,11 @@ export default async function GroupePage({
                                 </span>
                               )}
                             </span>
+                            {matricule && !shortMatricule && (
+                              <span className="text-[12px] text-[#C4C7CF]">
+                                {matricule}
+                              </span>
+                            )}
                             {m.character.player && (
                               <span className="text-[12px] text-[#9AA0AA]">
                                 Joué par {m.character.player.pseudo}

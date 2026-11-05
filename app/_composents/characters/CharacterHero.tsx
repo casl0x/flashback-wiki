@@ -36,7 +36,7 @@ export default function CharacterHero({ c }: { c: CharacterPageData }) {
   const subtitle = current
     ? [
         current.grade,
-        current.matricule ? `matricule ${current.matricule}` : null,
+        current.matricule,
       ]
         .filter(Boolean)
         .join(" · ")
