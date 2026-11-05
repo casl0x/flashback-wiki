@@ -2,7 +2,7 @@
 
 import { KickIcon, TwitchIcon } from "@/app/_composents/icons/PlatformIcons";
 import { useSearch } from "@/app/_composents/SearchContext";
-import { initials } from "@/lib/cloudinary";
+import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import type { PlayerListItem } from "@/lib/player-page";
 import { cn, matchesSearch, type StreamPlatform } from "@/lib/utils";
@@ -300,10 +300,19 @@ function PlayerGridCard({
     >
       <span
         aria-hidden
-        className="relative flex h-12 w-12 flex-none items-center justify-center rounded-full bg-[#2B2E35] text-[14px] font-bold text-[#ECECEE] ring-2"
+        className="relative flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full bg-[#2B2E35] text-[14px] font-bold text-[#ECECEE] ring-2"
         style={{ "--tw-ring-color": ringColor } as CSSProperties}
       >
-        {initials(player.pseudo)}
+        {player.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={cloudinaryUrl(player.imageUrl, "w_96,h_96,c_fill,g_face")}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          initials(player.pseudo)
+        )}
         {isLive && (
           <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[#15171B] bg-[#E5484D]">
             <span className="sr-only">En live</span>

@@ -303,6 +303,7 @@ export default function CharacterEditor({
       badges: [],
       chaines: [],
       reseaux: {},
+      imageUrl: null,
     });
     if (!r.ok) return setMsg({ tone: "error", text: r.error });
     setPlayers((p) =>

@@ -15,6 +15,7 @@ export type PlayerListItem = {
   pseudo: string;
   chaines: PlayerChannel[];
   badges: string[];
+  imageUrl: string | null;
   characterCount: number;
 };
 
@@ -30,6 +31,7 @@ async function loadPlayersList(): Promise<PlayerListItem[]> {
       pseudo: p.pseudo.trim() || "Joueur",
       chaines: p.chaines.map(toPlayerChannel),
       badges: p.badges,
+      imageUrl: p.imageUrl,
       characterCount: p._count.characters,
     }));
   } catch (error) {
@@ -73,6 +75,7 @@ export type PlayerPageData = {
   chaines: PlayerChannel[];
   reseaux: Record<string, string>;
   badges: string[];
+  imageUrl: string | null;
   characterCount: number;
   versionCount: number;
   rows: PlayerVersionRow[];
@@ -183,6 +186,7 @@ async function loadPlayerPageUnsafe(id: string): Promise<PlayerPageData | null> 
     chaines: p.chaines.map(toPlayerChannel),
     reseaux: normalizeReseaux(p.reseaux),
     badges: p.badges,
+    imageUrl: p.imageUrl,
     characterCount: p.characters.length,
     versionCount: versionIds.size,
     rows: sortedRows,

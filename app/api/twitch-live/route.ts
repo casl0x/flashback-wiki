@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { twitchHelixGet, type TwitchUser } from "@/lib/twitch";
 import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
@@ -11,49 +12,10 @@ export type TwitchLiveStatus = {
   avatarUrl: string | null;
 };
 
-// Cache en mémoire du token App Access — évite de régénérer un token à
-// chaque requête (limite de rate Twitch). Un token client_credentials
-// est valide plusieurs semaines.
-let cachedToken: { value: string; expiresAt: number } | null = null;
-
 function extractTwitchUsername(url: string | null | undefined) {
   return detectStreamPlatform(url) === "twitch"
     ? extractStreamUsername(url)
     : null;
-}
-
-async function getAppAccessToken() {
-  if (cachedToken && cachedToken.expiresAt > Date.now()) {
-    return cachedToken.value;
-  }
-
-  const clientId = process.env.TWITCH_CLIENT_ID;
-  const clientSecret = process.env.TWITCH_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    throw new Error("TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET manquants");
-  }
-
-  const res = await fetch("https://id.twitch.tv/oauth2/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "client_credentials",
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Twitch token error (${res.status})`);
-  }
-
-  const data = await res.json();
-  cachedToken = {
-    value: data.access_token,
-    // On rafraîchit un peu avant l'expiration réelle
-    expiresAt: Date.now() + (data.expires_in - 60) * 1000,
-  };
-  return cachedToken.value;
 }
 
 type TwitchStream = {
@@ -62,46 +24,6 @@ type TwitchStream = {
   game_name: string | null;
   thumbnail_url: string | null;
 };
-
-type TwitchUser = {
-  login: string;
-  profile_image_url: string | null;
-};
-
-async function twitchHelixGet<T>(
-  endpoint: "streams" | "users",
-  usernames: string[],
-  retry = true,
-): Promise<{ data?: T[] }> {
-  const clientId = process.env.TWITCH_CLIENT_ID!;
-  const token = await getAppAccessToken();
-
-  const paramName = endpoint === "streams" ? "user_login" : "login";
-  const params = new URLSearchParams();
-  usernames.forEach((u) => params.append(paramName, u));
-
-  const res = await fetch(
-    `https://api.twitch.tv/helix/${endpoint}?${params.toString()}`,
-    {
-      headers: {
-        "Client-Id": clientId,
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    },
-  );
-
-  if (res.status === 401 && retry) {
-    cachedToken = null;
-    return twitchHelixGet<T>(endpoint, usernames, false);
-  }
-
-  if (!res.ok) {
-    throw new Error(`Twitch ${endpoint} error (${res.status})`);
-  }
-
-  return res.json();
-}
 
 export async function GET() {
   try {
