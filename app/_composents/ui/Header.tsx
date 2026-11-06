@@ -19,6 +19,7 @@ const LINKS = [
   { href: "/joueurs", label: "Joueurs" },
   { href: "/musiques", label: "Musiques" },
   { href: "/createurs", label: "Créateurs" },
+  { href: "/classement", label: "Classement" },
 ];
 
 function UserMenu() {
