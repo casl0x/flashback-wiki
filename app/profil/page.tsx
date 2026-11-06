@@ -14,6 +14,7 @@ import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
 import { invalidateProfilesCache } from "@/lib/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
+import { bannerBackground, DEFAULT_BANNER_COLOR } from "@/lib/profile-banner";
 import { cn, matchesSearch, profileHref } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import type { SocialPlatform } from "@prisma/client";
@@ -25,6 +26,7 @@ import {
   Info,
   Lock,
   LogOut,
+  Pencil,
   Plus,
   Trash2,
   User,
@@ -37,6 +39,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   deleteCreatorPost,
   requestPlayerLink,
+  updateBannerColor,
   updatePublicProfile,
   updateSocialLinks,
 } from "./actions";
@@ -68,6 +71,7 @@ type MeData = {
   pseudo: string;
   profilePseudo: string | null;
   bio: string | null;
+  bannerColor: string | null;
   socialLinks: SocialLink[];
   profilePublic: boolean;
   showStats: boolean;
@@ -233,11 +237,7 @@ function ProfilePageContent() {
       {/* Bannière */}
       <div
         className="h-35 w-full sm:h-50"
-        style={{
-          background: isCreator
-            ? "linear-gradient(135deg, #2F6FEB, #0E0F12)"
-            : "repeating-linear-gradient(135deg, #1A1C21 0 14px, #17191D 14px 28px)",
-        }}
+        style={{ background: bannerBackground(data?.bannerColor, isCreator) }}
       />
 
       <main className="mx-auto flex max-w-295 flex-col gap-7 px-4 pb-14 sm:px-5">
@@ -1012,7 +1012,24 @@ function AvatarSettings({
   const { user } = useUser();
   const inputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [bannerSaving, setBannerSaving] = useState(false);
   const toast = useToast();
+
+  async function saveBanner(next: string | null) {
+    setBannerSaving(true);
+    try {
+      await updateBannerColor(next);
+      onSaved();
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Enregistrement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setBannerSaving(false);
+    }
+  }
 
   async function apply(file: File | null) {
     if (!user) return;
@@ -1114,6 +1131,55 @@ function AvatarSettings({
           if (file) apply(file);
         }}
       />
+
+      <div className="flex w-full flex-wrap items-center gap-3 border-t border-[#23262D] pt-4">
+        <span
+          aria-hidden
+          className="h-10 w-10 flex-none rounded-lg"
+          style={{
+            background: bannerBackground(
+              data.bannerColor,
+              data.creatorRoles.length > 0,
+            ),
+          }}
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[14px] font-semibold text-[#ECECEE]">
+            Couverture
+          </span>
+          <span className="text-[13px] text-[#9AA0AA]">
+            Couleur affichée en haut de ton profil
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <label
+            className={cn(
+              "flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#ECECEE] hover:border-[#6E7380]",
+              bannerSaving && "pointer-events-none opacity-50",
+            )}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Modifier
+            <input
+              type="color"
+              value={data.bannerColor ?? DEFAULT_BANNER_COLOR}
+              disabled={bannerSaving}
+              onChange={(e) => saveBanner(e.target.value)}
+              className="sr-only"
+            />
+          </label>
+          {data.bannerColor && (
+            <button
+              type="button"
+              onClick={() => saveBanner(null)}
+              disabled={bannerSaving}
+              className="flex min-h-11 items-center rounded-md px-3 text-[14px] font-bold text-[#9AA0AA] hover:text-[#FF8A8E] disabled:opacity-50"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -58,6 +58,8 @@ model UserProfile {
   // Profil public (/profil/[pseudo]) : masquable, stats affichables ou non
   profilePublic          Boolean   @default(true)
   showStats              Boolean   @default(true)
+  // Couleur (hex) de la bannière du profil, null = dégradé par défaut.
+  bannerColor            String?
   // Acceptation des règles de publication créateur (pas de validation admin, trace en cas de litige).
   creatorRulesAcceptedAt DateTime?
   createdAt              DateTime  @default(now())

@@ -9,6 +9,7 @@ import { ReportButton } from "@/app/_composents/user/ReportButton";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { youtubeThumbnail } from "@/lib/media-embed";
+import { bannerBackground } from "@/lib/profile-banner";
 import { getPublicProfile } from "@/lib/public-profile";
 import { cn } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
@@ -69,11 +70,7 @@ export default async function PublicProfilePage({ params }: Props) {
       {/* Bannière */}
       <div
         className="h-35 w-full sm:h-50"
-        style={{
-          background: isCreator
-            ? "linear-gradient(135deg, #2F6FEB, #0E0F12)"
-            : "repeating-linear-gradient(135deg, #1A1C21 0 14px, #17191D 14px 28px)",
-        }}
+        style={{ background: bannerBackground(p.bannerColor, isCreator) }}
       />
 
       <main className="mx-auto flex max-w-295 flex-col gap-7 px-4 pb-14 sm:px-5">

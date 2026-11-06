@@ -71,6 +71,7 @@ export async function GET() {
     // Pseudo du wiki, qui sert d'adresse au profil public.
     profilePseudo: profile?.pseudo ?? null,
     bio: profile?.bio ?? null,
+    bannerColor: profile?.bannerColor ?? null,
     socialLinks:
       profile?.socialLinks.map((l) => ({ platform: l.platform, url: l.url })) ??
       [],
