@@ -26,9 +26,9 @@ function tierOf(badges: string[]) {
 }
 
 const PODIUM = {
-  1: { ring: "from-[#F6C453] to-[#E8590C]", box: "border-[#5A4716] bg-[#1C170B] text-[#F6C453]", h: "pt-10" },
+  1: { ring: "from-[#F6C453] to-[#E8590C]", box: "border-[#5A4716] bg-[#1C170B] text-[#F6C453]", h: "pt-20" },
   2: { ring: "from-[#C9CCD3] to-[#6E7380]", box: "border-[#3A3E47] bg-[#16181C] text-[#D5D7DD]", h: "pt-14" },
-  3: { ring: "from-[#D08A4E] to-[#7A4A22]", box: "border-[#4A3320] bg-[#1A1410] text-[#D08A4E]", h: "pt-16" },
+  3: { ring: "from-[#D08A4E] to-[#7A4A22]", box: "border-[#4A3320] bg-[#1A1410] text-[#D08A4E]", h: "pt-8" },
 } as const;
 
 function Avatar({ e, size }: { e: LeaderboardEntry; size: number }) {
