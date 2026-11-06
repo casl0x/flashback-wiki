@@ -26,9 +26,8 @@ import {
   Info,
   Lock,
   LogOut,
-  Palette,
+  Pencil,
   Plus,
-  RotateCcw,
   Trash2,
   User,
   X,
@@ -237,18 +236,9 @@ function ProfilePageContent() {
     <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
       {/* Bannière */}
       <div
-        className="relative h-35 w-full sm:h-50"
+        className="h-35 w-full sm:h-50"
         style={{ background: bannerBackground(data?.bannerColor, isCreator) }}
-      >
-        {!loading && (
-          <BannerColorPicker
-            color={data?.bannerColor ?? null}
-            onSaved={(bannerColor) =>
-              setData((prev) => (prev ? { ...prev, bannerColor } : prev))
-            }
-          />
-        )}
-      </div>
+      />
 
       <main className="mx-auto flex max-w-295 flex-col gap-7 px-4 pb-14 sm:px-5">
         {/* En-tête : identité */}
@@ -750,62 +740,6 @@ function AccountSection({
   );
 }
 
-function BannerColorPicker({
-  color,
-  onSaved,
-}: {
-  color: string | null;
-  onSaved: (color: string | null) => void;
-}) {
-  const [saving, setSaving] = useState(false);
-  const toast = useToast();
-
-  async function save(next: string | null) {
-    setSaving(true);
-    try {
-      await updateBannerColor(next);
-      onSaved(next);
-    } catch (err) {
-      toast({
-        tone: "error",
-        title: "Enregistrement impossible",
-        text: err instanceof Error ? err.message : undefined,
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-      <label
-        aria-label="Changer la couleur de la couverture"
-        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
-      >
-        <Palette className="h-4 w-4" />
-        <input
-          type="color"
-          value={color ?? DEFAULT_BANNER_COLOR}
-          disabled={saving}
-          onChange={(e) => save(e.target.value)}
-          className="sr-only"
-        />
-      </label>
-      {color && (
-        <button
-          type="button"
-          onClick={() => save(null)}
-          disabled={saving}
-          aria-label="Réinitialiser la couleur de la couverture"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </button>
-      )}
-    </div>
-  );
-}
-
 function BioCard({
   data,
   onSaved,
@@ -1078,7 +1012,24 @@ function AvatarSettings({
   const { user } = useUser();
   const inputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [bannerSaving, setBannerSaving] = useState(false);
   const toast = useToast();
+
+  async function saveBanner(next: string | null) {
+    setBannerSaving(true);
+    try {
+      await updateBannerColor(next);
+      onSaved();
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Enregistrement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setBannerSaving(false);
+    }
+  }
 
   async function apply(file: File | null) {
     if (!user) return;
@@ -1180,6 +1131,55 @@ function AvatarSettings({
           if (file) apply(file);
         }}
       />
+
+      <div className="flex w-full flex-wrap items-center gap-3 border-t border-[#23262D] pt-4">
+        <span
+          aria-hidden
+          className="h-10 w-10 flex-none rounded-lg"
+          style={{
+            background: bannerBackground(
+              data.bannerColor,
+              data.creatorRoles.length > 0,
+            ),
+          }}
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[14px] font-semibold text-[#ECECEE]">
+            Couverture
+          </span>
+          <span className="text-[13px] text-[#9AA0AA]">
+            Couleur affichée en haut de ton profil
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <label
+            className={cn(
+              "flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#ECECEE] hover:border-[#6E7380]",
+              bannerSaving && "pointer-events-none opacity-50",
+            )}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Modifier
+            <input
+              type="color"
+              value={data.bannerColor ?? DEFAULT_BANNER_COLOR}
+              disabled={bannerSaving}
+              onChange={(e) => saveBanner(e.target.value)}
+              className="sr-only"
+            />
+          </label>
+          {data.bannerColor && (
+            <button
+              type="button"
+              onClick={() => saveBanner(null)}
+              disabled={bannerSaving}
+              className="flex min-h-11 items-center rounded-md px-3 text-[14px] font-bold text-[#9AA0AA] hover:text-[#FF8A8E] disabled:opacity-50"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
