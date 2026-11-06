@@ -1,7 +1,17 @@
 import { prisma } from "@/lib/db";
 import { versionRank } from "@/lib/version-rank";
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+
+const normalizeReseaux = (value: Prisma.JsonValue): Record<string, string> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1] !== "",
+    ),
+  );
+};
 
 export async function GET() {
   const { userId } = await auth();
@@ -14,7 +24,15 @@ export async function GET() {
     prisma.userProfile.findUnique({
       where: { clerkUserId: userId },
       include: {
-        player: { select: { id: true, pseudo: true } },
+        player: {
+          select: {
+            id: true,
+            pseudo: true,
+            chaines: true,
+            reseaux: true,
+            imageUrl: true,
+          },
+        },
         playerLinkRequests: {
           where: { status: "pending" },
           include: { player: { select: { pseudo: true } } },
@@ -83,7 +101,15 @@ export async function GET() {
     badges: profile?.badges ?? [],
     stats,
     playerId: profile?.playerId ?? null,
-    player: profile?.player ?? null,
+    player: profile?.player
+      ? {
+          id: profile.player.id,
+          pseudo: profile.player.pseudo,
+          chaines: profile.player.chaines,
+          reseaux: normalizeReseaux(profile.player.reseaux),
+          imageUrl: profile.player.imageUrl,
+        }
+      : null,
     pendingLinkRequest: profile?.playerLinkRequests[0]
       ? { playerPseudo: profile.playerLinkRequests[0].player.pseudo }
       : null,

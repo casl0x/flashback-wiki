@@ -1,9 +1,11 @@
 "use server";
 
-import { invalidateProfilesCache } from "@/lib/actions";
+import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
 import { HEX_COLOR_RE } from "@/lib/profile-banner";
+import { getTwitchAvatar } from "@/lib/twitch";
+import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
 import { CreatorType, SocialPlatform } from "@prisma/client";
 
@@ -127,6 +129,62 @@ export async function requestPlayerLink(playerId: string, message?: string) {
       message: message?.trim() || null,
     },
   });
+}
+
+/** Vérifie que le compte est lié à un joueur et renvoie son id. */
+async function requireLinkedPlayerId(userId: string): Promise<string> {
+  const profile = await prisma.userProfile.findUnique({
+    where: { clerkUserId: userId },
+    select: { playerId: true },
+  });
+  if (!profile?.playerId) throw new Error("Aucun joueur lié à ce compte.");
+  return profile.playerId;
+}
+
+/** Fiche joueur du compte lié : le joueur édite directement la sienne, sans modération. */
+export async function updateLinkedPlayerProfile(data: {
+  pseudo: string;
+  chaines: string[];
+  reseaux: Record<string, string>;
+  imageUrl: string | null;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  const playerId = await requireLinkedPlayerId(userId);
+
+  const pseudo = data.pseudo.trim();
+  if (!pseudo) throw new Error("Le pseudo est requis.");
+
+  const reseaux = Object.fromEntries(
+    Object.entries(data.reseaux)
+      .map(([k, v]) => [k, v.trim()] as const)
+      .filter(([, v]) => v),
+  );
+  const chaines = data.chaines.map((c) => c.trim()).filter(Boolean);
+
+  await prisma.player.update({
+    where: { id: playerId },
+    data: { pseudo, chaines, reseaux, imageUrl: data.imageUrl?.trim() || null },
+  });
+
+  await invalidateWikiCache();
+  await invalidateProfilesCache();
+}
+
+/** Avatar Twitch d'un lien de chaîne, pour le joueur lié qui édite sa propre fiche. */
+export async function fetchMyTwitchAvatar(channelUrl: string): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  await requireLinkedPlayerId(userId);
+
+  if (detectStreamPlatform(channelUrl) !== "twitch") {
+    throw new Error("Ce n'est pas un lien Twitch.");
+  }
+  const login = extractStreamUsername(channelUrl);
+  if (!login) throw new Error("Pseudo Twitch introuvable dans le lien.");
+  const avatarUrl = await getTwitchAvatar(login);
+  if (!avatarUrl) throw new Error("Avatar introuvable sur Twitch.");
+  return avatarUrl;
 }
 
 export async function deleteCreatorPost(id: string) {
