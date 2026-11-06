@@ -3,6 +3,7 @@
 import { invalidateProfilesCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
+import { HEX_COLOR_RE } from "@/lib/profile-banner";
 import { auth } from "@clerk/nextjs/server";
 import { CreatorType, SocialPlatform } from "@prisma/client";
 
@@ -243,4 +244,20 @@ export async function toggleCreatorPostLike(
     data: { creatorPostId: postId, clerkUserId: userId },
   });
   return { liked: true };
+}
+
+/** Couleur de la bannière du profil ; null pour revenir au dégradé par défaut. */
+export async function updateBannerColor(color: string | null) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  if (color !== null && !HEX_COLOR_RE.test(color)) {
+    throw new Error("Couleur invalide.");
+  }
+
+  await prisma.userProfile.upsert({
+    where: { clerkUserId: userId },
+    create: { clerkUserId: userId, bannerColor: color },
+    update: { bannerColor: color },
+  });
+  await invalidateProfilesCache();
 }

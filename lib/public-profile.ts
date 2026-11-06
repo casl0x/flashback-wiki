@@ -14,6 +14,7 @@ export type PublicProfileData = {
   pseudo: string;
   avatarUrl: string | null;
   bio: string | null;
+  bannerColor: string | null;
   badges: string[];
   /** null si l'utilisateur a choisi de masquer ses stats. */
   stats: { accepted: number; points: number; creations: number } | null;
@@ -116,6 +117,7 @@ async function loadPublicProfile(
     pseudo: profile.pseudo!,
     avatarUrl,
     bio: profile.bio,
+    bannerColor: profile.bannerColor,
     badges: profile.badges,
     stats: profile.showStats
       ? {

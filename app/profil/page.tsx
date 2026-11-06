@@ -14,6 +14,7 @@ import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
 import { invalidateProfilesCache } from "@/lib/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
+import { bannerBackground, DEFAULT_BANNER_COLOR } from "@/lib/profile-banner";
 import { cn, matchesSearch, profileHref } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import type { SocialPlatform } from "@prisma/client";
@@ -25,7 +26,9 @@ import {
   Info,
   Lock,
   LogOut,
+  Palette,
   Plus,
+  RotateCcw,
   Trash2,
   User,
   X,
@@ -37,6 +40,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   deleteCreatorPost,
   requestPlayerLink,
+  updateBannerColor,
   updatePublicProfile,
   updateSocialLinks,
 } from "./actions";
@@ -68,6 +72,7 @@ type MeData = {
   pseudo: string;
   profilePseudo: string | null;
   bio: string | null;
+  bannerColor: string | null;
   socialLinks: SocialLink[];
   profilePublic: boolean;
   showStats: boolean;
@@ -232,13 +237,18 @@ function ProfilePageContent() {
     <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
       {/* Bannière */}
       <div
-        className="h-35 w-full sm:h-50"
-        style={{
-          background: isCreator
-            ? "linear-gradient(135deg, #2F6FEB, #0E0F12)"
-            : "repeating-linear-gradient(135deg, #1A1C21 0 14px, #17191D 14px 28px)",
-        }}
-      />
+        className="relative h-35 w-full sm:h-50"
+        style={{ background: bannerBackground(data?.bannerColor, isCreator) }}
+      >
+        {!loading && (
+          <BannerColorPicker
+            color={data?.bannerColor ?? null}
+            onSaved={(bannerColor) =>
+              setData((prev) => (prev ? { ...prev, bannerColor } : prev))
+            }
+          />
+        )}
+      </div>
 
       <main className="mx-auto flex max-w-295 flex-col gap-7 px-4 pb-14 sm:px-5">
         {/* En-tête : identité */}
@@ -737,6 +747,62 @@ function AccountSection({
         </button>
       </SignOutButton>
     </section>
+  );
+}
+
+function BannerColorPicker({
+  color,
+  onSaved,
+}: {
+  color: string | null;
+  onSaved: (color: string | null) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+
+  async function save(next: string | null) {
+    setSaving(true);
+    try {
+      await updateBannerColor(next);
+      onSaved(next);
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Enregistrement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+      <label
+        aria-label="Changer la couleur de la couverture"
+        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+      >
+        <Palette className="h-4 w-4" />
+        <input
+          type="color"
+          value={color ?? DEFAULT_BANNER_COLOR}
+          disabled={saving}
+          onChange={(e) => save(e.target.value)}
+          className="sr-only"
+        />
+      </label>
+      {color && (
+        <button
+          type="button"
+          onClick={() => save(null)}
+          disabled={saving}
+          aria-label="Réinitialiser la couleur de la couverture"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      )}
+    </div>
   );
 }
 
