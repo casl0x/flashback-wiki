@@ -1012,15 +1012,19 @@ function AvatarSettings({
   const { user } = useUser();
   const inputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [bannerColor, setBannerColor] = useState(data.bannerColor);
   const [bannerSaving, setBannerSaving] = useState(false);
   const toast = useToast();
 
   async function saveBanner(next: string | null) {
+    const previous = bannerColor;
+    setBannerColor(next);
     setBannerSaving(true);
     try {
       await updateBannerColor(next);
       onSaved();
     } catch (err) {
+      setBannerColor(previous);
       toast({
         tone: "error",
         title: "Enregistrement impossible",
@@ -1138,7 +1142,7 @@ function AvatarSettings({
           className="h-10 w-10 flex-none rounded-lg"
           style={{
             background: bannerBackground(
-              data.bannerColor,
+              bannerColor,
               data.creatorRoles.length > 0,
             ),
           }}
@@ -1162,13 +1166,13 @@ function AvatarSettings({
             Modifier
             <input
               type="color"
-              value={data.bannerColor ?? DEFAULT_BANNER_COLOR}
+              value={bannerColor ?? DEFAULT_BANNER_COLOR}
               disabled={bannerSaving}
               onChange={(e) => saveBanner(e.target.value)}
               className="sr-only"
             />
           </label>
-          {data.bannerColor && (
+          {bannerColor && (
             <button
               type="button"
               onClick={() => saveBanner(null)}

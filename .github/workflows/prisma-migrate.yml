@@ -5,7 +5,15 @@ on:
     branches: [main]
     paths:
       - "prisma/migrations/**"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      resolve_applied:
+        description: >-
+          Nom d'une migration déjà appliquée manuellement (dossier dans
+          prisma/migrations) à marquer comme résolue, au lieu de déployer.
+          Utile après une erreur P3018 (ex: colonne déjà existante).
+        required: false
+        type: string
 
 # Une seule migration à la fois : remplace la protection du verrou Postgres désactivé plus bas.
 concurrency:
@@ -21,7 +29,16 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npx prisma migrate deploy
+      - name: Resolve migration as applied
+        if: ${{ github.event.inputs.resolve_applied != '' }}
+        run: npx prisma migrate resolve --applied "${{ github.event.inputs.resolve_applied }}"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: "1"
+      - name: Deploy pending migrations
+        if: ${{ github.event.inputs.resolve_applied == '' }}
+        run: npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
