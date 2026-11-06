@@ -231,3 +231,104 @@ export const getCharacterContributors = unstable_cache(
   ["character-contributors"],
   { revalidate: 300, tags: ["wiki-data", "profiles"] },
 );
+
+// ─── Classement des contributeurs (/classement) ──────────────────────────────
+
+export type LeaderboardEntry = {
+  rank: number;
+  pseudo: string;
+  avatarUrl: string | null;
+  points: number;
+  accepted: number;
+  creations: number;
+  badges: string[];
+};
+
+/** Ids Clerk des membres de l'organisation admin : exclus du classement. */
+async function adminClerkIds(): Promise<Set<string>> {
+  const organizationId = process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID;
+  if (!organizationId) return new Set();
+  const ids = new Set<string>();
+  try {
+    for (let offset = 0; ; offset += 100) {
+      const { data } = await clerk.organizations.getOrganizationMembershipList({
+        organizationId,
+        limit: 100,
+        offset,
+      });
+      for (const m of data) {
+        const id = m.publicUserData?.userId;
+        if (id) ids.add(id);
+      }
+      if (data.length < 100) break;
+    }
+  } catch {
+    // Clerk indisponible : on ne peut pas filtrer, mieux vaut ne rien afficher.
+    throw new Error("Impossible de lister les admins");
+  }
+  return ids;
+}
+
+/**
+ * Membres triés par points (10 par proposition acceptée). Exclut les admins,
+ * les profils masqués ou sans pseudo, et ceux qui n'ont aucun point.
+ * Les membres qui masquent leurs stats ne sont pas classés non plus.
+ */
+async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
+  const [admins, profiles] = await Promise.all([
+    adminClerkIds(),
+    prisma.userProfile.findMany({
+      where: {
+        profilePublic: true,
+        showStats: true,
+        pseudo: { not: null },
+        totalPoints: { gt: 0 },
+      },
+      orderBy: [
+        { totalPoints: "desc" },
+        { acceptedCount: "desc" },
+        { createdAt: "asc" },
+      ],
+      select: {
+        clerkUserId: true,
+        pseudo: true,
+        totalPoints: true,
+        acceptedCount: true,
+        badges: true,
+        creatorRoles: {
+          where: { status: "approved" },
+          select: { _count: { select: { posts: true } } },
+        },
+      },
+    }),
+  ]);
+
+  const ranked = profiles.filter((p) => !admins.has(p.clerkUserId)).slice(0, 100);
+
+  const avatars = new Map<string, string>();
+  try {
+    const { data } = await clerk.users.getUserList({
+      userId: ranked.map((p) => p.clerkUserId),
+      limit: 100,
+    });
+    for (const u of data) avatars.set(u.id, u.imageUrl);
+  } catch {
+    // Clerk indisponible : classement sans avatars.
+  }
+
+  return ranked.map((p, i) => ({
+    rank: i + 1,
+    pseudo: p.pseudo!,
+    avatarUrl: avatars.get(p.clerkUserId) ?? null,
+    points: p.totalPoints,
+    accepted: p.acceptedCount,
+    creations: p.creatorRoles.reduce((n, r) => n + r._count.posts, 0),
+    badges: p.badges,
+  }));
+}
+
+export const getLeaderboard = unstable_cache(
+  loadLeaderboard,
+  ["leaderboard"],
+  { revalidate: 300, tags: ["wiki-data", "profiles"] },
+);
