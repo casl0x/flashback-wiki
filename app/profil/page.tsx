@@ -9,13 +9,15 @@ import {
   Stat,
   type ProfileCharacter,
 } from "@/app/_composents/user/ProfileParts";
+import ImageUpload from "@/app/_composents/admin/ImageUpload";
 import { PublishCreatorPostButton } from "@/app/_composents/user/PublishCreatorPostButton";
 import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
 import { invalidateProfilesCache } from "@/lib/actions";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { bannerBackground, DEFAULT_BANNER_COLOR } from "@/lib/profile-banner";
-import { cn, matchesSearch, profileHref } from "@/lib/utils";
+import { RESEAUX_OPTIONS } from "@/lib/reseaux";
+import { cn, detectStreamPlatform, extractStreamUsername, matchesSearch, profileHref } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import type { SocialPlatform } from "@prisma/client";
 import {
@@ -38,8 +40,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   deleteCreatorPost,
+  fetchMyTwitchAvatar,
   requestPlayerLink,
   updateBannerColor,
+  updateLinkedPlayerProfile,
   updatePublicProfile,
   updateSocialLinks,
 } from "./actions";
@@ -81,7 +85,7 @@ type MeData = {
   badges: string[];
   stats: { pending: number; accepted: number; rejected: number };
   playerId: string | null;
-  player: { id: string; pseudo: string } | null;
+  player: LinkedPlayer | null;
   pendingLinkRequest: { playerPseudo: string } | null;
   playerCharacters: ProfileCharacter[];
   suggestions: Suggestion[];
@@ -89,6 +93,13 @@ type MeData = {
 };
 
 type PlayerOption = { id: string; pseudo: string };
+type LinkedPlayer = {
+  id: string;
+  pseudo: string;
+  chaines: string[];
+  reseaux: Record<string, string>;
+  imageUrl: string | null;
+};
 
 type TabKey = "public" | "propositions" | "notifications" | "compte";
 
@@ -410,6 +421,15 @@ function ProfilePageContent() {
                       <BadgePill key={b} badgeKey={b} />
                     ))}
                   </div>
+                )}
+
+                {data.playerId && data.player && (
+                  <PlayerProfileCard
+                    player={data.player}
+                    onSaved={(player) =>
+                      setData((prev) => (prev ? { ...prev, player } : prev))
+                    }
+                  />
                 )}
 
                 {data.playerId && (
@@ -994,6 +1014,300 @@ function SocialLinksCard({
             Ajouter
           </button>
         </p>
+      )}
+    </div>
+  );
+}
+
+const PLAYER_PLATFORM = {
+  twitch: { label: "Twitch", bg: "#9146FF", fg: "#FFFFFF" },
+  kick: { label: "Kick", bg: "#53FC18", fg: "#0E0F12" },
+};
+
+/** Fiche joueur liée au compte : le joueur l'édite directement, comme dans l'admin. */
+function PlayerProfileCard({
+  player,
+  onSaved,
+}: {
+  player: LinkedPlayer;
+  onSaved: (player: LinkedPlayer) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [f, setF] = useState(player);
+  const [saving, setSaving] = useState(false);
+  const [fetchingAvatar, setFetchingAvatar] = useState<string | null>(null);
+  const [newReseau, setNewReseau] = useState("");
+  const toast = useToast();
+
+  const unusedReseaux = RESEAUX_OPTIONS.filter((r) => !(r.key in f.reseaux));
+  const twitchChaines = f.chaines.filter((c) => detectStreamPlatform(c) === "twitch");
+
+  function startEditing() {
+    setF(player);
+    setEditing(true);
+  }
+
+  async function applyTwitchAvatar(url: string) {
+    setFetchingAvatar(url);
+    try {
+      const avatarUrl = await fetchMyTwitchAvatar(url);
+      setF((s) => ({ ...s, imageUrl: avatarUrl }));
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Avatar introuvable",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setFetchingAvatar(null);
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updateLinkedPlayerProfile({
+        pseudo: f.pseudo,
+        chaines: f.chaines,
+        reseaux: f.reseaux,
+        imageUrl: f.imageUrl,
+      });
+      const saved: LinkedPlayer = {
+        ...player,
+        pseudo: f.pseudo.trim() || player.pseudo,
+        chaines: f.chaines.map((c) => c.trim()).filter(Boolean),
+        reseaux: Object.fromEntries(
+          Object.entries(f.reseaux).filter(([, v]) => v.trim()),
+        ),
+        imageUrl: f.imageUrl?.trim() || null,
+      };
+      onSaved(saved);
+      setEditing(false);
+      toast({ tone: "success", title: "Fiche joueur enregistrée" });
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Enregistrement impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex min-w-65 flex-1 flex-col gap-3.5 rounded-xl border border-[#23262D] bg-[#15171B] p-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-[#A3A8B3]">
+          Ma fiche joueur
+        </p>
+        {!editing && (
+          <button
+            onClick={startEditing}
+            className="text-[13px] font-semibold text-[#8AB4FF] hover:underline"
+          >
+            Modifier
+          </button>
+        )}
+      </div>
+
+      {!editing ? (
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-full bg-[#2B2E35] text-[18px] font-bold">
+            {player.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cloudinaryUrl(player.imageUrl, "w_112,h_112,c_fill,g_face")}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              player.pseudo.slice(0, 2).toUpperCase()
+            )}
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-[17px] font-bold text-[#ECECEE]">
+              {player.pseudo}
+            </span>
+            <span className="text-[13px] text-[#9AA0AA]">
+              {player.chaines.length} chaîne{player.chaines.length > 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <ImageUpload
+            label="avatar du joueur"
+            value={f.imageUrl}
+            onChange={(v) => setF({ ...f, imageUrl: v })}
+            hint="Recadrage auto sur le visage"
+            preview="w_200,h_200,c_fill,g_face"
+            aspect="square"
+          />
+
+          <label className="flex flex-col gap-1">
+            <span className="text-[12px] font-semibold text-[#C4C7CF]">Pseudo</span>
+            <input
+              value={f.pseudo}
+              onChange={(e) => setF({ ...f, pseudo: e.target.value })}
+              className="min-h-10 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 text-[14px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
+            />
+          </label>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[12px] font-semibold text-[#C4C7CF]">
+              Chaînes de stream
+            </span>
+            {f.chaines.map((url, i) => {
+              const plat = detectStreamPlatform(url);
+              return (
+                <div key={i} className="flex items-center gap-2">
+                  {plat && (
+                    <span
+                      className="flex-none rounded px-2 py-0.5 text-[11px] font-extrabold"
+                      style={{
+                        background: PLAYER_PLATFORM[plat].bg,
+                        color: PLAYER_PLATFORM[plat].fg,
+                      }}
+                    >
+                      {PLAYER_PLATFORM[plat].label}
+                    </span>
+                  )}
+                  <input
+                    type="url"
+                    aria-label={`Lien de la chaîne ${i + 1}`}
+                    value={url}
+                    onChange={(e) =>
+                      setF({
+                        ...f,
+                        chaines: f.chaines.map((c, j) =>
+                          j === i ? e.target.value : c,
+                        ),
+                      })
+                    }
+                    placeholder="https://www.twitch.tv/pseudo"
+                    className="min-h-10 flex-1 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 text-[13px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
+                  />
+                  <button
+                    onClick={() =>
+                      setF({ ...f, chaines: f.chaines.filter((_, j) => j !== i) })
+                    }
+                    aria-label={`Retirer la chaîne ${i + 1}`}
+                    className="flex h-10 w-10 flex-none items-center justify-center rounded-md border border-[#3A3E47] text-[#9AA0AA] hover:border-[#FF8A8E] hover:text-[#FF8A8E]"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              onClick={() => setF({ ...f, chaines: [...f.chaines, ""] })}
+              className="flex min-h-9 w-fit items-center gap-1.5 rounded-md border border-[#3A3E47] px-3 text-[13px] font-semibold text-[#C4C7CF] hover:border-[#6E7380]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Ajouter une chaîne
+            </button>
+            {twitchChaines.map((url) => (
+              <button
+                key={url}
+                disabled={fetchingAvatar === url}
+                onClick={() => applyTwitchAvatar(url)}
+                className="flex min-h-9 w-fit items-center gap-1.5 rounded-md border border-[#3A3E47] px-3 text-[13px] font-semibold text-[#C4C7CF] hover:border-[#6E7380] disabled:opacity-50"
+              >
+                {fetchingAvatar === url
+                  ? "…"
+                  : `Utiliser la pp Twitch (${extractStreamUsername(url)})`}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[12px] font-semibold text-[#C4C7CF]">
+              Réseaux du joueur
+            </span>
+            {Object.entries(f.reseaux).map(([key, url]) => {
+              const opt = RESEAUX_OPTIONS.find((r) => r.key === key);
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  <span
+                    className="w-20 flex-none text-[13px] font-semibold"
+                    style={{ color: opt?.color }}
+                  >
+                    {opt?.label ?? key}
+                  </span>
+                  <input
+                    type="url"
+                    aria-label={opt?.label ?? key}
+                    value={url}
+                    onChange={(e) =>
+                      setF({ ...f, reseaux: { ...f.reseaux, [key]: e.target.value } })
+                    }
+                    className="min-h-10 flex-1 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 text-[13px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
+                  />
+                  <button
+                    onClick={() => {
+                      const next = { ...f.reseaux };
+                      delete next[key];
+                      setF({ ...f, reseaux: next });
+                    }}
+                    aria-label={`Retirer ${opt?.label ?? key}`}
+                    className="flex h-10 w-10 flex-none items-center justify-center rounded-md border border-[#3A3E47] text-[#9AA0AA] hover:border-[#FF8A8E] hover:text-[#FF8A8E]"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+            {unusedReseaux.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={newReseau}
+                  onChange={(e) => setNewReseau(e.target.value)}
+                  aria-label="Réseau à ajouter"
+                  className="min-h-9 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-2 text-[13px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]"
+                >
+                  <option value="">Choisir…</option>
+                  {unusedReseaux.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  disabled={!newReseau}
+                  onClick={() => {
+                    setF({ ...f, reseaux: { ...f.reseaux, [newReseau]: "" } });
+                    setNewReseau("");
+                  }}
+                  className="flex min-h-9 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3 text-[13px] font-semibold text-[#C4C7CF] hover:border-[#6E7380] disabled:opacity-50"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Ajouter un réseau
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex min-h-11 items-center gap-1.5 rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#2F6FEB]/90 disabled:opacity-50"
+            >
+              <Check className="h-3.5 w-3.5" />
+              {saving ? "…" : "Enregistrer"}
+            </button>
+            <button
+              onClick={() => {
+                setF(player);
+                setEditing(false);
+              }}
+              className="flex min-h-11 items-center rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#C4C7CF] hover:border-[#6E7380]"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

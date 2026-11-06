@@ -1,11 +1,14 @@
 "use server";
 
-import { invalidateProfilesCache } from "@/lib/actions";
+import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
+import { detectSoundPlatform } from "@/lib/media-embed";
 import { notifyBadgesEarned } from "@/lib/notifications";
 import { HEX_COLOR_RE } from "@/lib/profile-banner";
+import { getTwitchAvatar } from "@/lib/twitch";
+import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
-import { CreatorType, SocialPlatform } from "@prisma/client";
+import { CreatorType, Prisma, SocialPlatform } from "@prisma/client";
 
 export async function createCreatorPost(data: {
   type: CreatorType;
@@ -127,6 +130,128 @@ export async function requestPlayerLink(playerId: string, message?: string) {
       message: message?.trim() || null,
     },
   });
+}
+
+/** Vérifie que le compte est lié à un joueur et renvoie son id. */
+async function requireLinkedPlayerId(userId: string): Promise<string> {
+  const profile = await prisma.userProfile.findUnique({
+    where: { clerkUserId: userId },
+    select: { playerId: true },
+  });
+  if (!profile?.playerId) throw new Error("Aucun joueur lié à ce compte.");
+  return profile.playerId;
+}
+
+/** Fiche joueur du compte lié : le joueur édite directement la sienne, sans modération. */
+export async function updateLinkedPlayerProfile(data: {
+  pseudo: string;
+  chaines: string[];
+  reseaux: Record<string, string>;
+  imageUrl: string | null;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  const playerId = await requireLinkedPlayerId(userId);
+
+  const pseudo = data.pseudo.trim();
+  if (!pseudo) throw new Error("Le pseudo est requis.");
+
+  const reseaux = Object.fromEntries(
+    Object.entries(data.reseaux)
+      .map(([k, v]) => [k, v.trim()] as const)
+      .filter(([, v]) => v),
+  );
+  const chaines = data.chaines.map((c) => c.trim()).filter(Boolean);
+
+  await prisma.player.update({
+    where: { id: playerId },
+    data: { pseudo, chaines, reseaux, imageUrl: data.imageUrl?.trim() || null },
+  });
+
+  await invalidateWikiCache();
+  await invalidateProfilesCache();
+}
+
+/** Avatar Twitch d'un lien de chaîne, pour le joueur lié qui édite sa propre fiche. */
+export async function fetchMyTwitchAvatar(channelUrl: string): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  await requireLinkedPlayerId(userId);
+
+  if (detectStreamPlatform(channelUrl) !== "twitch") {
+    throw new Error("Ce n'est pas un lien Twitch.");
+  }
+  const login = extractStreamUsername(channelUrl);
+  if (!login) throw new Error("Pseudo Twitch introuvable dans le lien.");
+  const avatarUrl = await getTwitchAvatar(login);
+  if (!avatarUrl) throw new Error("Avatar introuvable sur Twitch.");
+  return avatarUrl;
+}
+
+/**
+ * Présentation d'un perso du joueur lié : description, image, rediffusions
+ * et sons, éditables en direct (sans modération). Le reste de la fiche
+ * (groupes/parcours, versions, relations) passe toujours par une
+ * proposition — ce sont des infos canoniques, et les relations touchent
+ * aussi les persos d'autres joueurs.
+ */
+export async function updateOwnCharacterPresentation(
+  characterId: string,
+  data: {
+    description: string;
+    imageUrl: string | null;
+    lienReddifs: { url: string; titre: string | null }[];
+    sounds: { titre: string; artiste: string | null; url: string }[];
+  },
+) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  const playerId = await requireLinkedPlayerId(userId);
+
+  const character = await prisma.character.findUnique({
+    where: { id: characterId },
+    select: { playerId: true },
+  });
+  if (!character || character.playerId !== playerId) {
+    throw new Error("Ce personnage ne t'appartient pas.");
+  }
+
+  const lienReddifs = data.lienReddifs
+    .map((r) => ({ url: r.url.trim(), titre: r.titre?.trim() || null }))
+    .filter((r) => r.url);
+  const sounds = data.sounds
+    .map((s) => ({
+      titre: s.titre.trim(),
+      artiste: s.artiste?.trim() || null,
+      url: s.url.trim(),
+    }))
+    .filter((s) => s.titre && s.url);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.character.update({
+      where: { id: characterId },
+      data: {
+        description: data.description.trim() || null,
+        imageUrl: data.imageUrl?.trim() || null,
+        lienReddifs: lienReddifs as Prisma.InputJsonValue,
+      },
+    });
+    await tx.sound.deleteMany({ where: { characterId } });
+    if (sounds.length) {
+      await tx.sound.createMany({
+        data: sounds.map((s, i) => ({
+          characterId,
+          titre: s.titre,
+          artiste: s.artiste,
+          url: s.url,
+          platform: detectSoundPlatform(s.url),
+          ordre: i,
+        })),
+      });
+    }
+  });
+
+  await invalidateWikiCache();
 }
 
 export async function deleteCreatorPost(id: string) {

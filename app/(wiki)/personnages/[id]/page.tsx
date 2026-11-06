@@ -1,5 +1,7 @@
 import CharacterPage from "@/app/_composents/characters/CharacterPage";
 import { getCharacterPage } from "@/lib/character-page";
+import { prisma } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -23,5 +25,18 @@ export default async function Page({ params }: Props) {
   const { id } = await params;
   const character = await getCharacterPage(id);
   if (!character) notFound();
-  return <CharacterPage c={character} />;
+
+  // Calculé hors du cache partagé (getCharacterPage) : c'est propre à ce
+  // visiteur, pas à la fiche.
+  const { userId } = await auth();
+  let isOwner = false;
+  if (userId && character.player) {
+    const profile = await prisma.userProfile.findUnique({
+      where: { clerkUserId: userId },
+      select: { playerId: true },
+    });
+    isOwner = profile?.playerId === character.player.id;
+  }
+
+  return <CharacterPage c={character} isOwner={isOwner} />;
 }

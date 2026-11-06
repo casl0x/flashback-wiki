@@ -14,6 +14,7 @@ import CharacterParcours from "./CharacterParcours";
 import CharacterRelations from "./CharacterRelations";
 import CharacterSounds from "./CharacterSounds";
 import { CharacterUserNotices } from "./CharacterUserNotices";
+import OwnCharacterEditor from "./OwnCharacterEditor";
 import SectionTitle from "./SectionTitle";
 
 /** Forme attendue par le bouton « Proposer une modification » (ancien type Character). */
@@ -44,7 +45,13 @@ function toSuggestCharacter(c: CharacterPageData): Character {
 }
 
 /** Fiche personnage (refonte), sans le header du site. */
-export default function CharacterPage({ c }: { c: CharacterPageData }) {
+export default function CharacterPage({
+  c,
+  isOwner = false,
+}: {
+  c: CharacterPageData;
+  isOwner?: boolean;
+}) {
   const firstName = c.nom.split(/\s+/)[0];
   const hasLocation = c.locationX != null && c.locationY != null;
 
@@ -55,6 +62,22 @@ export default function CharacterPage({ c }: { c: CharacterPageData }) {
       <div className="mx-auto flex max-w-295 flex-wrap items-start gap-8 px-4 pb-16 pt-8 sm:px-5">
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-7">
           <CharacterUserNotices characterId={c.id} />
+
+          {isOwner && (
+            <OwnCharacterEditor
+              characterId={c.id}
+              initial={{
+                description: c.description ?? "",
+                imageUrl: c.imageUrl,
+                lienReddifs: c.lienReddifs,
+                sounds: c.sounds.map((s) => ({
+                  titre: s.titre,
+                  artiste: s.artiste,
+                  url: s.url,
+                })),
+              }}
+            />
+          )}
 
           {c.lienReddifs.length === 0 && !c.description && (
             <InlineNotice
