@@ -24,6 +24,7 @@ export default function PointsButton({ userProfileId, name, characters }: Props)
   const [points, setPoints] = useState("5");
   const [reason, setReason] = useState("Contribution");
   const [characterId, setCharacterId] = useState<string | null>(null);
+  const [countAsContribution, setCountAsContribution] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -54,6 +55,7 @@ export default function PointsButton({ userProfileId, name, characters }: Props)
                 points: Number(points) || 0,
                 reason,
                 characterId,
+                countAsContribution,
               });
               if (!r.ok) return setError(r.error);
               close();
@@ -102,6 +104,20 @@ export default function PointsButton({ userProfileId, name, characters }: Props)
               placeholder="Choisir un personnage…"
             />
           </Field>
+          <label className="flex items-start gap-2 text-[13px] text-[#C4C7CF]">
+            <input
+              type="checkbox"
+              checked={countAsContribution}
+              onChange={(e) => setCountAsContribution(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-[#2F6FEB]"
+            />
+            <span>
+              Compter comme un ajout validé
+              <span className="block text-[12px] text-[#9AA0AA]">
+                Fait avancer les badges (Premier pas, Contributeur, Expert, Légende).
+              </span>
+            </span>
+          </label>
           {error && <Notice tone="error">{error}</Notice>}
           <div className="flex justify-end gap-2">
             <Button onClick={close}>Annuler</Button>

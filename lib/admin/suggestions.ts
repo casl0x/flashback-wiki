@@ -6,7 +6,7 @@ import { parseRediffusions, prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
 import type { Prisma, Suggestion } from "@prisma/client";
 
-function computeBadges(acceptedCount: number): string[] {
+export function computeBadges(acceptedCount: number): string[] {
   const badges: string[] = [];
   if (acceptedCount >= 1) badges.push("first-step");
   if (acceptedCount >= 5) badges.push("contributor");

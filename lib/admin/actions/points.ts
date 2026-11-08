@@ -1,7 +1,9 @@
 "use server";
 
 import { requireAdmin } from "@/lib/admin/auth";
+import { computeBadges } from "@/lib/admin/suggestions";
 import { prisma } from "@/lib/db";
+import { notifyBadgesEarned } from "@/lib/notifications";
 import { failure, refreshAll, type ActionResult } from "./shared";
 
 export type PointsInput = {
@@ -9,6 +11,8 @@ export type PointsInput = {
   points: number;
   reason: string;
   characterId: string | null;
+  /** Compte comme une contribution validée (+1 « ajout validé » → badges Premier pas, Contributeur…). */
+  countAsContribution: boolean;
 };
 
 /**
@@ -29,7 +33,7 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
 
     const profile = await prisma.userProfile.findUnique({
       where: { id: input.userProfileId },
-      select: { id: true },
+      select: { id: true, clerkUserId: true, badges: true },
     });
     if (!profile) return { ok: false, error: "Membre introuvable." };
 
@@ -61,11 +65,14 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
           characterId: input.characterId,
         },
       }),
-      ...(points > 0
+      ...(points > 0 || input.countAsContribution
         ? [
             prisma.userProfile.update({
               where: { id: profile.id },
-              data: { totalPoints: { increment: points } },
+              data: {
+                ...(points > 0 ? { totalPoints: { increment: points } } : {}),
+                ...(input.countAsContribution ? { acceptedCount: { increment: 1 } } : {}),
+              },
             }),
           ]
         : []),
@@ -73,6 +80,22 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
         data: { userProfileId: profile.id, type: "points_granted", message },
       }),
     ]);
+
+    if (input.countAsContribution) {
+      const updated = await prisma.userProfile.findUniqueOrThrow({
+        where: { id: profile.id },
+        select: { acceptedCount: true },
+      });
+      const computed = computeBadges(updated.acceptedCount);
+      const earned = computed.filter((b) => !profile.badges.includes(b));
+      if (earned.length) {
+        await prisma.userProfile.update({
+          where: { id: profile.id },
+          data: { badges: [...new Set([...profile.badges, ...computed])] },
+        });
+        await notifyBadgesEarned(profile.clerkUserId, earned);
+      }
+    }
 
     await refreshAll();
     return { ok: true };
