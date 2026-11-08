@@ -5,7 +5,7 @@ import Pagination from "@/app/_composents/ui/Pagination";
 import EmptyState from "@/app/_composents/EmptyState";
 import { Character } from "@/lib/db";
 import { matchesSearch } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterFilterBar, {
   RoleFilter,
   SortOrder,
@@ -17,6 +17,8 @@ const getPerPage = () => {
   if (window.innerWidth < 1024) return 24;
   return 30;
 };
+
+const STORAGE_KEY = "characters-explorer-state";
 
 type Props = {
   characters: Character[];
@@ -32,10 +34,52 @@ export default function CharactersExplorer({ characters }: Props) {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(30);
 
+  const [restored, setRestored] = useState(false);
+  const perPageRef = useRef<number | null>(null);
+
+  // Restaure filtres + page après un retour depuis une fiche personnage
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (typeof s.query === "string") setQuery(s.query);
+        if (typeof s.versionFilter === "string") setVersionFilter(s.versionFilter);
+        if (typeof s.etatFilter === "string") setEtatFilter(s.etatFilter);
+        if (typeof s.roleFilter === "string") setRoleFilter(s.roleFilter);
+        if (typeof s.sort === "string") setSort(s.sort);
+        if (typeof s.page === "number" && s.page >= 1) setPage(s.page);
+      }
+    } catch {}
+    setRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          query,
+          versionFilter,
+          etatFilter,
+          roleFilter,
+          sort,
+          page,
+        }),
+      );
+    } catch {}
+  }, [restored, query, versionFilter, etatFilter, roleFilter, sort, page]);
+
   useEffect(() => {
     const updatePerPage = () => {
-      setPerPage(getPerPage());
-      setPage(1);
+      const next = getPerPage();
+      // Ne remet à la page 1 que si le nombre par page change réellement
+      if (perPageRef.current !== null && perPageRef.current !== next) {
+        setPage(1);
+      }
+      perPageRef.current = next;
+      setPerPage(next);
     };
 
     updatePerPage();
