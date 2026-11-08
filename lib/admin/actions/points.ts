@@ -1,9 +1,8 @@
 "use server";
 
 import { requireAdmin } from "@/lib/admin/auth";
-import { computeBadges } from "@/lib/admin/suggestions";
+import { syncContributionBadges } from "@/lib/admin/contribution-badges";
 import { prisma } from "@/lib/db";
-import { notifyBadgesEarned } from "@/lib/notifications";
 import { failure, refreshAll, type ActionResult } from "./shared";
 
 export type PointsInput = {
@@ -11,8 +10,6 @@ export type PointsInput = {
   points: number;
   reason: string;
   characterId: string | null;
-  /** Compte comme une contribution validée (+1 « ajout validé » → badges Premier pas, Contributeur…). */
-  countAsContribution: boolean;
 };
 
 /**
@@ -33,7 +30,7 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
 
     const profile = await prisma.userProfile.findUnique({
       where: { id: input.userProfileId },
-      select: { id: true, clerkUserId: true, badges: true },
+      select: { id: true },
     });
     if (!profile) return { ok: false, error: "Membre introuvable." };
 
@@ -65,14 +62,11 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
           characterId: input.characterId,
         },
       }),
-      ...(points > 0 || input.countAsContribution
+      ...(points > 0
         ? [
             prisma.userProfile.update({
               where: { id: profile.id },
-              data: {
-                ...(points > 0 ? { totalPoints: { increment: points } } : {}),
-                ...(input.countAsContribution ? { acceptedCount: { increment: 1 } } : {}),
-              },
+              data: { totalPoints: { increment: points } },
             }),
           ]
         : []),
@@ -81,24 +75,25 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
       }),
     ]);
 
-    if (input.countAsContribution) {
-      const updated = await prisma.userProfile.findUniqueOrThrow({
-        where: { id: profile.id },
-        select: { acceptedCount: true },
-      });
-      const computed = computeBadges(updated.acceptedCount);
-      const earned = computed.filter((b) => !profile.badges.includes(b));
-      if (earned.length) {
-        await prisma.userProfile.update({
-          where: { id: profile.id },
-          data: { badges: [...new Set([...profile.badges, ...computed])] },
-        });
-        await notifyBadgesEarned(profile.clerkUserId, earned);
-      }
-    }
+    // Chaque entrée compte comme un ajout validé pour les badges.
+    await syncContributionBadges(profile.id);
 
     await refreshAll();
     return { ok: true };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/** Recalcule les badges de tous les membres ayant des entrées de points (rattrapage, sans danger si relancé). */
+export async function recomputeContributionBadges(): Promise<ActionResult<{ members: number; badges: number }>> {
+  try {
+    await requireAdmin();
+    const rows = await prisma.pointEntry.groupBy({ by: ["userProfileId"] });
+    let badges = 0;
+    for (const r of rows) badges += (await syncContributionBadges(r.userProfileId)).length;
+    await refreshAll();
+    return { ok: true, data: { members: rows.length, badges } };
   } catch (err) {
     return failure(err);
   }

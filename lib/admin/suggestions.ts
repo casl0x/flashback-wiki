@@ -113,7 +113,8 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
       update: { totalPoints: { increment: 10 }, acceptedCount: { increment: 1 } },
     });
     const existing = before?.badges ?? [];
-    const computed = computeBadges(updated.acceptedCount);
+    const bonus = await prisma.pointEntry.count({ where: { userProfileId: updated.id } });
+    const computed = computeBadges(updated.acceptedCount + bonus);
     const merged = [...new Set([...existing, ...computed])];
     await prisma.userProfile.update({ where: { clerkUserId: s.clerkUserId }, data: { badges: merged } });
     const earned = computed.filter((b) => !existing.includes(b));
