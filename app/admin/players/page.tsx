@@ -1,15 +1,29 @@
-import { ButtonLink, PageHeader, TextInput } from "@/app/_composents/admin/ui";
+import AdminPlayerFilters from "@/app/_composents/admin/AdminPlayerFilters";
+import { ButtonLink, PageHeader } from "@/app/_composents/admin/ui";
+import { playerWhere } from "@/lib/admin/player-list";
+import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import { BADGES_CONFIG } from "@/app/_composents/admin/PlayerBadges";
 import { prisma } from "@/lib/db";
 import { RESEAUX_OPTIONS } from "@/lib/reseaux";
 import { detectStreamPlatform } from "@/lib/utils";
-import type { Prisma } from "@prisma/client";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 const PER_PAGE = 30;
 
-type Props = { searchParams: Promise<{ q?: string; page?: string }> };
+const FILTER_KEYS = ["q", "badge", "chaine", "compte", "persos", "sort"] as const;
+
+type Props = {
+  searchParams: Promise<{
+    q?: string;
+    badge?: string;
+    chaine?: string;
+    compte?: string;
+    persos?: string;
+    sort?: string;
+    page?: string;
+  }>;
+};
 
 const normalizeReseaux = (value: unknown): Record<string, string> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -24,15 +38,21 @@ const normalizeReseaux = (value: unknown): Record<string, string> => {
 export default async function AdminPlayers({ searchParams }: Props) {
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
-  const where: Prisma.PlayerWhereInput = sp.q?.trim()
-    ? { pseudo: { contains: sp.q.trim(), mode: "insensitive" } }
-    : {};
+  const where = playerWhere(sp);
+  const orderBy =
+    sp.sort === "z→a"
+      ? { pseudo: "desc" as const }
+      : sp.sort === "persos"
+        ? { characters: { _count: "desc" as const } }
+        : sp.sort === "recent"
+          ? { createdAt: "desc" as const }
+          : { pseudo: "asc" as const };
 
   const [total, rows] = await Promise.all([
     prisma.player.count({ where }),
     prisma.player.findMany({
       where,
-      orderBy: { pseudo: "asc" },
+      orderBy,
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
       include: {
@@ -42,10 +62,13 @@ export default async function AdminPlayers({ searchParams }: Props) {
     }),
   ]);
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const qs = (p: number) =>
-    `?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), page: String(p) })}`;
   const listParams = new URLSearchParams();
-  if (sp.q) listParams.set("q", sp.q);
+  for (const k of FILTER_KEYS) if (sp[k]) listParams.set(k, sp[k]!);
+  const qs = (p: number) => {
+    const params = new URLSearchParams(listParams);
+    params.set("page", String(p));
+    return `?${params}`;
+  };
   if (sp.page) listParams.set("page", sp.page);
   const backHref = listParams.toString()
     ? `/admin/players?${listParams}`
@@ -64,21 +87,7 @@ export default async function AdminPlayers({ searchParams }: Props) {
           </ButtonLink>
         }
       />
-      <form role="search" className="flex gap-2.5">
-        <TextInput
-          name="q"
-          defaultValue={sp.q}
-          placeholder="Rechercher un pseudo…"
-          aria-label="Rechercher"
-          className="max-w-90"
-        />
-        <button
-          type="submit"
-          className="min-h-10 rounded-lg bg-[#22252B] px-4 font-bold hover:bg-[#2B2E35]"
-        >
-          Rechercher
-        </button>
-      </form>
+      <AdminPlayerFilters resultCount={rows.length} />
 
       <div className="overflow-x-auto rounded-[10px] border border-[#23262D]">
         <table className="w-full min-w-180 border-collapse text-left">
@@ -135,8 +144,23 @@ export default async function AdminPlayers({ searchParams }: Props) {
                   <td className="px-3 py-2.5 font-semibold">
                     <Link
                       href={editHref(p.id)}
-                      className="hover:underline"
+                      className="flex items-center gap-2.5 hover:underline"
                     >
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={cloudinaryUrl(p.imageUrl, "w_64,h_64,c_fill,g_face")}
+                          alt=""
+                          className="h-8 w-8 flex-none rounded-full object-cover"
+                        />
+                      ) : (
+                        <span
+                          aria-hidden
+                          className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[#2B2E35] text-[11px] font-bold text-[#C4C7CF]"
+                        >
+                          {initials(p.pseudo)}
+                        </span>
+                      )}
                       {p.pseudo}
                     </Link>
                   </td>
