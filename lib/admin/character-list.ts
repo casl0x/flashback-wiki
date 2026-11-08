@@ -14,6 +14,8 @@ export function characterWhere(f: CharacterFilters): Prisma.CharacterWhereInput 
       OR: [
         { nom: { contains: q, mode: "insensitive" } },
         { player: { pseudo: { contains: q, mode: "insensitive" } } },
+        { groupes: { some: { groupe: { nom: { contains: q, mode: "insensitive" } } } } },
+        { groupes: { some: { grade: { nom: { contains: q, mode: "insensitive" } } } } },
       ],
     });
   }
