@@ -68,11 +68,30 @@ model UserProfile {
   creatorRoles  CreatorRole[]
   notifications Notification[]
   socialLinks   SocialLink[]
+  pointEntries  PointEntry[]
 
   // Fiche joueur liée à ce compte (validée par un admin)
   playerId           String?             @unique @map("player_id")
   player             Player?             @relation(fields: [playerId], references: [id], onDelete: SetNull)
   playerLinkRequests PlayerLinkRequest[]
+}
+
+// Historique des points attribués à la main par un admin (ex. contribution
+// envoyée sur Discord). Si characterId est renseigné, le membre apparaît dans
+// les « Contributeurs » de la fiche du personnage.
+model PointEntry {
+  id            String      @id @default(cuid())
+  points        Int
+  reason        String
+  grantedBy     String? // clerkUserId de l'admin
+  createdAt     DateTime    @default(now())
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  characterId   String?     @map("character_id")
+  character     Character?  @relation(fields: [characterId], references: [id], onDelete: SetNull)
+
+  @@index([userProfileId, createdAt])
+  @@index([characterId])
 }
 
 // Demande d'un utilisateur pour lier son compte à une fiche joueur
@@ -273,6 +292,7 @@ model Character {
 
   suggestions  Suggestion[]
   creatorPosts CreatorPostCharacter[]
+  pointEntries PointEntry[]
 
   @@map("characters")
 }

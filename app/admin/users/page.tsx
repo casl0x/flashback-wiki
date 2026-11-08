@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs/server";
 import type { Prisma } from "@prisma/client";
 import Link from "next/link";
+import PointsButton from "./PointsButton";
 import SiteUpdateForm from "./SiteUpdateForm";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +86,10 @@ export default async function AdminUsers({ searchParams }: Props) {
         },
       }),
     ]);
+    const characterOptions = await prisma.character.findMany({
+      orderBy: { nom: "asc" },
+      select: { id: true, nom: true },
+    });
     const names = await displayNames(
       rows.filter((r) => !r.pseudo).map((r) => r.clerkUserId),
     );
@@ -146,13 +151,16 @@ export default async function AdminUsers({ searchParams }: Props) {
                 <th scope="col" className="px-3 py-2.5">
                   Inscrit
                 </th>
+                <th scope="col" className="px-3 py-2.5">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="bg-[#15171B] px-3 py-8 text-center text-[#9AA0AA]"
                   >
                     Aucun membre.
@@ -201,6 +209,13 @@ export default async function AdminUsers({ searchParams }: Props) {
                   </td>
                   <td className="px-3 py-2.5 text-[#9AA0AA]">
                     {shortDate(u.createdAt)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <PointsButton
+                      userProfileId={u.id}
+                      name={u.pseudo ?? names.get(u.clerkUserId) ?? "Utilisateur"}
+                      characters={characterOptions}
+                    />
                   </td>
                 </tr>
               ))}
