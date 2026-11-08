@@ -89,6 +89,13 @@ type MeData = {
   pendingLinkRequest: { playerPseudo: string } | null;
   playerCharacters: ProfileCharacter[];
   suggestions: Suggestion[];
+  pointEntries: {
+    id: string;
+    points: number;
+    reason: string;
+    characterName: string | null;
+    createdAt: string;
+  }[];
   creatorRoles: CreatorRole[];
 };
 
@@ -613,6 +620,40 @@ function ProfilePageContent() {
                       );
                     })}
                   </ul>
+                )}
+
+                {data.pointEntries.length > 0 && (
+                  <>
+                    <h2 className="m-0 mt-4 text-[18px] font-bold text-[#ECECEE]">
+                      Historique des points
+                    </h2>
+                    <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                      {data.pointEntries.map((e) => (
+                        <li
+                          key={e.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[#23262D] bg-[#15171B] px-4 py-3"
+                        >
+                          <span className="text-[14px] text-[#ECECEE]">
+                            {e.reason}
+                            {e.characterName && (
+                              <span className="text-[#9AA0AA]">
+                                {" "}
+                                · {e.characterName}
+                              </span>
+                            )}
+                          </span>
+                          <span className="flex items-center gap-3 text-[13px] text-[#9AA0AA]">
+                            {new Date(e.createdAt).toLocaleDateString("fr-FR")}
+                            {e.points > 0 && (
+                              <span className="font-bold text-[#6EE7A0]">
+                                +{e.points}
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
               </section>
             )}

@@ -20,7 +20,7 @@ export async function GET() {
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
 
-  const [profile, suggestions, suggestionStats] = await Promise.all([
+  const [profile, suggestions, suggestionStats, pointEntries] = await Promise.all([
     prisma.userProfile.findUnique({
       where: { clerkUserId: userId },
       include: {
@@ -61,6 +61,12 @@ export async function GET() {
       by: ["status"],
       where: { clerkUserId: userId },
       _count: true,
+    }),
+    prisma.pointEntry.findMany({
+      where: { userProfile: { clerkUserId: userId } },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      include: { character: { select: { nom: true } } },
     }),
   ]);
 
@@ -130,6 +136,13 @@ export async function GET() {
       status: s.status,
       rejectReason: s.rejectReason,
       moderatorMessage: s.moderatorMessage,
+    })),
+    pointEntries: pointEntries.map((e) => ({
+      id: e.id,
+      points: e.points,
+      reason: e.reason,
+      characterName: e.character?.nom ?? null,
+      createdAt: e.createdAt,
     })),
     creatorRoles:
       profile?.creatorRoles.map((r) => ({

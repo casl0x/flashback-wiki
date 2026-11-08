@@ -168,13 +168,13 @@ export const getPublicProfile = unstable_cache(
 export type Contributor = { pseudo: string; avatarUrl: string | null };
 
 /**
- * Membres ayant une proposition acceptée sur ce perso ou une création qui le
- * mentionne. Les profils masqués ne sont pas listés.
+ * Membres ayant une proposition acceptée sur ce perso, une création qui le
+ * mentionne, ou des points attribués par un admin pour ce perso. Les profils masqués ne sont pas listés.
  */
 async function loadCharacterContributors(
   characterId: string,
 ): Promise<Contributor[]> {
-  const [suggestions, posts] = await Promise.all([
+  const [suggestions, posts, credits] = await Promise.all([
     prisma.suggestion.findMany({
       where: { characterId, status: "accepted", clerkUserId: { not: null } },
       select: { clerkUserId: true },
@@ -190,10 +190,15 @@ async function loadCharacterContributors(
         },
       },
     }),
+    prisma.pointEntry.findMany({
+      where: { characterId },
+      select: { userProfile: { select: { clerkUserId: true } } },
+    }),
   ]);
 
   const clerkIds = [
     ...new Set([
+      ...credits.map((c) => c.userProfile.clerkUserId),
       ...suggestions.map((s) => s.clerkUserId!),
       ...posts.map((p) => p.creatorRole.userProfile.clerkUserId),
     ]),
