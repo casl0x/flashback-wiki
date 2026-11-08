@@ -1,9 +1,8 @@
 import CharactersExplorer from "@/app/_composents/characters/CharactersExplorer";
-import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
+import { CreateCharacterButton } from "@/app/_composents/user/CreateCharacterButton";
 import { cn } from "@/lib/cn";
 import { anton } from "@/lib/fonts";
 import { getWikiData } from "@/lib/wiki-data";
-import { Plus } from "lucide-react";
 
 export const revalidate = 300;
 
@@ -25,18 +24,7 @@ export default async function CharactersPage() {
           <p>{characters.length} fiches · toutes versions confondues</p>
         </div>
         <div className="inline-flex items-center gap-2 self-end">
-          <SuggestButton
-            mode="create"
-            renderTrigger={(onClick) => (
-              <button
-                onClick={onClick}
-                className="flex min-h-11 items-center gap-1.5 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#ECECEE] hover:border-[#6E7380]"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Proposer un personnage
-              </button>
-            )}
-          />
+          <CreateCharacterButton />
         </div>
       </div>
       <CharactersExplorer characters={characters} />
