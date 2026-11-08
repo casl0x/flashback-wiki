@@ -12,6 +12,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import type { Prisma } from "@prisma/client";
 import Link from "next/link";
 import PointsButton from "./PointsButton";
+import RecomputeBadgesButton from "./RecomputeBadgesButton";
 import SiteUpdateForm from "./SiteUpdateForm";
 
 export const dynamic = "force-dynamic";
@@ -99,6 +100,7 @@ export default async function AdminUsers({ searchParams }: Props) {
 
     body = (
       <>
+        <RecomputeBadgesButton />
         <form role="search" className="flex flex-wrap gap-2.5">
           <input type="hidden" name="tab" value="membres" />
           <TextInput

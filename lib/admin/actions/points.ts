@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/admin/auth";
+import { syncContributionBadges } from "@/lib/admin/contribution-badges";
 import { prisma } from "@/lib/db";
 import { failure, refreshAll, type ActionResult } from "./shared";
 
@@ -74,8 +75,25 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
       }),
     ]);
 
+    // Chaque entrée compte comme un ajout validé pour les badges.
+    await syncContributionBadges(profile.id);
+
     await refreshAll();
     return { ok: true };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/** Recalcule les badges de tous les membres ayant des entrées de points (rattrapage, sans danger si relancé). */
+export async function recomputeContributionBadges(): Promise<ActionResult<{ members: number; badges: number }>> {
+  try {
+    await requireAdmin();
+    const rows = await prisma.pointEntry.groupBy({ by: ["userProfileId"] });
+    let badges = 0;
+    for (const r of rows) badges += (await syncContributionBadges(r.userProfileId)).length;
+    await refreshAll();
+    return { ok: true, data: { members: rows.length, badges } };
   } catch (err) {
     return failure(err);
   }
