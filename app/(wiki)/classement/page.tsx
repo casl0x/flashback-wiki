@@ -1,4 +1,5 @@
 import { BADGES_CONFIG } from "@/app/_composents/user/badges";
+import { BADGE_THRESHOLDS } from "@/lib/badge-thresholds";
 import { anton } from "@/lib/fonts";
 import { getLeaderboard, type LeaderboardEntry } from "@/lib/public-profile";
 import { cn, profileHref } from "@/lib/utils";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     "Les membres qui font vivre le wiki : propositions validées et points.",
 };
 
-/** Palier le plus élevé atteint, d'après les badges de contribution. */
+/** Palier le plus élevé atteint, d'après le total de points. */
 const TIERS = [
   { key: "legend", label: "Légende", color: "#F6C453" },
   { key: "expert", label: "Expert", color: "#34D399" },
@@ -21,8 +22,8 @@ const TIERS = [
   { key: "first-step", label: "Débutant", color: "#F59E0B" },
 ] as const;
 
-function tierOf(badges: string[]) {
-  return TIERS.find((t) => badges.includes(t.key)) ?? null;
+function tierOf(points: number) {
+  return TIERS.find((t) => points >= BADGE_THRESHOLDS[t.key]) ?? null;
 }
 
 const PODIUM = {
@@ -53,8 +54,8 @@ function Avatar({ e, size }: { e: LeaderboardEntry; size: number }) {
   );
 }
 
-function TierTag({ badges }: { badges: string[] }) {
-  const tier = tierOf(badges);
+function TierTag({ points }: { points: number }) {
+  const tier = tierOf(points);
   if (!tier) return null;
   return (
     <span
@@ -91,7 +92,7 @@ function PodiumSpot({ e }: { e: LeaderboardEntry }) {
       >
         {e.pseudo}
       </span>
-      <TierTag badges={e.badges} />
+      <TierTag points={e.points} />
       <div
         className={cn(
           "mt-1 flex w-full flex-col items-center gap-1 rounded-t-xl border px-2 pb-4",
@@ -130,7 +131,7 @@ function Row({ e }: { e: LeaderboardEntry }) {
               </span>
             ))}
           </span>
-          <TierTag badges={e.badges} />
+          <TierTag points={e.points} />
         </div>
         <div className="flex w-20 flex-none flex-col items-end">
           <span className={cn(anton.className, "text-[24px] leading-none text-[#ECECEE]")}>
@@ -146,11 +147,11 @@ function Row({ e }: { e: LeaderboardEntry }) {
 const RULES = [
   [
     "Gagner des points",
-    "Chaque proposition acceptée sur le site rapporte 10 points. L'équipe en attribue aussi pour les contributions faites ailleurs, par exemple une photo ou une info envoyée sur Discord.",
+    "Une proposition acceptée sur le site rapporte 10 points. L'équipe en attribue aussi pour les contributions faites sur Discord : en général 10 points pour une info et 5 pour une photo.",
   ],
   [
     "Paliers",
-    "Débutant dès 1 contribution, Contributeur à 5, Expert à 15 et Légende à 30. Les propositions acceptées et les contributions créditées par l'équipe comptent toutes.",
+    "Ils dépendent du total de points : Débutant dès 10 points, Contributeur à 50, Expert à 150 et Légende à 300.",
   ],
   [
     "Qui est classé",

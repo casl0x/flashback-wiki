@@ -1,19 +1,11 @@
 import "server-only";
 
 import { invalidateWikiCache } from "@/lib/actions";
+import { computeBadges } from "@/lib/badge-thresholds";
 import { logChange } from "@/lib/changelog";
 import { parseRediffusions, prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
 import type { Prisma, Suggestion } from "@prisma/client";
-
-export function computeBadges(acceptedCount: number): string[] {
-  const badges: string[] = [];
-  if (acceptedCount >= 1) badges.push("first-step");
-  if (acceptedCount >= 5) badges.push("contributor");
-  if (acceptedCount >= 15) badges.push("expert");
-  if (acceptedCount >= 30) badges.push("legend");
-  return badges;
-}
 
 /**
  * Applique une proposition acceptée sur le perso visé (ou en crée un),
@@ -113,8 +105,7 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
       update: { totalPoints: { increment: 10 }, acceptedCount: { increment: 1 } },
     });
     const existing = before?.badges ?? [];
-    const bonus = await prisma.pointEntry.count({ where: { userProfileId: updated.id } });
-    const computed = computeBadges(updated.acceptedCount + bonus);
+    const computed = computeBadges(updated.totalPoints);
     const merged = [...new Set([...existing, ...computed])];
     await prisma.userProfile.update({ where: { clerkUserId: s.clerkUserId }, data: { badges: merged } });
     const earned = computed.filter((b) => !existing.includes(b));

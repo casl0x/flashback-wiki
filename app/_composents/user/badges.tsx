@@ -2,7 +2,7 @@ export const BADGES_CONFIG = [
   {
     key: "first-step",
     label: "Premier pas",
-    description: "Première suggestion acceptée",
+    description: "10 points",
     icon: "⭐",
     color: "#f59e0b",
     bg: "rgba(245,158,11,0.12)",
@@ -11,7 +11,7 @@ export const BADGES_CONFIG = [
   {
     key: "contributor",
     label: "Contributeur",
-    description: "5 suggestions acceptées",
+    description: "50 points",
     icon: "🔷",
     color: "#7F77DD",
     bg: "rgba(127,119,221,0.12)",
@@ -20,7 +20,7 @@ export const BADGES_CONFIG = [
   {
     key: "expert",
     label: "Expert",
-    description: "15 suggestions acceptées",
+    description: "150 points",
     icon: "💎",
     color: "#1d9e75",
     bg: "rgba(29,158,117,0.12)",
@@ -29,7 +29,7 @@ export const BADGES_CONFIG = [
   {
     key: "legend",
     label: "Légende",
-    description: "30 suggestions acceptées",
+    description: "300 points",
     icon: "👑",
     color: "#e11d48",
     bg: "rgba(225,29,72,0.12)",
