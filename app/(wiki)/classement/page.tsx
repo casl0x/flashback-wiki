@@ -158,6 +158,10 @@ const RULES = [
     "Les membres qui ont au moins 1 point, un profil public et leurs stats visibles.",
   ],
   [
+    "Durée",
+    "C'est un classement sur toute la durée du wiki, les points ne sont jamais remis à zéro.",
+  ],
+  [
     "Mise à jour",
     "Le classement se rafraîchit toutes les 5 minutes environ.",
   ],
@@ -222,7 +226,7 @@ export default async function ClassementPage() {
             Classement
           </h1>
           <p className="m-0 text-[#A3A8B3]">
-            Les membres qui font vivre le wiki.
+            Les membres qui font vivre le wiki, depuis le début.
           </p>
         </header>
 
