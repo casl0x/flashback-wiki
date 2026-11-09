@@ -1,4 +1,5 @@
 import { BadgePill } from "@/app/_composents/user/badges";
+import { VersionPill } from "@/app/_composents/user/VersionBadges";
 import {
   ProfileCharacters,
   ProfilePill,
@@ -163,6 +164,12 @@ export default async function PublicProfilePage({ params }: Props) {
               <Stat value={p.stats.accepted} label="Ajouts validés" />
               <Stat value={p.stats.points} label="Points" />
               <Stat value={p.stats.creations} label="Créations" />
+              <Link
+                href="/classement"
+                className="w-full text-[13px] font-semibold text-[#8AB4FF] hover:underline"
+              >
+                Voir le classement →
+              </Link>
             </div>
           )}
         </section>
@@ -175,6 +182,29 @@ export default async function PublicProfilePage({ params }: Props) {
                 <BadgePill key={b} badgeKey={b} />
               ))}
             </div>
+          </section>
+        )}
+
+        {(p.versionBadges.contributor.length > 0 ||
+          p.versionBadges.creator.length > 0) && (
+          <section aria-labelledby="versions-h" className="flex flex-col gap-3">
+            <ProfileSectionTitle id="versions-h">Versions</ProfileSectionTitle>
+            {p.versionBadges.contributor.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[13px] text-[#9AA0AA]">Contributeur sur</span>
+                {p.versionBadges.contributor.map((v) => (
+                  <VersionPill key={v.id} version={v} kind="contributor" />
+                ))}
+              </div>
+            )}
+            {p.versionBadges.creator.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[13px] text-[#9AA0AA]">Créateur sur</span>
+                {p.versionBadges.creator.map((v) => (
+                  <VersionPill key={v.id} version={v} kind="creator" />
+                ))}
+              </div>
+            )}
           </section>
         )}
 

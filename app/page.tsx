@@ -1,3 +1,4 @@
+import TopContributors from "@/app/_composents/homepage/TopContributors";
 import TopPages from "@/app/_composents/homepage/TopPages";
 import { Button } from "@/components/ui/button";
 import { getWikiData } from "@/lib/wiki-data";
@@ -56,6 +57,7 @@ export default async function HomePage() {
           since="30d"
         />
       </section>
+      <TopContributors />
       <section className="space-y-4 p-4 lg:p-5">
         <ExploreVersion />
       </section>

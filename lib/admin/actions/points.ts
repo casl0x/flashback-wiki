@@ -75,7 +75,7 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
       }),
     ]);
 
-    // Chaque entrée compte comme un ajout validé pour les badges.
+    // Les badges dépendent du total de points.
     await syncContributionBadges(profile.id);
 
     await refreshAll();

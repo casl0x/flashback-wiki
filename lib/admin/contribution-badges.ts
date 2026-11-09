@@ -1,12 +1,11 @@
 import "server-only";
 
-import { computeBadges } from "@/lib/admin/suggestions";
+import { computeBadges } from "@/lib/badge-thresholds";
 import { prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
 
 /**
- * Recalcule les badges de contribution d'un membre : propositions acceptées
- * + entrées de points attribuées par un admin. Ne retire jamais un badge et
+ * Recalcule les badges de contribution d'un membre d'après son total de points. Ne retire jamais un badge et
  * peut être relancé sans danger (aucun double comptage).
  * Renvoie les badges nouvellement gagnés.
  */
@@ -15,13 +14,12 @@ export async function syncContributionBadges(userProfileId: string): Promise<str
     where: { id: userProfileId },
     select: {
       clerkUserId: true,
-      acceptedCount: true,
+      totalPoints: true,
       badges: true,
-      _count: { select: { pointEntries: true } },
     },
   });
   if (!profile) return [];
-  const computed = computeBadges(profile.acceptedCount + profile._count.pointEntries);
+  const computed = computeBadges(profile.totalPoints);
   const earned = computed.filter((b) => !profile.badges.includes(b));
   if (!earned.length) return [];
   await prisma.userProfile.update({
