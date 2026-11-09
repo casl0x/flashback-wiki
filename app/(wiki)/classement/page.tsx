@@ -2,7 +2,7 @@ import { BADGES_CONFIG } from "@/app/_composents/user/badges";
 import { anton } from "@/lib/fonts";
 import { getLeaderboard, type LeaderboardEntry } from "@/lib/public-profile";
 import { cn, profileHref } from "@/lib/utils";
-import { User } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -143,6 +143,66 @@ function Row({ e }: { e: LeaderboardEntry }) {
   );
 }
 
+const RULES = [
+  [
+    "Gagner des points",
+    "Chaque proposition acceptée sur le site rapporte 10 points. L'équipe en attribue aussi pour les contributions faites ailleurs, par exemple une photo ou une info envoyée sur Discord.",
+  ],
+  [
+    "Paliers",
+    "Débutant dès 1 contribution, Contributeur à 5, Expert à 15 et Légende à 30. Les propositions acceptées et les contributions créditées par l'équipe comptent toutes.",
+  ],
+  [
+    "Qui est classé",
+    "Les membres qui ont au moins 1 point, un profil public et leurs stats visibles.",
+  ],
+  [
+    "Mise à jour",
+    "Le classement se rafraîchit toutes les 5 minutes environ.",
+  ],
+] as const;
+
+function RulesList() {
+  return (
+    <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-[14px] text-[#C4C7CF]">
+      {RULES.map(([title, text]) => (
+        <li key={title}>
+          <strong className="font-semibold text-[#ECECEE]">{title} :</strong>{" "}
+          {text}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Replié sur mobile, déplié dès md. */
+function HowItWorks() {
+  const box = "rounded-xl border border-[#23262D] bg-[#15171B] p-4";
+  const title = "text-[13px] font-semibold uppercase tracking-wide text-[#A3A8B3]";
+  return (
+    <section aria-label="Comment ça marche ?">
+      <details className={cn(box, "group md:hidden")}>
+        <summary
+          className={cn(
+            title,
+            "flex min-h-8 cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden",
+          )}
+        >
+          Comment ça marche ?
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="pt-3">
+          <RulesList />
+        </div>
+      </details>
+      <div className={cn(box, "hidden flex-col gap-3 md:flex")}>
+        <h2 className={cn(title, "m-0")}>Comment ça marche ?</h2>
+        <RulesList />
+      </div>
+    </section>
+  );
+}
+
 export default async function ClassementPage() {
   const entries = await getLeaderboard();
   const podium = entries.slice(0, 3);
@@ -161,10 +221,11 @@ export default async function ClassementPage() {
             Classement
           </h1>
           <p className="m-0 text-[#A3A8B3]">
-            Les membres qui font vivre le wiki. Chaque proposition validée
-            rapporte 10 points.
+            Les membres qui font vivre le wiki.
           </p>
         </header>
+
+        <HowItWorks />
 
         {entries.length === 0 ? (
           <p className="rounded-[10px] border border-dashed border-[#3A3E47] px-5 py-10 text-center text-[#9AA0AA]">
