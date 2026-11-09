@@ -408,6 +408,12 @@ function ProfilePageContent() {
                       <Stat value={data.points} label="Points" />
                       <Stat value={totalCreations} label="Créations" />
                     </div>
+                    <Link
+                      href="/classement"
+                      className="text-[13px] font-semibold text-[#8AB4FF] hover:underline"
+                    >
+                      Voir le classement →
+                    </Link>
                     {!data.showStats && (
                       <p className="m-0 text-[13px] text-[#9AA0AA]">
                         Masquées sur ton profil public.{" "}

@@ -164,6 +164,12 @@ export default async function PublicProfilePage({ params }: Props) {
               <Stat value={p.stats.accepted} label="Ajouts validés" />
               <Stat value={p.stats.points} label="Points" />
               <Stat value={p.stats.creations} label="Créations" />
+              <Link
+                href="/classement"
+                className="w-full text-[13px] font-semibold text-[#8AB4FF] hover:underline"
+              >
+                Voir le classement →
+              </Link>
             </div>
           )}
         </section>
