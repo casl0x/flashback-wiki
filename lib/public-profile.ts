@@ -247,7 +247,6 @@ export type LeaderboardEntry = {
   avatarUrl: string | null;
   points: number;
   accepted: number;
-  creations: number;
   badges: string[];
 };
 
@@ -302,10 +301,6 @@ async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
         totalPoints: true,
         acceptedCount: true,
         badges: true,
-        creatorRoles: {
-          where: { status: "approved" },
-          select: { _count: { select: { posts: true } } },
-        },
       },
     }),
   ]);
@@ -329,7 +324,6 @@ async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
     avatarUrl: avatars.get(p.clerkUserId) ?? null,
     points: p.totalPoints,
     accepted: p.acceptedCount,
-    creations: p.creatorRoles.reduce((n, r) => n + r._count.posts, 0),
     badges: p.badges,
   }));
 }
