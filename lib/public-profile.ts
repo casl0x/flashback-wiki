@@ -1,5 +1,11 @@
 import type { EtatVie, VersionTag } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
+import {
+  getVersionBadges,
+  getVersionBadgesFor,
+  type VersionBadge,
+  type VersionBadges,
+} from "@/lib/version-badges";
 import { versionRank } from "@/lib/version-rank";
 import { createClerkClient } from "@clerk/nextjs/server";
 import { CreatorType, SocialPlatform } from "@prisma/client";
@@ -16,6 +22,7 @@ export type PublicProfileData = {
   bio: string | null;
   bannerColor: string | null;
   badges: string[];
+  versionBadges: VersionBadges;
   /** null si l'utilisateur a choisi de masquer ses stats. */
   stats: { accepted: number; points: number; creations: number } | null;
   creatorTypes: CreatorType[];
@@ -70,7 +77,7 @@ async function loadPublicProfile(
   const found = await findProfileByPseudo(pseudo);
   if (!found?.pseudo || !found.profilePublic) return null;
 
-  const [profile, avatarUrl] = await Promise.all([
+  const [profile, avatarUrl, versionBadges] = await Promise.all([
     prisma.userProfile.findUniqueOrThrow({
       where: { id: found.id },
       include: {
@@ -91,6 +98,7 @@ async function loadPublicProfile(
       },
     }),
     avatarOf(found.clerkUserId),
+    getVersionBadgesFor(found.clerkUserId),
   ]);
 
   const characters = profile.playerId
@@ -119,6 +127,7 @@ async function loadPublicProfile(
     bio: profile.bio,
     bannerColor: profile.bannerColor,
     badges: profile.badges,
+    versionBadges,
     stats: profile.showStats
       ? {
           accepted: profile.acceptedCount,
@@ -248,6 +257,8 @@ export type LeaderboardEntry = {
   points: number;
   accepted: number;
   badges: string[];
+  /** Versions où le membre a contribué (sans les créations), de la plus ancienne à la plus récente. */
+  versions: VersionBadge[];
 };
 
 /** Ids Clerk des membres de l'organisation admin : exclus du classement. */
@@ -307,6 +318,8 @@ async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
 
   const ranked = profiles.filter((p) => !admins.has(p.clerkUserId)).slice(0, 100);
 
+  const versionBadges = await getVersionBadges(ranked.map((p) => p.clerkUserId));
+
   const avatars = new Map<string, string>();
   try {
     const { data } = await clerk.users.getUserList({
@@ -325,6 +338,7 @@ async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
     points: p.totalPoints,
     accepted: p.acceptedCount,
     badges: p.badges,
+    versions: versionBadges.get(p.clerkUserId)?.contributor ?? [],
   }));
 }
 

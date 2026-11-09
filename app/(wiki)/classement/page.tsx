@@ -1,4 +1,5 @@
 import { BADGES_CONFIG } from "@/app/_composents/user/badges";
+import { VersionPill } from "@/app/_composents/user/VersionBadges";
 import { BADGE_THRESHOLDS } from "@/lib/badge-thresholds";
 import { anton } from "@/lib/fonts";
 import { getLeaderboard, type LeaderboardEntry } from "@/lib/public-profile";
@@ -132,6 +133,13 @@ function Row({ e }: { e: LeaderboardEntry }) {
             ))}
           </span>
           <TierTag points={e.points} />
+          {e.versions.length > 0 && (
+            <span className="mt-1 flex flex-wrap gap-1">
+              {e.versions.slice(-3).map((v) => (
+                <VersionPill key={v.id} version={v} kind="contributor" />
+              ))}
+            </span>
+          )}
         </div>
         <div className="flex w-20 flex-none flex-col items-end">
           <span className={cn(anton.className, "text-[24px] leading-none text-[#ECECEE]")}>
