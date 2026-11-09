@@ -1,7 +1,7 @@
 export const BADGES_CONFIG = [
   {
     key: "first-step",
-    label: "Premier pas",
+    label: "Débutant",
     description: "10 points",
     icon: "⭐",
     color: "#f59e0b",
