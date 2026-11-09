@@ -132,10 +132,12 @@ function Row({ e }: { e: LeaderboardEntry }) {
           </span>
           <TierTag badges={e.badges} />
         </div>
-        <div className="hidden flex-col items-end text-[12px] text-[#9AA0AA] sm:flex">
-          <span>{e.accepted} ajouts validés</span>
-          {e.creations > 0 && <span>{e.creations} créations</span>}
-        </div>
+        {/* Compteur d'ajouts validés en pause : il ne compte pas encore les contributions Discord. */}
+        {e.creations > 0 && (
+          <span className="hidden text-[12px] text-[#9AA0AA] sm:block">
+            {e.creations} créations
+          </span>
+        )}
         <div className="flex w-20 flex-none flex-col items-end">
           <span className={cn(anton.className, "text-[24px] leading-none text-[#ECECEE]")}>
             {e.points}
