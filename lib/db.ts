@@ -44,6 +44,7 @@ export type Groupe = {
   type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC";
   statut: "INDE" | "GANG" | "ORGA" | "GM" | null;
   dissous: boolean;
+  categorieId: string | null;
   /** Nombre de persos distincts (renseigné par fetchWikiData). */
   membersCount?: number;
 };

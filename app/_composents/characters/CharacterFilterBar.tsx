@@ -253,7 +253,7 @@ export default function CharacterFilterBar({
   );
 }
 
-function FilterChip({
+export function FilterChip({
   label,
   color,
   onRemove,

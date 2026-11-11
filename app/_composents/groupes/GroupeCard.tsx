@@ -12,7 +12,13 @@ import Image from "next/image";
 import Link from "next/link";
 
 /** Carte d'un groupe (groupe, entreprise ou service public) : mène à sa page / son trombinoscope. */
-export default function GroupeCard({ groupe }: { groupe: Groupe }) {
+export default function GroupeCard({
+  groupe,
+  categorie,
+}: {
+  groupe: Groupe;
+  categorie?: string | null;
+}) {
   const accent = groupe.color ?? "#2F6FEB";
   const members = groupe.membersCount ?? 0;
 
@@ -49,7 +55,8 @@ export default function GroupeCard({ groupe }: { groupe: Groupe }) {
           {groupe.nom}
         </span>
         <span className="text-[13px] text-text-secondary">
-          {GROUPE_TYPE_META[groupe.type].label} · {members} membre
+          {GROUPE_TYPE_META[groupe.type].label}
+          {categorie ? ` · ${categorie}` : ""} · {members} membre
           {members > 1 ? "s" : ""}
         </span>
         {(groupe.statut || groupe.dissous) && (
