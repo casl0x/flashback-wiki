@@ -130,7 +130,10 @@ export async function fetchWikiData(): Promise<WikiData> {
           _count: { select: { relationsA: true, relationsB: true } },
         },
       }),
-      prisma.groupe.findMany({ orderBy: { nom: "asc" } }),
+      prisma.groupe.findMany({
+        orderBy: { nom: "asc" },
+        include: { members: { select: { characterId: true } } },
+      }),
     ]);
 
     const normalizedVersions = versions.map((version) => ({
@@ -175,9 +178,10 @@ export async function fetchWikiData(): Promise<WikiData> {
       versions: normalizedVersions,
       players: normalizedPlayers,
       characters: enrichedCharacters,
-      groupes: groupes.map((g) => ({
+      groupes: groupes.map(({ members, ...g }) => ({
         ...g,
         createdAt: g.createdAt.toISOString(),
+        membersCount: new Set(members.map((m) => m.characterId)).size,
       })),
       counts,
       totalRelations,

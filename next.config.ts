@@ -21,6 +21,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    // Anciennes pages générales : la liste est maintenant la vue « Groupes » de l'Explorer.
+    return [
+      {
+        source: "/entreprises",
+        destination: "/personnages?vue=groupes&type=ENTREPRISE",
+        permanent: false,
+      },
+      {
+        source: "/services-publics",
+        destination: "/personnages?vue=groupes&type=SERVICE_PUBLIC",
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

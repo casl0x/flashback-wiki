@@ -3,8 +3,17 @@
 import CharactersGrid from "@/app/_composents/characters/CharactersGrid";
 import Pagination from "@/app/_composents/ui/Pagination";
 import EmptyState from "@/app/_composents/EmptyState";
-import { Character } from "@/lib/db";
-import { matchesSearch } from "@/lib/utils";
+import GroupeCard from "@/app/_composents/groupes/GroupeCard";
+import { Character, Groupe } from "@/lib/db";
+import {
+  GROUPE_TYPES,
+  GROUPE_TYPE_META,
+  groupeHref,
+  type GroupeType,
+} from "@/lib/groupe-types";
+import { cn, matchesSearch } from "@/lib/utils";
+import { Search } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterFilterBar, {
   RoleFilter,
@@ -20,11 +29,17 @@ const getPerPage = () => {
 
 const STORAGE_KEY = "characters-explorer-state";
 
+type Vue = "personnages" | "groupes";
+type TypeFilter = "all" | GroupeType;
+
 type Props = {
   characters: Character[];
+  groupes: Groupe[];
 };
 
-export default function CharactersExplorer({ characters }: Props) {
+export default function CharactersExplorer({ characters, groupes }: Props) {
+  const [vue, setVue] = useState<Vue>("personnages");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [query, setQuery] = useState("");
   const [versionFilter, setVersionFilter] = useState("all");
   const [etatFilter, setEtatFilter] = useState("all");
@@ -44,15 +59,40 @@ export default function CharactersExplorer({ characters }: Props) {
       if (raw) {
         const s = JSON.parse(raw);
         if (typeof s.query === "string") setQuery(s.query);
-        if (typeof s.versionFilter === "string") setVersionFilter(s.versionFilter);
+        if (typeof s.versionFilter === "string")
+          setVersionFilter(s.versionFilter);
         if (typeof s.etatFilter === "string") setEtatFilter(s.etatFilter);
         if (typeof s.roleFilter === "string") setRoleFilter(s.roleFilter);
         if (typeof s.sort === "string") setSort(s.sort);
         if (typeof s.page === "number" && s.page >= 1) setPage(s.page);
       }
     } catch {}
+    // La vue (et le filtre de type) vivent dans l'adresse : partageable, et reprise au retour d'un groupe.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("vue") === "groupes") setVue("groupes");
+      const t = params.get("type");
+      if (t && (GROUPE_TYPES as string[]).includes(t)) {
+        setTypeFilter(t as GroupeType);
+      }
+    } catch {}
     setRestored(true);
   }, []);
+
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      const url = new URL(window.location.href);
+      if (vue === "groupes") url.searchParams.set("vue", "groupes");
+      else url.searchParams.delete("vue");
+      if (vue === "groupes" && typeFilter !== "all") {
+        url.searchParams.set("type", typeFilter);
+      } else {
+        url.searchParams.delete("type");
+      }
+      window.history.replaceState(null, "", url);
+    } catch {}
+  }, [restored, vue, typeFilter]);
 
   useEffect(() => {
     if (!restored) return;
@@ -123,6 +163,25 @@ export default function CharactersExplorer({ characters }: Props) {
     return result;
   }, [characters, query, versionFilter, etatFilter, roleFilter, sort]);
 
+  // Groupes dont le nom correspond à la recherche (encart sur la vue Personnages).
+  const matchingGroupes = useMemo(
+    () =>
+      query.trim() ? groupes.filter((g) => matchesSearch(g.nom, query)) : [],
+    [groupes, query],
+  );
+
+  const groupesFiltered = useMemo(
+    () =>
+      groupes
+        .filter(
+          (g) =>
+            (typeFilter === "all" || g.type === typeFilter) &&
+            matchesSearch(g.nom, query),
+        )
+        .sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
+    [groupes, typeFilter, query],
+  );
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const currentPage = Math.min(page, totalPages);
   const paginated = filtered.slice(
@@ -134,8 +193,82 @@ export default function CharactersExplorer({ characters }: Props) {
 
   const resetPage = () => setPage(1);
 
+  const vueSwitch = (
+    <div
+      role="tablist"
+      aria-label="Vue"
+      className="inline-flex self-start rounded-lg border border-border bg-background p-0.5"
+    >
+      {(["personnages", "groupes"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          role="tab"
+          aria-selected={vue === v}
+          onClick={() => setVue(v)}
+          className={cn(
+            "rounded-md px-4 py-1.5 text-sm font-semibold transition-colors",
+            vue === v
+              ? "bg-accent text-accent-foreground"
+              : "text-text-secondary hover:text-text-primary",
+          )}
+        >
+          {v === "personnages" ? "Personnages" : "Groupes"}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (vue === "groupes") {
+    return (
+      <section className="flex flex-col gap-4">
+        {vueSwitch}
+        <div className="flex flex-col gap-3">
+          <div className="relative max-w-md">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un groupe, une entreprise..."
+              className="h-9 w-full rounded-lg border border-border bg-background py-1 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-2 focus:ring-accent/40"
+              suppressHydrationWarning
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {(["all", ...GROUPE_TYPES] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={typeFilter === t}
+                onClick={() => setTypeFilter(t)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-[13px] font-medium transition-colors",
+                  typeFilter === t
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-text-secondary hover:bg-muted",
+                )}
+              >
+                {t === "all" ? "Tous" : GROUPE_TYPE_META[t].plural}
+              </button>
+            ))}
+          </div>
+        </div>
+        {groupesFiltered.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+            {groupesFiltered.map((g) => (
+              <GroupeCard key={g.id} groupe={g} />
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-4">
+      {vueSwitch}
       <CharacterFilterBar
         query={query}
         onQueryChange={(v) => {
@@ -164,6 +297,33 @@ export default function CharactersExplorer({ characters }: Props) {
         onTogglePanel={() => setShowPanel((v) => !v)}
         resultCount={paginated.length}
       />
+
+      {matchingGroupes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-text-secondary">
+            {matchingGroupes.length} groupe
+            {matchingGroupes.length > 1 ? "s correspondent" : " correspond"} :
+          </span>
+          {matchingGroupes.slice(0, 4).map((g) => (
+            <Link
+              key={g.id}
+              href={groupeHref(g)}
+              className="rounded-full border border-border px-3 py-1 font-medium hover:bg-muted"
+            >
+              {g.nom}
+            </Link>
+          ))}
+          {matchingGroupes.length > 4 && (
+            <button
+              type="button"
+              onClick={() => setVue("groupes")}
+              className="font-medium text-accent hover:underline"
+            >
+              Voir tous les groupes
+            </button>
+          )}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyState />

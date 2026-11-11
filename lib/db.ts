@@ -41,6 +41,9 @@ export type Groupe = {
   imageUrl: string | null;
   color: string | null;
   createdAt: string;
+  type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC";
+  /** Nombre de persos distincts (renseigné par fetchWikiData). */
+  membersCount?: number;
 };
 
 // ─── Character ───────────────────────────────────────────────────────────────

@@ -212,10 +212,10 @@ export default async function GroupePage({
 
       <main className="mx-auto flex max-w-295 flex-col gap-8 px-4 pb-16 pt-6 sm:px-5 sm:pt-7">
         <Link
-          href="/personnages"
+          href="/personnages?vue=groupes"
           className="-mb-4 self-start text-[13px] text-[#A3A8B3] hover:text-[#ECECEE]"
         >
-          ← Retour aux personnages
+          ← Retour aux groupes
         </Link>
 
         {g.description && (
