@@ -4,15 +4,21 @@ import CharactersGrid from "@/app/_composents/characters/CharactersGrid";
 import Pagination from "@/app/_composents/ui/Pagination";
 import EmptyState from "@/app/_composents/EmptyState";
 import GroupeCard from "@/app/_composents/groupes/GroupeCard";
+import GroupeFilterBar, {
+  NO_CATEGORIE,
+  type CategorieOption,
+  type GroupeEtatFilter,
+  type GroupeStatutFilter,
+  type GroupeTypeFilter,
+} from "@/app/_composents/groupes/GroupeFilterBar";
 import { Character, Groupe } from "@/lib/db";
 import {
+  GROUPE_STATUTS,
   GROUPE_TYPES,
-  GROUPE_TYPE_META,
   groupeHref,
   type GroupeType,
 } from "@/lib/groupe-types";
 import { cn, matchesSearch } from "@/lib/utils";
-import { Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterFilterBar, {
@@ -30,16 +36,25 @@ const getPerPage = () => {
 const STORAGE_KEY = "characters-explorer-state";
 
 type Vue = "personnages" | "groupes";
-type TypeFilter = "all" | GroupeType;
 
 type Props = {
   characters: Character[];
   groupes: Groupe[];
+  categories: CategorieOption[];
 };
 
-export default function CharactersExplorer({ characters, groupes }: Props) {
+export default function CharactersExplorer({
+  characters,
+  groupes,
+  categories,
+}: Props) {
   const [vue, setVue] = useState<Vue>("personnages");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<GroupeTypeFilter>("all");
+  const [catFilter, setCatFilter] = useState("all");
+  const [statutFilter, setStatutFilter] = useState<GroupeStatutFilter>("all");
+  const [etatGroupe, setEtatGroupe] = useState<GroupeEtatFilter>("all");
+  const [groupeSort, setGroupeSort] = useState<SortOrder>("a→z");
+  const [showGroupePanel, setShowGroupePanel] = useState(false);
   const [query, setQuery] = useState("");
   const [versionFilter, setVersionFilter] = useState("all");
   const [etatFilter, setEtatFilter] = useState("all");
@@ -75,6 +90,14 @@ export default function CharactersExplorer({ characters, groupes }: Props) {
       if (t && (GROUPE_TYPES as string[]).includes(t)) {
         setTypeFilter(t as GroupeType);
       }
+      const cat = params.get("cat");
+      if (cat) setCatFilter(cat);
+      const statut = params.get("statut");
+      if (statut && (GROUPE_STATUTS as string[]).includes(statut)) {
+        setStatutFilter(statut as GroupeStatutFilter);
+      }
+      const etat = params.get("etat");
+      if (etat === "actif" || etat === "dissous") setEtatGroupe(etat);
     } catch {}
     setRestored(true);
   }, []);
@@ -83,16 +106,19 @@ export default function CharactersExplorer({ characters, groupes }: Props) {
     if (!restored) return;
     try {
       const url = new URL(window.location.href);
-      if (vue === "groupes") url.searchParams.set("vue", "groupes");
-      else url.searchParams.delete("vue");
-      if (vue === "groupes" && typeFilter !== "all") {
-        url.searchParams.set("type", typeFilter);
-      } else {
-        url.searchParams.delete("type");
-      }
+      const onGroupes = vue === "groupes";
+      const set = (key: string, value: string | null) => {
+        if (value) url.searchParams.set(key, value);
+        else url.searchParams.delete(key);
+      };
+      set("vue", onGroupes ? "groupes" : null);
+      set("type", onGroupes && typeFilter !== "all" ? typeFilter : null);
+      set("cat", onGroupes && catFilter !== "all" ? catFilter : null);
+      set("statut", onGroupes && statutFilter !== "all" ? statutFilter : null);
+      set("etat", onGroupes && etatGroupe !== "all" ? etatGroupe : null);
       window.history.replaceState(null, "", url);
     } catch {}
-  }, [restored, vue, typeFilter]);
+  }, [restored, vue, typeFilter, catFilter, statutFilter, etatGroupe]);
 
   useEffect(() => {
     if (!restored) return;
@@ -170,16 +196,41 @@ export default function CharactersExplorer({ characters, groupes }: Props) {
     [groupes, query],
   );
 
+  const categorieNom = useMemo(
+    () => new Map(categories.map((c) => [c.id, c.nom])),
+    [categories],
+  );
+
   const groupesFiltered = useMemo(
     () =>
       groupes
         .filter(
           (g) =>
             (typeFilter === "all" || g.type === typeFilter) &&
+            (statutFilter === "all" || g.statut === statutFilter) &&
+            (catFilter === "all" ||
+              (catFilter === NO_CATEGORIE
+                ? !g.categorieId || !categorieNom.has(g.categorieId)
+                : g.categorieId === catFilter)) &&
+            (etatGroupe === "all" ||
+              g.dissous === (etatGroupe === "dissous")) &&
             matchesSearch(g.nom, query),
         )
-        .sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
-    [groupes, typeFilter, query],
+        .sort((a, b) =>
+          groupeSort === "a→z"
+            ? a.nom.localeCompare(b.nom, "fr")
+            : b.nom.localeCompare(a.nom, "fr"),
+        ),
+    [
+      groupes,
+      typeFilter,
+      statutFilter,
+      catFilter,
+      etatGroupe,
+      groupeSort,
+      categorieNom,
+      query,
+    ],
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -223,42 +274,41 @@ export default function CharactersExplorer({ characters, groupes }: Props) {
     return (
       <section className="flex flex-col gap-4">
         {vueSwitch}
-        <div className="flex flex-col gap-3">
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un groupe, une entreprise..."
-              className="h-9 w-full rounded-lg border border-border bg-background py-1 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-2 focus:ring-accent/40"
-              suppressHydrationWarning
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {(["all", ...GROUPE_TYPES] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                aria-pressed={typeFilter === t}
-                onClick={() => setTypeFilter(t)}
-                className={cn(
-                  "rounded-full border px-3 py-1 text-[13px] font-medium transition-colors",
-                  typeFilter === t
-                    ? "border-accent bg-accent/10 text-accent"
-                    : "border-border text-text-secondary hover:bg-muted",
-                )}
-              >
-                {t === "all" ? "Tous" : GROUPE_TYPE_META[t].plural}
-              </button>
-            ))}
-          </div>
-        </div>
+        <GroupeFilterBar
+          query={query}
+          onQueryChange={setQuery}
+          typeFilter={typeFilter}
+          onTypeChange={(v) => {
+            setTypeFilter(v);
+            // Les sous-filtres dépendent du type : on les remet à zéro.
+            setCatFilter("all");
+            setStatutFilter("all");
+          }}
+          categories={categories}
+          catFilter={catFilter}
+          onCatChange={setCatFilter}
+          statutFilter={statutFilter}
+          onStatutChange={setStatutFilter}
+          etatFilter={etatGroupe}
+          onEtatChange={setEtatGroupe}
+          sort={groupeSort}
+          onSortChange={setGroupeSort}
+          showPanel={showGroupePanel}
+          onTogglePanel={() => setShowGroupePanel((v) => !v)}
+          resultCount={groupesFiltered.length}
+        />
         {groupesFiltered.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
             {groupesFiltered.map((g) => (
-              <GroupeCard key={g.id} groupe={g} />
+              <GroupeCard
+                key={g.id}
+                groupe={g}
+                categorie={
+                  g.categorieId ? categorieNom.get(g.categorieId) : null
+                }
+              />
             ))}
           </div>
         )}
