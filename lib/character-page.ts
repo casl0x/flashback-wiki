@@ -171,17 +171,25 @@ function toLinked(relationId: string, label: string | null, c: Linked): LinkedCh
 }
 
 async function loadCharacterPage(id: string): Promise<CharacterPageData | null> {
+  // `null` = fiche réellement introuvable (404). Une erreur de base de données
+  // (pool saturé, Neon injoignable…) ne doit PAS devenir un 404 : on retente une
+  // fois puis on laisse l'erreur remonter (page d'erreur, et rien n'est mis en
+  // cache — sinon le faux 404 serait servi pendant 5 min).
   try {
     return await loadCharacterPageUnsafe(id);
   } catch (error) {
-    console.error("Failed to load character page", error);
-    return null;
+    console.error("Failed to load character page (retry)", error);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return await loadCharacterPageUnsafe(id);
   }
 }
 
 async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | null> {
   const c = await prisma.character.findUnique({
     where: { id },
+    // Une seule requête SQL (jointures) au lieu d'une par relation imbriquée :
+    // chaque requête prenait une connexion du pool (limite 5) → saturation.
+    relationLoadStrategy: "join",
     include: {
       versions: true,
       groupes: { include: membershipInclude },
