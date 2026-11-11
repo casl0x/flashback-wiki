@@ -251,6 +251,7 @@ model Player {
   // externe (ex. avatar Twitch récupéré en un clic dans l'admin).
   imageUrl  String?  @map("image_url")
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
   characters   Character[]
   userProfile  UserProfile?
@@ -271,6 +272,7 @@ model Character {
   lienReddifs Json     @default("[]") @map("liens_reddif")
   imageUrl    String?  @map("image_url")
   createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
   etatVie     EtatVie  @default(EN_VIE) @map("etat_vie")
 
   // Appartenances aux groupes, dans l'ordre chronologique (le plus grand ordre = l'actuel).
@@ -322,6 +324,7 @@ model Groupe {
   imageUrl    String?  @map("image_url")
   color       String?
   createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
   type GroupeType @default(GROUPE)
 
