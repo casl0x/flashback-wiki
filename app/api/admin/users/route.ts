@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
-  if (!(await isAdminUser(userId))) return NextResponse.json(null, { status: 403 });
+  if (!(await isAdminUser(userId, "announcements"))) return NextResponse.json(null, { status: 403 });
 
   const q = req.nextUrl.searchParams.get("q")?.trim();
   if (!q) return NextResponse.json([]);

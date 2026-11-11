@@ -56,7 +56,7 @@ export async function saveCharacter(
   input: CharacterInput,
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("characters");
     const problem = validate(input, id);
     if (problem) return { ok: false, error: problem };
 
@@ -147,7 +147,7 @@ export async function saveCharacter(
 
 export async function deleteCharacter(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("characters");
     const c = await prisma.character.delete({ where: { id }, select: { nom: true } });
     await logChange("edit_info", c.nom, "Personnage supprimé");
     await refreshAll();
@@ -159,7 +159,7 @@ export async function deleteCharacter(id: string): Promise<ActionResult> {
 
 export async function saveCharacterLocation(id: string, x: number | null, y: number | null): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("characters");
     const c = await prisma.character.update({
       where: { id },
       data: { locationX: x, locationY: y },
@@ -180,7 +180,7 @@ export async function bulkSetVersion(
   mode: "add" | "remove",
 ): Promise<ActionResult<{ count: number }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("characters");
     if (!ids.length || !versionId) return { ok: false, error: "Sélection vide." };
     await prisma.$transaction(
       ids.map((id) =>
@@ -202,7 +202,7 @@ export async function bulkSetVersion(
  * Ne lance pas d'erreur : renvoie ce qu'il a pu trouver.
  */
 export async function fetchSoundMeta(url: string): Promise<{ titre: string | null; artiste: string | null }> {
-  await requireAdmin();
+  await requireAdmin("characters");
   const platform = detectSoundPlatform(url);
   const endpoint =
     platform === "youtube"

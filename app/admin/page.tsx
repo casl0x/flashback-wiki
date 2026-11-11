@@ -1,5 +1,8 @@
+import { getAdminLevel } from "@/lib/admin/auth";
 import { CHANGELOG_STYLE, ago } from "@/lib/admin/format";
 import {
+  MOD_TABS,
+  allowedModTabs,
   countPending,
   loadQueue,
   type QueueItem,
@@ -7,6 +10,7 @@ import {
 import { prisma } from "@/lib/db";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { ButtonLink, PageHeader } from "../_composents/admin/ui";
 import { fetchTopPersonnages } from "../_composents/homepage/TopPages";
@@ -22,6 +26,10 @@ async function topViewed() {
 }
 
 export default async function AdminDashboard() {
+  const { userId } = await auth();
+  const level = await getAdminLevel(userId);
+  // Les éditeurs ne voient que la file des Propositions.
+  const modTabs = allowedModTabs(level);
   const monthStart = new Date();
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
@@ -42,13 +50,10 @@ export default async function AdminDashboard() {
     prisma.player.count(),
     prisma.player.count({ where: { createdAt: { gte: monthStart } } }),
     prisma.version.count(),
-    countPending(),
+    countPending(level),
     prisma.changelogEntry.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
     topViewed(),
-    loadQueue("propositions", 5),
-    loadQueue("creations", 5),
-    loadQueue("signalements", 5),
-    loadQueue("liens", 5),
+    ...MOD_TABS.filter((t) => modTabs.includes(t.key)).map((t) => loadQueue(t.key, 5)),
   ]);
 
   const queue: QueueItem[] = (queues as QueueItem[][])
@@ -73,7 +78,9 @@ export default async function AdminDashboard() {
     {
       label: "À modérer",
       value: pending.total,
-      sub: "propositions, créations, signalements, liens",
+      sub: MOD_TABS.filter((t) => modTabs.includes(t.key))
+        .map((t) => t.label.toLowerCase())
+        .join(", "),
       c: "#E5484D",
     },
   ];

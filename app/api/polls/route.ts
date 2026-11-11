@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
+import { isAdminUser } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
 // GET /api/polls → sondage actif pour la home
@@ -14,16 +15,6 @@ export async function GET() {
   return NextResponse.json({ id: poll.id });
 }
 
-async function isAdmin(userId: string | null) {
-  if (!userId) return false;
-  const client = await clerkClient();
-  const memberships = await client.users.getOrganizationMembershipList({
-    userId,
-  });
-  return memberships.data.some(
-    (m) => m.organization.id === process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID,
-  );
-}
 
 // POST /api/polls → créer un sondage (réservé aux admins de l'orga Clerk)
 export async function POST(req: Request) {
@@ -31,7 +22,7 @@ export async function POST(req: Request) {
   if (!userId) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
-  if (!(await isAdmin(userId))) {
+  if (!(await isAdminUser(userId, "polls"))) {
     return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
   }
 
