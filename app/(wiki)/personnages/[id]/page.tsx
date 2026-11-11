@@ -1,5 +1,5 @@
 import CharacterPage from "@/app/_composents/characters/CharacterPage";
-import { getCharacterPage } from "@/lib/character-page";
+import { cloudinaryUrl, getCharacterPage } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
@@ -12,12 +12,17 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const c = await getCharacterPage(id);
-  if (!c) return { title: "Personnage introuvable – Flashback Wiki" };
+  if (!c) return { title: "Personnage introuvable – Flashback Wiki", robots: { index: false } };
+  const title = `${c.nom} – Flashback Wiki`;
+  const description =
+    c.description?.replace(/@\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\s+/g, " ").trim().slice(0, 160) ||
+    `Fiche du personnage ${c.nom} sur Flashback Wiki : parcours, relations et joueur.`;
+  const image = c.imageUrl ? cloudinaryUrl(c.imageUrl, "c_fill,w_1200,h_630,q_auto,f_jpg") : undefined;
   return {
-    title: `${c.nom} – Flashback Wiki`,
-    description:
-      c.description?.replace(/@\[([^\]]+)\]\([^)]+\)/g, "$1").slice(0, 160) ??
-      undefined,
+    title,
+    description,
+    openGraph: { type: "profile", title, description, images: image ? [{ url: image }] : undefined },
+    twitter: { card: image ? "summary_large_image" : "summary", title, description, images: image ? [image] : undefined },
   };
 }
 

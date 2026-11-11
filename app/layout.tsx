@@ -1,5 +1,6 @@
 import { ToastProvider } from "@/app/_composents/toast/ToastProvider";
 import { NotificationWatcher } from "@/app/_composents/user/NotificationWatcher";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
@@ -16,10 +17,23 @@ const anton = Anton({
   variable: "--font-sans",
 });
 
+const DESCRIPTION =
+  "Wiki communautaire non officiel sur les personnages, versions, groupes et joueurs de Flashback WL.";
+
 export const metadata: Metadata = {
-  title: "Flashback WL - Wiki",
-  description:
-    "Flashback WL - Wiki communautaire non officiel sur les personnages, versions et joueurs de Flashback WL.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "Flashback WL – Wiki", template: "%s" },
+  description: DESCRIPTION,
+  applicationName: SITE_NAME,
+  alternates: { canonical: "./" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "fr_FR",
+    title: "Flashback WL – Wiki",
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default async function RootLayout({
