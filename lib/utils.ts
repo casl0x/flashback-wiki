@@ -108,6 +108,16 @@ export function stripMentions(text: string): string {
   return text.replace(MENTION_PATTERN, "$1");
 }
 
+// Retire les marqueurs de mise en forme légère (**gras**, *italique*,
+// __souligné__, ~~barré~~) pour les aperçus en texte brut.
+export function stripFormatting(text: string): string {
+  return text
+    .replace(/\*\*(?!\s)([\s\S]+?)(?<!\s)\*\*/g, "$1")
+    .replace(/__(?!\s)([\s\S]+?)(?<!\s)__/g, "$1")
+    .replace(/~~(?!\s)([\s\S]+?)(?<!\s)~~/g, "$1")
+    .replace(/\*(?!\s)([^*\n]+?)(?<!\s)\*/g, "$1");
+}
+
 // Lien vers le profil public d'un membre (le pseudo peut contenir des espaces).
 export function profileHref(pseudo: string): string {
   return `/profil/${encodeURIComponent(pseudo)}`;
