@@ -3,6 +3,7 @@
 import {
   FilterChip,
   type SortOrder,
+  type VersionOption,
 } from "@/app/_composents/characters/CharacterFilterBar";
 import {
   Select,
@@ -38,6 +39,9 @@ export type CategorieOption = { id: string; nom: string; type: GroupeType };
 type Props = {
   query: string;
   onQueryChange: (value: string) => void;
+  versions: VersionOption[];
+  versionFilter: string;
+  onVersionChange: (value: string) => void;
   typeFilter: GroupeTypeFilter;
   onTypeChange: (value: GroupeTypeFilter) => void;
   categories: CategorieOption[];
@@ -76,6 +80,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export default function GroupeFilterBar({
   query,
   onQueryChange,
+  versions,
+  versionFilter,
+  onVersionChange,
   typeFilter,
   onTypeChange,
   categories,
@@ -92,6 +99,7 @@ export default function GroupeFilterBar({
   resultCount,
 }: Props) {
   const activeFilterCount = [
+    versionFilter !== "all",
     typeFilter !== "all",
     statutFilter !== "all",
     catFilter !== "all",
@@ -100,6 +108,7 @@ export default function GroupeFilterBar({
   const hasActiveFilters = activeFilterCount > 0;
 
   const resetAll = () => {
+    onVersionChange("all");
     onTypeChange("all");
     onEtatChange("all");
   };
@@ -108,6 +117,7 @@ export default function GroupeFilterBar({
   const categoriesOfType = categories.filter((c) => c.type === typeFilter);
   const showCategories =
     typeFilter === "ENTREPRISE" || typeFilter === "SERVICE_PUBLIC";
+  const activeVersion = versions.find((v) => v.id === versionFilter);
   const catLabel =
     catFilter === NO_CATEGORIE
       ? "Autres"
@@ -168,6 +178,32 @@ export default function GroupeFilterBar({
       {/* ── Panneau de filtres ── */}
       {showPanel && (
         <div className="space-y-4 border rounded-md p-4">
+          {versions.length > 0 && (
+            <Section title="Version">
+              {versions.map((v) => {
+                const selected = v.id === versionFilter;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => onVersionChange(selected ? "all" : v.id)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      selected
+                        ? "border-transparent text-white"
+                        : "border-border bg-background text-text-secondary hover:bg-muted hover:text-text-primary"
+                    }`}
+                    style={
+                      selected
+                        ? { backgroundColor: v.color ?? "var(--accent)" }
+                        : undefined
+                    }
+                  >
+                    {v.label}
+                  </button>
+                );
+              })}
+            </Section>
+          )}
+
           <Section title="Type">
             {GROUPE_TYPES.map((t) => (
               <button
@@ -240,6 +276,13 @@ export default function GroupeFilterBar({
       {/* ── Filtres actifs ── */}
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2 text-xs">
+          {activeVersion && (
+            <FilterChip
+              label={activeVersion.label}
+              color={activeVersion.color}
+              onRemove={() => onVersionChange("all")}
+            />
+          )}
           {typeFilter !== "all" && (
             <FilterChip
               label={GROUPE_TYPE_META[typeFilter].plural}
