@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import NotificationBell from "./Notificationbell";
 
 const LINKS = [
-  { href: "/personnages", label: "Personnages" },
+  { href: "/personnages", label: "Explorer" },
   { href: "/joueurs", label: "Joueurs" },
   { href: "/musiques", label: "Musiques" },
   { href: "/createurs", label: "Créateurs" },

@@ -32,6 +32,14 @@ enum GroupeType {
   SERVICE_PUBLIC
 }
 
+// Statut d'un groupe illégal (type GROUPE) : indépendant, gang, organisation, GM.
+enum GroupeStatut {
+  INDE
+  GANG
+  ORGA
+  GM
+}
+
 enum CreatorType {
   ARTISTE
   EDITEUR
@@ -327,6 +335,11 @@ model Groupe {
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
   type GroupeType @default(GROUPE)
+
+  // Groupes illégaux (type GROUPE) : statut affiché en pastille ; vide pour les autres types.
+  statut GroupeStatut?
+  // Groupe dissous (sans date).
+  dissous Boolean @default(false)
 
   // Services publics : libellé affiché devant le numéro/texte du membre (ex. « matricule », « badge »).
   // Vide = on n'affiche que la valeur.

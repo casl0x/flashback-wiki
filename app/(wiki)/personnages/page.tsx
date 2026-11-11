@@ -3,11 +3,14 @@ import { CreateCharacterButton } from "@/app/_composents/user/CreateCharacterBut
 import { cn } from "@/lib/cn";
 import { anton } from "@/lib/fonts";
 import { getWikiData } from "@/lib/wiki-data";
+import type { Metadata } from "next";
 
 export const revalidate = 300;
 
+export const metadata: Metadata = { title: "Explorer – Flashback Wiki" };
+
 export default async function CharactersPage() {
-  const { characters } = await getWikiData();
+  const { characters, groupes } = await getWikiData();
 
   return (
     <main className="max-w-6xl mx-auto flex flex-col px-4 py-8 lg:gap-12 lg:px-5 lg:py-12">
@@ -19,15 +22,18 @@ export default async function CharactersPage() {
               "m-0 text-[clamp(48px,10vw,80px)] uppercase leading-[0.95] text-[#ECECEE]",
             )}
           >
-            Personnages
+            Explorer
           </h1>
-          <p>{characters.length} fiches · toutes versions confondues</p>
+          <p>
+            {characters.length} fiches · {groupes.length} groupes · toutes
+            versions confondues
+          </p>
         </div>
         <div className="inline-flex items-center gap-2 self-end">
           <CreateCharacterButton />
         </div>
       </div>
-      <CharactersExplorer characters={characters} />
+      <CharactersExplorer characters={characters} groupes={groupes} />
     </main>
   );
 }

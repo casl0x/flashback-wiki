@@ -3,7 +3,7 @@ import { cloudinaryUrl } from "@/lib/character-page";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { groupeHref } from "@/lib/groupe-types";
+import { GROUPE_STATUT_LABEL, groupeHref } from "@/lib/groupe-types";
 import Link from "next/link";
 
 export const ETAT_BADGE: Record<
@@ -31,16 +31,12 @@ const pill =
   "rounded px-2.5 py-1 text-[12px] font-bold uppercase tracking-[0.06em] leading-none";
 
 export default function CharacterHero({ c }: { c: CharacterPageData }) {
-  const current = c.current;
   const dead = c.etatVie === "MORT";
-  const subtitle = current
-    ? [
-        current.grade,
-        current.matricule,
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : null;
+  // Un perso peut avoir un métier légal (entreprise / service public) et un groupe illégal : un de chaque côté.
+  const sides = [
+    c.currentLegal && { step: c.currentLegal, label: "Métier" },
+    c.currentIllegal && { step: c.currentIllegal, label: "Groupe" },
+  ].filter((x): x is { step: NonNullable<typeof c.currentLegal>; label: string } => !!x);
 
   return (
     <section
@@ -79,18 +75,19 @@ export default function CharacterHero({ c }: { c: CharacterPageData }) {
                 {v.id}
               </span>
             ))}
-            {current && (
+            {sides.map(({ step }) => (
               <Link
-                href={groupeHref(current.groupe)}
+                key={step.key}
+                href={groupeHref(step.groupe)}
                 className={pill}
                 style={{
-                  background: current.groupe.color ?? "#2F6FEB",
-                  color: textOn(current.groupe.color ?? "#2F6FEB"),
+                  background: step.groupe.color ?? "#2F6FEB",
+                  color: textOn(step.groupe.color ?? "#2F6FEB"),
                 }}
               >
-                {current.groupe.nom}
+                {step.groupe.nom}
               </Link>
-            )}
+            ))}
             {c.role && (
               <span
                 className={cn(
@@ -119,17 +116,41 @@ export default function CharacterHero({ c }: { c: CharacterPageData }) {
             {c.nom}
           </h1>
 
-          {current && (
-            <p className="mt-3 text-[16px] text-[#C4C7CF] sm:text-[18px]">
-              {subtitle}
-              {subtitle && " — "}
-              <Link
-                href={groupeHref(current.groupe)}
-                className="font-semibold text-[#ECECEE] hover:underline"
-              >
-                {current.groupe.nom}
-              </Link>
-            </p>
+          {sides.length > 0 && (
+            <div className="mt-3 flex flex-col gap-1 text-[16px] text-[#C4C7CF] sm:text-[18px]">
+              {sides.map(({ step, label }) => {
+                const detail = [step.grade, step.matricule]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <p key={step.key} className="m-0">
+                    {sides.length > 1 && (
+                      <span className="mr-2 text-[12px] font-bold uppercase tracking-widest text-[#9AA0AA]">
+                        {label}
+                      </span>
+                    )}
+                    {detail}
+                    {detail && " — "}
+                    <Link
+                      href={groupeHref(step.groupe)}
+                      className="font-semibold text-[#ECECEE] hover:underline"
+                    >
+                      {step.groupe.nom}
+                    </Link>
+                    {step.groupe.statut && (
+                      <span className="ml-2 rounded border border-[#4A4E58] px-1.5 py-px text-[11px] font-bold uppercase tracking-wider text-[#D5D7DD]">
+                        {GROUPE_STATUT_LABEL[step.groupe.statut]}
+                      </span>
+                    )}
+                    {step.groupe.dissous && (
+                      <span className="ml-2 text-[13px] text-[#9AA0AA]">
+                        (dissous)
+                      </span>
+                    )}
+                  </p>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

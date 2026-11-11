@@ -1,6 +1,11 @@
 import { textOn } from "@/app/_composents/characters/CharacterHero";
 import { cloudinaryUrl } from "@/lib/cloudinary";
-import { GROUPE_TYPE_META, groupeHref, type GroupeType } from "@/lib/groupe-types";
+import {
+  GROUPE_STATUT_LABEL,
+  GROUPE_TYPE_META,
+  groupeHref,
+  type GroupeType,
+} from "@/lib/groupe-types";
 import { prisma } from "@/lib/db";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
@@ -187,6 +192,20 @@ export default async function GroupePage({
               >
                 {g.nom}
               </h1>
+              {(g.statut || g.dissous) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {g.statut && (
+                    <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
+                      {GROUPE_STATUT_LABEL[g.statut]}
+                    </span>
+                  )}
+                  {g.dissous && (
+                    <span className="rounded bg-black/45 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
+                      Dissous
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex gap-8">
@@ -212,10 +231,10 @@ export default async function GroupePage({
 
       <main className="mx-auto flex max-w-295 flex-col gap-8 px-4 pb-16 pt-6 sm:px-5 sm:pt-7">
         <Link
-          href="/personnages"
+          href="/personnages?vue=groupes"
           className="-mb-4 self-start text-[13px] text-[#A3A8B3] hover:text-[#ECECEE]"
         >
-          ← Retour aux personnages
+          ← Retour aux groupes
         </Link>
 
         {g.description && (
