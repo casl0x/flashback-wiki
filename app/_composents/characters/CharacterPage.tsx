@@ -103,8 +103,12 @@ export default function CharacterPage({
               className="flex flex-col gap-3"
             >
               <SectionTitle id="histoire-h">Histoire</SectionTitle>
-              <p className="m-0 whitespace-pre-line text-[16px] leading-relaxed text-[#D5D7DD]">
-                <MentionText text={c.description} />
+              <p className="m-0 whitespace-pre-wrap wrap-break-word text-[16px] leading-relaxed text-[#D5D7DD]">
+                <MentionText
+                  text={c.description
+                    .replace(/\r\n?/g, "\n")
+                    .replace(/\\n/g, "\n")}
+                />
               </p>
             </section>
           )}
