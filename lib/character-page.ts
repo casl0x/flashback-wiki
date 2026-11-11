@@ -1,5 +1,5 @@
 import { parseRediffusions, prisma, type Rediffusion } from "@/lib/db";
-import { PARCOURS_TYPES, type GroupeType } from "@/lib/groupe-types";
+import { PARCOURS_TYPES, type GroupeStatut, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
 import { relationKind, type RelationKind } from "@/lib/relation-kinds";
 import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
@@ -13,7 +13,15 @@ export type EtatVie = "EN_VIE" | "MORT" | "PARTI" | "DISPARU" | "PRISON";
 
 export type VersionTag = { id: string; label: string; color: string };
 
-export type GroupeTag = { id: string; slug: string; nom: string; color: string | null; type: GroupeType };
+export type GroupeTag = {
+  id: string;
+  slug: string;
+  nom: string;
+  color: string | null;
+  type: GroupeType;
+  statut: GroupeStatut | null;
+  dissous: boolean;
+};
 
 export type ParcoursStep = {
   key: string;
@@ -64,8 +72,9 @@ export type CharacterPageData = {
   locationY: number | null;
   versions: VersionTag[];
   parcours: ParcoursStep[];
-  /** Dernier passage tous types confondus (groupes compris) : affiché sous le nom. */
-  current: ParcoursStep | null;
+  /** Dernier passage côté légal (entreprise / service public) et côté illégal (groupe) : affichés sous le nom. */
+  currentLegal: ParcoursStep | null;
+  currentIllegal: ParcoursStep | null;
   sounds: CharacterSound[];
   relations: LinkedCharacter[];
   player: {
@@ -126,10 +135,24 @@ function toStep(m: Membership): ParcoursStep {
   return {
     key: m.id,
     version: m.version ? toVersionTag(m.version) : null,
-    groupe: { id: m.groupe.id, slug: m.groupe.slug, nom: m.groupe.nom, color: m.groupe.color, type: m.groupe.type },
+    groupe: {
+      id: m.groupe.id,
+      slug: m.groupe.slug,
+      nom: m.groupe.nom,
+      color: m.groupe.color,
+      type: m.groupe.type,
+      statut: m.groupe.statut,
+      dissous: m.groupe.dissous,
+    },
     grade: m.grade?.nom ?? null,
     matricule: matriculeText(m),
   };
+}
+
+/** Dernier passage répondant au filtre, dans l'ordre chronologique. */
+function lastStep(list: Membership[], keep: (m: Membership) => boolean): ParcoursStep | null {
+  const last = sortMemberships(list).filter(keep).at(-1);
+  return last ? toStep(last) : null;
 }
 
 /** Texte à afficher pour le matricule : réservé aux services publics, précédé du libellé du groupe s'il y en a un. */
@@ -247,10 +270,8 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
     locationY: c.locationY,
     versions: [...c.versions].sort(byVersion).map(toVersionTag),
     parcours: sortParcours(c.groupes).map(toStep),
-    current: (() => {
-      const last = sortMemberships(c.groupes).at(-1);
-      return last ? toStep(last) : null;
-    })(),
+    currentLegal: lastStep(c.groupes, (m) => PARCOURS_TYPES.includes(m.groupe.type)),
+    currentIllegal: lastStep(c.groupes, (m) => !PARCOURS_TYPES.includes(m.groupe.type)),
     sounds: c.sounds.map((s) => ({
       id: s.id,
       titre: s.titre,

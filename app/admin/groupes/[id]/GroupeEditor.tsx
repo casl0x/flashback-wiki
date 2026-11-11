@@ -19,7 +19,15 @@ import {
   saveGroupe,
 } from "@/lib/admin/actions/groupes";
 import { slugify } from "@/lib/admin/slug";
-import { GROUPE_TYPES, GROUPE_TYPE_META, groupeHref, type GroupeType } from "@/lib/groupe-types";
+import {
+  GROUPE_STATUTS,
+  GROUPE_STATUT_LABEL,
+  GROUPE_TYPES,
+  GROUPE_TYPE_META,
+  groupeHref,
+  type GroupeStatut,
+  type GroupeType,
+} from "@/lib/groupe-types";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
@@ -42,6 +50,8 @@ type G = {
   description: string;
   imageUrl: string | null;
   type: GroupeType;
+  statut: "" | GroupeStatut;
+  dissous: boolean;
   matriculeLabel: string;
   categorieId: string | null;
   grades: Grade[];
@@ -107,6 +117,8 @@ export default function GroupeEditor({
         description: f.description,
         imageUrl: f.imageUrl,
         type: f.type,
+        statut: f.statut || null,
+        dissous: f.dissous,
         matriculeLabel: f.matriculeLabel,
         categorieId: f.categorieId,
         grades: f.grades.map((g) => ({
@@ -250,6 +262,35 @@ export default function GroupeEditor({
                   </Select>
                 </Field>
               )}
+              {f.type === "GROUPE" && (
+                <Field
+                  label="Statut"
+                  hint="Groupes illégaux : indépendant, gang, organisation ou GM."
+                >
+                  <Select
+                    value={f.statut}
+                    onChange={(e) =>
+                      setF({ ...f, statut: e.target.value as "" | GroupeStatut })
+                    }
+                  >
+                    <option value="">Aucun</option>
+                    {GROUPE_STATUTS.map((s) => (
+                      <option key={s} value={s}>
+                        {GROUPE_STATUT_LABEL[s]}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+              <label className="flex items-center gap-2 text-[13px] font-semibold text-[#C4C7CF] sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={f.dissous}
+                  onChange={(e) => setF({ ...f, dissous: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                Groupe dissous
+              </label>
               {f.type === "SERVICE_PUBLIC" && (
                 <Field
                   label="Libellé du numéro"

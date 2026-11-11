@@ -2,7 +2,11 @@ import { textOn } from "@/app/_composents/characters/CharacterHero";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import type { Groupe } from "@/lib/db";
 import { anton } from "@/lib/fonts";
-import { GROUPE_TYPE_META, groupeHref } from "@/lib/groupe-types";
+import {
+  GROUPE_STATUT_LABEL,
+  GROUPE_TYPE_META,
+  groupeHref,
+} from "@/lib/groupe-types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -48,6 +52,20 @@ export default function GroupeCard({ groupe }: { groupe: Groupe }) {
           {GROUPE_TYPE_META[groupe.type].label} · {members} membre
           {members > 1 ? "s" : ""}
         </span>
+        {(groupe.statut || groupe.dissous) && (
+          <span className="mt-1 flex flex-wrap gap-1">
+            {groupe.statut && (
+              <span className="rounded border border-border px-1.5 py-px text-[10px] font-bold uppercase tracking-wider text-text-secondary">
+                {GROUPE_STATUT_LABEL[groupe.statut]}
+              </span>
+            )}
+            {groupe.dissous && (
+              <span className="rounded bg-muted px-1.5 py-px text-[10px] font-bold uppercase tracking-wider text-text-faint">
+                Dissous
+              </span>
+            )}
+          </span>
+        )}
       </span>
     </Link>
   );
