@@ -23,7 +23,7 @@ export type GroupeInput = {
 
 export async function saveGroupe(id: string | null, input: GroupeInput): Promise<ActionResult<{ id: string; slug: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("groupes");
     const nom = input.nom.trim();
     const slug = slugify(input.slug || nom);
     if (!nom || !slug) return { ok: false, error: "Le nom et le slug sont requis." };
@@ -73,7 +73,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
 
 export async function deleteGroupe(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("groupes");
     await prisma.groupe.delete({ where: { id } });
     await refreshAll();
     return { ok: true };
@@ -88,7 +88,7 @@ export async function deleteGroupe(id: string): Promise<ActionResult> {
  */
 export async function mergeGroupe(sourceId: string, targetId: string): Promise<ActionResult<{ moved: number }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("groupes");
     if (sourceId === targetId) return { ok: false, error: "Choisis un autre groupe." };
 
     const moved = await prisma.$transaction(async (tx) => {
@@ -146,7 +146,7 @@ export type CategorieInput = { id: string | null; nom: string };
 /** Remplace la liste des catégories d'un type, dans l'ordre donné. Retirer une catégorie met ses groupes sans catégorie. */
 export async function saveCategories(type: GroupeType, list: CategorieInput[]): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("categories");
     if (type === "GROUPE") return { ok: false, error: "Ce type n'a pas de catégories." };
     const names = list.map((c) => c.nom.trim().toLowerCase());
     if (names.some((n) => !n)) return { ok: false, error: "Chaque catégorie doit avoir un nom." };

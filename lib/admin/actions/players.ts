@@ -16,7 +16,7 @@ export type PlayerInput = {
 
 export async function savePlayer(id: string | null, input: PlayerInput): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("players");
     const pseudo = input.pseudo.trim();
     if (!pseudo) return { ok: false, error: "Le pseudo est requis." };
     const reseaux = Object.fromEntries(
@@ -48,7 +48,7 @@ export async function savePlayer(id: string | null, input: PlayerInput): Promise
 /** Avatar Twitch d'un lien de chaîne, pour le bouton « Utiliser cette pp » de l'admin. */
 export async function fetchTwitchAvatar(channelUrl: string): Promise<ActionResult<{ avatarUrl: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("players");
     if (detectStreamPlatform(channelUrl) !== "twitch") {
       return { ok: false, error: "Ce n'est pas un lien Twitch." };
     }
@@ -64,7 +64,7 @@ export async function fetchTwitchAvatar(channelUrl: string): Promise<ActionResul
 
 export async function deletePlayer(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("players");
     // Les persos du joueur restent, sans joueur (onDelete: SetNull).
     await prisma.player.delete({ where: { id } });
     await refreshAll();
@@ -76,7 +76,7 @@ export async function deletePlayer(id: string): Promise<ActionResult> {
 
 export async function unlinkPlayerAccount(playerId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("players");
     await prisma.userProfile.updateMany({ where: { playerId }, data: { playerId: null } });
     await refreshAll();
     return { ok: true };

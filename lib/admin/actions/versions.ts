@@ -20,7 +20,7 @@ const toDate = (v: string | null) => (v ? new Date(`${v}T00:00:00Z`) : null);
 
 export async function saveVersion(originalId: string | null, input: VersionInput): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("versions");
     const id = input.id.trim().toUpperCase();
     if (!/^[A-Z0-9-]{1,12}$/.test(id)) return { ok: false, error: "Identifiant invalide (ex. V7)." };
     if (!input.label.trim()) return { ok: false, error: "Le nom affiché est requis." };
@@ -58,7 +58,7 @@ export async function saveVersion(originalId: string | null, input: VersionInput
 /** Nouvel ordre des bandes de l'accueil. */
 export async function reorderVersions(ids: string[]): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("versions");
     await prisma.$transaction(ids.map((id, i) => prisma.version.update({ where: { id }, data: { ordre: i } })));
     await refreshAll();
     return { ok: true };
@@ -69,7 +69,7 @@ export async function reorderVersions(ids: string[]): Promise<ActionResult> {
 
 export async function deleteVersion(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("versions");
     await prisma.version.delete({ where: { id } });
     await refreshAll();
     return { ok: true };

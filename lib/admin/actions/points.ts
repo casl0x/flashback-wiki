@@ -19,7 +19,7 @@ export type PointsInput = {
  */
 export async function addPoints(input: PointsInput): Promise<ActionResult> {
   try {
-    const adminId = await requireAdmin();
+    const adminId = await requireAdmin("users");
     const reason = input.reason.trim();
     const points = Math.trunc(Number(input.points));
     if (!reason) return { ok: false, error: "Le motif est requis." };
@@ -88,7 +88,7 @@ export async function addPoints(input: PointsInput): Promise<ActionResult> {
 /** Recalcule les badges de tous les membres ayant des entrées de points (rattrapage, sans danger si relancé). */
 export async function recomputeContributionBadges(): Promise<ActionResult<{ members: number; badges: number }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("users");
     const rows = await prisma.pointEntry.groupBy({ by: ["userProfileId"] });
     let badges = 0;
     for (const r of rows) badges += (await syncContributionBadges(r.userProfileId)).length;

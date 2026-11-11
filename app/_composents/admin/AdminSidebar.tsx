@@ -1,5 +1,6 @@
 "use client";
 
+import { canAccess, sectionFromPath, type AdminLevel } from "@/lib/admin/permissions";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
@@ -15,12 +16,12 @@ export default function AdminSidebar({
   admin,
 }: {
   pending: number;
-  admin: { name: string; imageUrl: string | null } | null;
+  admin: { name: string; imageUrl: string | null; level: AdminLevel | null } | null;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const sections: Section[] = [
+  const allSections: Section[] = [
     {
       items: [
         { href: "/admin", label: "Tableau de bord", exact: true },
@@ -47,6 +48,18 @@ export default function AdminSidebar({
     },
     { title: "Équipe", items: [{ href: "/admin/users", label: "Utilisateurs" }] },
   ];
+
+  // Les éditeurs ne voient que les sections qui leur sont ouvertes.
+  const level = admin?.level ?? null;
+  const sections = allSections
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((i) => {
+        const section = sectionFromPath(i.href);
+        return section ? canAccess(level, section) : false;
+      }),
+    }))
+    .filter((s) => s.items.length > 0);
 
   const isActive = (i: Item) => (i.exact ? pathname === i.href : pathname.startsWith(i.href));
 
@@ -141,7 +154,9 @@ export default function AdminSidebar({
               )}
               <span className="flex flex-col">
                 <span className="font-semibold text-[#ECECEE]">{admin.name}</span>
-                <span className="text-[12px] text-[#9AA0AA]">Admin</span>
+                <span className="text-[12px] text-[#9AA0AA]">
+                  {admin.level === "admin" ? "Admin" : "Éditeur"}
+                </span>
               </span>
             </span>
           )}

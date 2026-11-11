@@ -12,7 +12,7 @@ const cell = (v: string | null | undefined) => `"${(v ?? "").replace(/"/g, '""')
 /** Export CSV des persos (mêmes filtres que la liste). */
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
-  if (!(await isAdminUser(userId))) return new Response("Non autorisé", { status: 403 });
+  if (!(await isAdminUser(userId, "characters"))) return new Response("Non autorisé", { status: 403 });
 
   const sp = Object.fromEntries(req.nextUrl.searchParams);
   const rows = await prisma.character.findMany({
