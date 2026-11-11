@@ -106,7 +106,7 @@ export async function reviewCreation(
   message?: string,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin("moderation");
+    await requireAdmin("moderation_other");
     const post = await prisma.creatorPost.findUniqueOrThrow({
       where: { id },
       include: {
@@ -141,7 +141,7 @@ export async function reviewReport(
   decision: "remove" | "ignore",
 ): Promise<ActionResult> {
   try {
-    await requireAdmin("moderation");
+    await requireAdmin("moderation_other");
     const report = await prisma.report.findUniqueOrThrow({ where: { id } });
     if (decision === "remove") {
       if (report.targetType === "POST") {
@@ -171,7 +171,7 @@ export async function reviewLinkRequest(
   message?: string,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin("moderation");
+    await requireAdmin("moderation_other");
     const req = await prisma.playerLinkRequest.findUniqueOrThrow({
       where: { id },
       include: { userProfile: true, player: { select: { pseudo: true } } },

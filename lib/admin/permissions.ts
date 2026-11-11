@@ -12,7 +12,8 @@
 
 export type AdminSection =
   | "dashboard"
-  | "moderation"
+  | "moderation" // onglet Propositions
+  | "moderation_other" // Créations, Signalements, Liens joueur
   | "characters"
   | "players"
   | "groupes"
@@ -26,7 +27,10 @@ export type AdminSection =
 
 export type AdminLevel = "admin" | "editor";
 
-/** Sections ouvertes aux éditeurs. Tout le reste est réservé aux admins. */
+/**
+ * Sections ouvertes aux éditeurs. Tout le reste est réservé aux admins.
+ * En modération, les éditeurs n'ont que les Propositions (pas "moderation_other").
+ */
 export const EDITOR_SECTIONS: readonly AdminSection[] = [
   "dashboard",
   "moderation",

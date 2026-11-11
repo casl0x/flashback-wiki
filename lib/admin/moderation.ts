@@ -3,6 +3,7 @@ import "server-only";
 import { parseRediffusions, prisma } from "@/lib/db";
 import { stripMentions } from "@/lib/utils";
 import { clerkClient } from "@clerk/nextjs/server";
+import type { AdminLevel } from "./permissions";
 
 export type ModTab = "propositions" | "creations" | "signalements" | "liens";
 
@@ -13,20 +14,22 @@ export const MOD_TABS: { key: ModTab; label: string }[] = [
   { key: "liens", label: "Liens joueur" },
 ];
 
-export async function countPending() {
+/** Onglets de modération accessibles : les éditeurs n'ont que les Propositions. */
+export function allowedModTabs(level: AdminLevel | null | undefined): ModTab[] {
+  return level === "admin" ? MOD_TABS.map((t) => t.key) : ["propositions"];
+}
+
+/** Compte les éléments en attente ; `level` limite le total aux onglets accessibles. */
+export async function countPending(level: AdminLevel | null | undefined = "admin") {
   const [propositions, creations, signalements, liens] = await Promise.all([
     prisma.suggestion.count({ where: { status: "pending" } }),
     prisma.creatorPost.count({ where: { status: "pending" } }),
     prisma.report.count({ where: { status: "pending" } }),
     prisma.playerLinkRequest.count({ where: { status: "pending" } }),
   ]);
-  return {
-    propositions,
-    creations,
-    signalements,
-    liens,
-    total: propositions + creations + signalements + liens,
-  };
+  const counts = { propositions, creations, signalements, liens };
+  const total = allowedModTabs(level).reduce((n, t) => n + counts[t], 0);
+  return { ...counts, total };
 }
 
 /** Nom affichable d'un compte : pseudo du profil, sinon nom Clerk. */
