@@ -8,9 +8,9 @@ export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [characters, players, groupes] = await Promise.all([
-    prisma.character.findMany({ select: { id: true, createdAt: true } }),
-    prisma.player.findMany({ select: { id: true, createdAt: true } }),
-    prisma.groupe.findMany({ select: { slug: true, type: true, createdAt: true } }),
+    prisma.character.findMany({ select: { id: true, updatedAt: true } }),
+    prisma.player.findMany({ select: { id: true, updatedAt: true } }),
+    prisma.groupe.findMany({ select: { slug: true, type: true, updatedAt: true } }),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -25,19 +25,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticPages,
     ...characters.map((c) => ({
       url: `${SITE_URL}/personnages/${c.id}`,
-      lastModified: c.createdAt,
+      lastModified: c.updatedAt,
       changeFrequency: "weekly" as const,
       priority: 0.7,
     })),
     ...groupes.map((g) => ({
       url: `${SITE_URL}${groupeHref(g)}`,
-      lastModified: g.createdAt,
+      lastModified: g.updatedAt,
       changeFrequency: "weekly" as const,
       priority: 0.6,
     })),
     ...players.map((p) => ({
       url: `${SITE_URL}/joueurs/${p.id}`,
-      lastModified: p.createdAt,
+      lastModified: p.updatedAt,
       changeFrequency: "weekly" as const,
       priority: 0.5,
     })),
