@@ -224,7 +224,7 @@ export async function addSiteUpdate(
   detail: string,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin("moderation");
+    await requireAdmin("users");
     const l = clean(label);
     if (!l) return { ok: false, error: "Le titre est requis." };
     await prisma.changelogEntry.create({
