@@ -187,6 +187,9 @@ async function loadCharacterPage(id: string): Promise<CharacterPageData | null> 
 async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | null> {
   const c = await prisma.character.findUnique({
     where: { id },
+    // Une seule requête SQL (jointures) au lieu d'une par relation imbriquée :
+    // chaque requête prenait une connexion du pool (limite 5) → saturation.
+    relationLoadStrategy: "join",
     include: {
       versions: true,
       groupes: { include: membershipInclude },
