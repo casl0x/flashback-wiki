@@ -53,12 +53,14 @@ export async function groupeMetadata(
   type: GroupeType,
 ): Promise<Metadata> {
   const g = await loadGroupe(slug);
-  return {
-    title:
-      g && g.type === type
-        ? `${g.nom} – Flashback Wiki`
-        : `${GROUPE_TYPE_META[type].label} introuvable – Flashback Wiki`,
-  };
+  if (!g || g.type !== type) {
+    return { title: `${GROUPE_TYPE_META[type].label} introuvable – Flashback Wiki`, robots: { index: false } };
+  }
+  const title = `${g.nom} – Flashback Wiki`;
+  const description =
+    g.description?.replace(/\s+/g, " ").trim().slice(0, 160) ||
+    `${GROUPE_TYPE_META[type].label} ${g.nom} sur Flashback Wiki : membres, parcours et historique.`;
+  return { title, description, openGraph: { title, description } };
 }
 
 /** Page d'un groupe, d'une entreprise ou d'un service public (même rendu). */
