@@ -11,7 +11,7 @@ import GroupeFilterBar, {
   type GroupeStatutFilter,
   type GroupeTypeFilter,
 } from "@/app/_composents/groupes/GroupeFilterBar";
-import { Character, Groupe } from "@/lib/db";
+import { Character, Groupe, Version } from "@/lib/db";
 import {
   GROUPE_STATUTS,
   GROUPE_TYPES,
@@ -41,15 +41,18 @@ type Props = {
   characters: Character[];
   groupes: Groupe[];
   categories: CategorieOption[];
+  versions: Version[];
 };
 
 export default function CharactersExplorer({
   characters,
   groupes,
   categories,
+  versions: allVersions,
 }: Props) {
   const [vue, setVue] = useState<Vue>("personnages");
   const [typeFilter, setTypeFilter] = useState<GroupeTypeFilter>("all");
+  const [groupeVersion, setGroupeVersion] = useState("all");
   const [catFilter, setCatFilter] = useState("all");
   const [statutFilter, setStatutFilter] = useState<GroupeStatutFilter>("all");
   const [etatGroupe, setEtatGroupe] = useState<GroupeEtatFilter>("all");
@@ -90,6 +93,8 @@ export default function CharactersExplorer({
       if (t && (GROUPE_TYPES as string[]).includes(t)) {
         setTypeFilter(t as GroupeType);
       }
+      const gv = params.get("version");
+      if (gv) setGroupeVersion(gv);
       const cat = params.get("cat");
       if (cat) setCatFilter(cat);
       const statut = params.get("statut");
@@ -113,12 +118,24 @@ export default function CharactersExplorer({
       };
       set("vue", onGroupes ? "groupes" : null);
       set("type", onGroupes && typeFilter !== "all" ? typeFilter : null);
+      set(
+        "version",
+        onGroupes && groupeVersion !== "all" ? groupeVersion : null,
+      );
       set("cat", onGroupes && catFilter !== "all" ? catFilter : null);
       set("statut", onGroupes && statutFilter !== "all" ? statutFilter : null);
       set("etat", onGroupes && etatGroupe !== "all" ? etatGroupe : null);
       window.history.replaceState(null, "", url);
     } catch {}
-  }, [restored, vue, typeFilter, catFilter, statutFilter, etatGroupe]);
+  }, [
+    restored,
+    vue,
+    typeFilter,
+    groupeVersion,
+    catFilter,
+    statutFilter,
+    etatGroupe,
+  ]);
 
   useEffect(() => {
     if (!restored) return;
@@ -196,6 +213,15 @@ export default function CharactersExplorer({
     [groupes, query],
   );
 
+  // Versions où au moins un groupe a eu des membres, dans l'ordre des versions.
+  const groupeVersions = useMemo(() => {
+    const used = new Set(groupes.flatMap((g) => g.versionIds ?? []));
+    return allVersions
+      .filter((v) => used.has(v.id))
+      .sort((a, b) => a.ordre - b.ordre)
+      .map((v) => ({ ...v, ordre: String(v.ordre) }));
+  }, [groupes, allVersions]);
+
   const categorieNom = useMemo(
     () => new Map(categories.map((c) => [c.id, c.nom])),
     [categories],
@@ -206,6 +232,8 @@ export default function CharactersExplorer({
       groupes
         .filter(
           (g) =>
+            (groupeVersion === "all" ||
+              !!g.versionIds?.includes(groupeVersion)) &&
             (typeFilter === "all" || g.type === typeFilter) &&
             (statutFilter === "all" || g.statut === statutFilter) &&
             (catFilter === "all" ||
@@ -223,6 +251,7 @@ export default function CharactersExplorer({
         ),
     [
       groupes,
+      groupeVersion,
       typeFilter,
       statutFilter,
       catFilter,
@@ -277,6 +306,9 @@ export default function CharactersExplorer({
         <GroupeFilterBar
           query={query}
           onQueryChange={setQuery}
+          versions={groupeVersions}
+          versionFilter={groupeVersion}
+          onVersionChange={setGroupeVersion}
           typeFilter={typeFilter}
           onTypeChange={(v) => {
             setTypeFilter(v);

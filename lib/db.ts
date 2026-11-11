@@ -47,6 +47,8 @@ export type Groupe = {
   categorieId: string | null;
   /** Nombre de persos distincts (renseigné par fetchWikiData). */
   membersCount?: number;
+  /** Versions où le groupe a eu des membres (renseigné par fetchWikiData). */
+  versionIds?: string[];
 };
 
 // ─── Character ───────────────────────────────────────────────────────────────

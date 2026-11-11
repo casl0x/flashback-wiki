@@ -11,7 +11,7 @@ export const revalidate = 300;
 export const metadata: Metadata = { title: "Explorer – Flashback Wiki" };
 
 export default async function CharactersPage() {
-  const { characters, groupes } = await getWikiData();
+  const { characters, groupes, versions } = await getWikiData();
   // Catégories des entreprises / services publics (sous-filtres de la vue Groupes).
   const categories = await prisma.groupeCategorie
     .findMany({
@@ -45,6 +45,7 @@ export default async function CharactersPage() {
         characters={characters}
         groupes={groupes}
         categories={categories}
+        versions={versions}
       />
     </main>
   );

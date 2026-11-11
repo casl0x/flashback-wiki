@@ -132,7 +132,7 @@ export async function fetchWikiData(): Promise<WikiData> {
       }),
       prisma.groupe.findMany({
         orderBy: { nom: "asc" },
-        include: { members: { select: { characterId: true } } },
+        include: { members: { select: { characterId: true, versionId: true } } },
       }),
     ]);
 
@@ -182,6 +182,10 @@ export async function fetchWikiData(): Promise<WikiData> {
         ...g,
         createdAt: g.createdAt.toISOString(),
         membersCount: new Set(members.map((m) => m.characterId)).size,
+        // Versions où le groupe a eu des membres (filtre « Version » de l'Explorer).
+        versionIds: [
+          ...new Set(members.map((m) => m.versionId).filter((v): v is string => !!v)),
+        ],
       })),
       counts,
       totalRelations,
