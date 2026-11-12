@@ -174,7 +174,6 @@ export default function CharacterPage({
           )}
 
           <CharacterSounds sounds={c.sounds} />
-          <CharacterRelations c={c} />
         </div>
 
         <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-5">
@@ -202,6 +201,11 @@ export default function CharacterPage({
             <CharacterContributors characterId={c.id} />
           </Suspense>
         </div>
+      </div>
+
+      {/* Pleine largeur, sous le bloc principal : l'arbre a besoin de place. */}
+      <div className="mx-auto max-w-[1180px] px-4 pb-16 sm:px-5">
+        <CharacterRelations c={c} />
       </div>
     </div>
   );
