@@ -9,7 +9,6 @@ import { Suspense } from "react";
 import { OtherCharacters, PlayerPanel } from "./CharacterAside";
 import CharacterContributors from "./CharacterContributors";
 import CharacterHero from "./CharacterHero";
-import CharacterMap from "./CharacterMap";
 import CharacterParcours from "./CharacterParcours";
 import CharacterRelations from "./CharacterRelations";
 import CharacterSounds from "./CharacterSounds";
@@ -53,7 +52,6 @@ export default function CharacterPage({
   isOwner?: boolean;
 }) {
   const firstName = c.nom.split(/\s+/)[0];
-  const hasLocation = c.locationX != null && c.locationY != null;
 
   return (
     <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
@@ -180,17 +178,6 @@ export default function CharacterPage({
 
         <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-5">
           {c.player && <PlayerPanel player={c.player} />}
-          {hasLocation && (
-            <CharacterMap
-              characterId={c.id}
-              name={c.nom}
-              x={c.locationX!}
-              y={c.locationY!}
-              imageUrl={c.imageUrl}
-              role={c.role}
-              versionColor={c.versions.at(-1)?.color ?? null}
-            />
-          )}
           {c.player && <OtherCharacters player={c.player} />}
           <div className="flex justify-center rounded-lg border border-dashed border-[#3A3E47] p-3">
             <SuggestButton mode="edit" character={toSuggestCharacter(c)} />
