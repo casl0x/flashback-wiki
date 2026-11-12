@@ -115,6 +115,8 @@ export default function CharacterPage({
 
           <CharacterParcours steps={c.parcours} etatVie={c.etatVie} />
 
+          <CharacterRelations c={c} />
+
           {c.lienReddifs.length > 0 && (
             <section
               aria-labelledby="reddifs-h"
@@ -201,11 +203,6 @@ export default function CharacterPage({
             <CharacterContributors characterId={c.id} />
           </Suspense>
         </div>
-      </div>
-
-      {/* Pleine largeur, sous le bloc principal : l'arbre a besoin de place. */}
-      <div className="mx-auto max-w-[1180px] px-4 pb-16 sm:px-5">
-        <CharacterRelations c={c} />
       </div>
     </div>
   );
