@@ -1,3 +1,4 @@
+import { FEEDBACK_CATEGORIES } from "@/lib/feedback-categories";
 import { NextResponse } from "next/server";
 
 // Retours (bugs / suggestions) envoyés sur Discord via webhook.
@@ -55,6 +56,8 @@ export async function POST(req: Request) {
   if (!message || message.length < 5) {
     return NextResponse.json({ error: "Message trop court" }, { status: 400 });
   }
+  const categorie = FEEDBACK_CATEGORIES[type].find((c) => c === body.categorie);
+  if (!categorie) return NextResponse.json({ error: "Catégorie invalide" }, { status: 400 });
   const etapes = type === "bug" ? text(body.etapes, 1000) : null;
   const page = text(body.page, 300);
 
@@ -73,6 +76,7 @@ export async function POST(req: Request) {
   }
 
   const fields = [
+    { name: "Catégorie", value: categorie },
     ...(page ? [{ name: "Page", value: page }] : []),
     ...(etapes ? [{ name: "Étapes pour reproduire", value: etapes }] : []),
   ];
