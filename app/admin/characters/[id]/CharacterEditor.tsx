@@ -21,6 +21,7 @@ import {
   saveCharacterLocation,
   type CharacterInput,
 } from "@/lib/admin/actions/characters";
+import { MATRICULE_TYPES } from "@/lib/groupe-types";
 import { savePlayer } from "@/lib/admin/actions/players";
 import { shortDate } from "@/lib/admin/format";
 import { cloudinaryUrl, initials } from "@/lib/cloudinary";
@@ -558,7 +559,7 @@ export default function CharacterEditor({
                         </option>
                       ))}
                     </Select>
-                    {g?.type === "SERVICE_PUBLIC" && (
+                    {g && MATRICULE_TYPES.includes(g.type) && (
                       <TextInput
                         aria-label={g.matriculeLabel || "Matricule"}
                         placeholder={g.matriculeLabel || "Valeur"}
