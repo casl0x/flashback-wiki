@@ -43,3 +43,8 @@ export const MATRICULE_LABEL_DEFAULT: Partial<Record<GroupeType, string>> = {
   SERVICE_PUBLIC: "matricule",
   ENTREPRISE: "juridiction",
 };
+
+/** Valeurs proposées en liste pour le champ numéro de certains types ; sans entrée, le champ est un texte libre. */
+export const MATRICULE_OPTIONS: Partial<Record<GroupeType, string[]>> = {
+  ENTREPRISE: ["Nord", "Sud"],
+};
