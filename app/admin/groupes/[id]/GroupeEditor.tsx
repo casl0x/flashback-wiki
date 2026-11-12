@@ -264,8 +264,8 @@ export default function GroupeEditor({
               )}
               {f.type === "GROUPE" && (
                 <Field
-                  label="Statut"
-                  hint="Groupes illégaux : indépendant, gang, organisation ou GM."
+                  label="Catégorie"
+                  hint="Groupes illégaux : Indé, Gang, Orga ou GM (liste fixe)."
                 >
                   <Select
                     value={f.statut}
@@ -273,7 +273,7 @@ export default function GroupeEditor({
                       setF({ ...f, statut: e.target.value as "" | GroupeStatut })
                     }
                   >
-                    <option value="">Aucun</option>
+                    <option value="">Aucune</option>
                     {GROUPE_STATUTS.map((s) => (
                       <option key={s} value={s}>
                         {GROUPE_STATUT_LABEL[s]}
