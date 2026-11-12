@@ -16,6 +16,7 @@ import ImageUpload from "@/app/_composents/admin/ImageUpload";
 import { BADGES_CONFIG } from "@/app/_composents/admin/PlayerBadges";
 import {
   deletePlayer,
+  fetchKickAvatar,
   fetchTwitchAvatar,
   savePlayer,
   unlinkPlayerAccount,
@@ -75,11 +76,21 @@ export default function PlayerEditor({
   const plat = detectStreamPlatform(f.chaines[0] ?? null);
   const unusedReseaux = RESEAUX_OPTIONS.filter((r) => !(r.key in f.reseaux));
   const twitchChaines = f.chaines.filter((c) => detectStreamPlatform(c) === "twitch");
+  const kickChaines = f.chaines.filter((c) => detectStreamPlatform(c) === "kick");
 
   async function applyTwitchAvatar(url: string) {
     setAvatarMsg(null);
     setFetchingAvatar(url);
     const r = await fetchTwitchAvatar(url);
+    setFetchingAvatar(null);
+    if (!r.ok) return setAvatarMsg(r.error);
+    setF((s) => ({ ...s, imageUrl: r.data.avatarUrl }));
+  }
+
+  async function applyKickAvatar(url: string) {
+    setAvatarMsg(null);
+    setFetchingAvatar(url);
+    const r = await fetchKickAvatar(url);
     setFetchingAvatar(null);
     if (!r.ok) return setAvatarMsg(r.error);
     setF((s) => ({ ...s, imageUrl: r.data.avatarUrl }));
@@ -432,7 +443,7 @@ export default function PlayerEditor({
                 preview="w_200,h_200,c_fill,g_face"
                 aspect="square"
               />
-              {twitchChaines.length > 0 && (
+              {(twitchChaines.length > 0 || kickChaines.length > 0) && (
                 <div className="flex flex-col gap-1.5">
                   {twitchChaines.map((url) => (
                     <Button
@@ -443,6 +454,17 @@ export default function PlayerEditor({
                       {fetchingAvatar === url
                         ? "…"
                         : `Utiliser la pp Twitch (${extractStreamUsername(url)})`}
+                    </Button>
+                  ))}
+                  {kickChaines.map((url) => (
+                    <Button
+                      key={url}
+                      disabled={fetchingAvatar === url}
+                      onClick={() => applyKickAvatar(url)}
+                    >
+                      {fetchingAvatar === url
+                        ? "…"
+                        : `Utiliser la pp Kick (${extractStreamUsername(url)})`}
                     </Button>
                   ))}
                 </div>
