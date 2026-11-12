@@ -43,6 +43,8 @@ export type LinkedCharacter = {
   version: VersionTag | null;
 };
 
+export type ParentsLink = "marie" | "couple" | "ex" | null;
+
 export type CharacterSound = {
   id: string;
   titre: string;
@@ -77,6 +79,8 @@ export type CharacterPageData = {
   currentIllegal: ParcoursStep | null;
   sounds: CharacterSound[];
   relations: LinkedCharacter[];
+  /** Lien entre les deux premiers parents (marié, en couple, ex), s'ils sont renseignés. */
+  parentsLink: ParentsLink;
   player: {
     id: string;
     pseudo: string;
@@ -193,6 +197,25 @@ function toLinked(relationId: string, label: string | null, c: Linked): LinkedCh
   };
 }
 
+/** Les deux premiers parents sont-ils mariés / en couple / séparés entre eux ? */
+async function loadParentsLink(relations: LinkedCharacter[]): Promise<ParentsLink> {
+  const parents = relations.filter((r) => r.kind === "parent");
+  if (parents.length < 2) return null;
+  const [p1, p2] = parents;
+  // La paire est stockée triée (A < B).
+  const [a, b] = p1.id < p2.id ? [p1.id, p2.id] : [p2.id, p1.id];
+  const link = await prisma.relation.findUnique({
+    where: { personnageAId_personnageBId: { personnageAId: a, personnageBId: b } },
+    select: { typeRelation: true, typeRelationInverse: true },
+  });
+  if (!link) return null;
+  const kind =
+    relationKind(link.typeRelation) !== "autre"
+      ? relationKind(link.typeRelation)
+      : relationKind(link.typeRelationInverse);
+  return kind === "marie" || kind === "couple" || kind === "ex" ? kind : null;
+}
+
 async function loadCharacterPage(id: string): Promise<CharacterPageData | null> {
   // `null` = fiche réellement introuvable (404). Une erreur de base de données
   // (pool saturé, Neon injoignable…) ne doit PAS devenir un 404 : on retente une
@@ -239,6 +262,8 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
     ...c.relationsB.map((r) => toLinked(r.id, r.typeRelationInverse, r.personnageA)),
   ];
 
+  const parentsLink = await loadParentsLink(relations);
+
   const others: OtherCharacter[] = (c.player?.characters ?? [])
     .map((o) => {
       const v = [...o.versions].sort(byVersion).at(-1);
@@ -280,6 +305,7 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
       platform: detectSoundPlatform(s.url, s.platform),
     })),
     relations,
+    parentsLink,
     player: c.player
       ? {
           id: c.player.id,
