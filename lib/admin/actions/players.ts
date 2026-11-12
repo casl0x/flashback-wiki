@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/admin/auth";
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { getTwitchAvatar } from "@/lib/twitch";
 import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
@@ -38,6 +39,7 @@ export async function savePlayer(id: string | null, input: PlayerInput): Promise
     const p = id
       ? await prisma.player.update({ where: { id }, data })
       : await prisma.player.create({ data });
+    await logChange(id ? "edit_player" : "add_player", p.pseudo);
     await refreshAll();
     return { ok: true, data: { id: p.id } };
   } catch (e) {
