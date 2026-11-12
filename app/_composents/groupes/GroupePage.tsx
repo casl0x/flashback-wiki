@@ -3,6 +3,7 @@ import { cloudinaryUrl } from "@/lib/cloudinary";
 import {
   GROUPE_STATUT_LABEL,
   GROUPE_TYPE_META,
+  MATRICULE_TYPES,
   groupeHref,
   type GroupeType,
 } from "@/lib/groupe-types";
@@ -87,9 +88,9 @@ export default async function GroupePage({
   const meta = GROUPE_TYPE_META[g.type];
 
   const accent = g.color ?? "#2F6FEB";
-  // Le matricule n'existe que pour les services publics (les autres types l'ignorent).
+  // Le matricule / la juridiction n'existe que pour les services publics et les entreprises (les autres types l'ignorent).
   const matriculeOf = (value: string | null) =>
-    g.type === "SERVICE_PUBLIC" ? (value?.trim() ?? "") : "";
+    MATRICULE_TYPES.includes(g.type) ? (value?.trim() ?? "") : "";
   const onAccent = textOn(accent);
 
   // Périodes (versions) où le groupe a des membres, la plus récente d'abord.
