@@ -113,19 +113,7 @@ export default function PlayersPageClient({
         </p>
       </header>
 
-      <LiveSection lives={lives} />
-
-      <section aria-labelledby="tous-h" className="flex flex-col gap-4">
-        <h2
-          id="tous-h"
-          className={cn(
-            anton.className,
-            "m-0 text-[22px] font-normal uppercase tracking-[0.02em] text-[#ECECEE] sm:text-[26px]",
-          )}
-        >
-          Tous les streamers
-        </h2>
-
+      <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
           <label className="relative min-w-55 flex-1">
             <span className="sr-only">Rechercher un joueur par pseudo</span>
@@ -229,6 +217,20 @@ export default function PlayersPageClient({
             </button>
           </div>
         )}
+      </div>
+
+      <LiveSection lives={lives} />
+
+      <section aria-labelledby="tous-h" className="flex flex-col gap-4">
+        <h2
+          id="tous-h"
+          className={cn(
+            anton.className,
+            "m-0 text-[22px] font-normal uppercase tracking-[0.02em] text-[#ECECEE] sm:text-[26px]",
+          )}
+        >
+          Tous les streamers
+        </h2>
 
         {filtered.length === 0 ? (
           <p className="m-0 rounded-xl border border-dashed border-[#3A3E47] p-8 text-center text-[#9AA0AA]">
