@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/admin/auth";
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/admin/slug";
 import { GROUPE_STATUTS, type GroupeStatut, type GroupeType } from "@/lib/groupe-types";
@@ -69,6 +70,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
       return g;
     }, { timeout: 20000 });
 
+    await logChange(id ? "edit_groupe" : "add_groupe", saved.nom);
     await refreshAll();
     return { ok: true, data: { id: saved.id, slug: saved.slug } };
   } catch (e) {
