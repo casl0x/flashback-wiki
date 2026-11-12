@@ -28,7 +28,6 @@ export default function PlayersPageClient({
   const setQuery = ctx?.setQuery ?? setLocalQuery;
 
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
-  const [liveOnly, setLiveOnly] = useState(false);
   const [sort, setSort] = useState<SortOrder>("az");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -62,20 +61,32 @@ export default function PlayersPageClient({
     [lives],
   );
 
-  const activeFilterCount = [platformFilter !== "all", liveOnly].filter(
-    Boolean,
-  ).length;
+  // La recherche et le filtre de plateforme s'appliquent aussi aux lives
+  // affichés, pour rester cohérents avec la liste du bas.
+  const visibleLives = useMemo(
+    () =>
+      lives.filter(
+        ({ player, channel }) =>
+          matchesSearch(player.pseudo, query) &&
+          (platformFilter === "all" || channel.platform === platformFilter),
+      ),
+    [lives, query, platformFilter],
+  );
+
+  const activeFilterCount = platformFilter !== "all" ? 1 : 0;
 
   const filtered = useMemo(() => {
+    // Un joueur en live est déjà affiché dans la section « En live » :
+    // on évite le doublon dans la liste du bas.
     const result = players.filter((p) => {
       if (!p.badges.includes("streamer") || p.chaines.length === 0)
         return false;
+      if (liveIds.has(p.id)) return false;
       const matchSearch = matchesSearch(p.pseudo, query);
       const matchPlatform =
         platformFilter === "all" ||
         p.chaines.some((c) => c.platform === platformFilter);
-      const matchLive = !liveOnly || liveIds.has(p.id);
-      return matchSearch && matchPlatform && matchLive;
+      return matchSearch && matchPlatform;
     });
     result.sort((a, b) =>
       sort === "az"
@@ -84,11 +95,10 @@ export default function PlayersPageClient({
           a.pseudo.localeCompare(b.pseudo, "fr"),
     );
     return result;
-  }, [players, query, platformFilter, liveOnly, sort, liveIds]);
+  }, [players, query, platformFilter, sort, liveIds]);
 
   const resetFilters = () => {
     setPlatformFilter("all");
-    setLiveOnly(false);
   };
 
   return (
@@ -181,19 +191,6 @@ export default function PlayersPageClient({
                 </button>
               );
             })}
-            <button
-              type="button"
-              onClick={() => setLiveOnly((v) => !v)}
-              aria-pressed={liveOnly}
-              className={cn(
-                "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold",
-                liveOnly
-                  ? "border-[#E5484D] bg-[#2A1416] text-[#FF8A8E]"
-                  : "border-[#3A3E47] text-[#C4C7CF] hover:border-[#6E7380]",
-              )}
-            >
-              <span aria-hidden>●</span> En live
-            </button>
           </div>
         )}
 
@@ -204,9 +201,6 @@ export default function PlayersPageClient({
                 label={platformFilter}
                 onRemove={() => setPlatformFilter("all")}
               />
-            )}
-            {liveOnly && (
-              <FilterChip label="En live" onRemove={() => setLiveOnly(false)} />
             )}
             <button
               type="button"
@@ -219,7 +213,7 @@ export default function PlayersPageClient({
         )}
       </div>
 
-      <LiveSection lives={lives} />
+      <LiveSection lives={visibleLives} />
 
       <section aria-labelledby="tous-h" className="flex flex-col gap-4">
         <h2
@@ -234,18 +228,16 @@ export default function PlayersPageClient({
 
         {filtered.length === 0 ? (
           <p className="m-0 rounded-xl border border-dashed border-[#3A3E47] p-8 text-center text-[#9AA0AA]">
-            {query
-              ? `Aucun joueur ne correspond à "${query}".`
-              : "Aucun joueur pour l’instant."}
+            {visibleLives.length > 0
+              ? "Les joueurs correspondants sont actuellement en live, juste au-dessus."
+              : query
+                ? `Aucun joueur ne correspond à "${query}".`
+                : "Aucun joueur pour l’instant."}
           </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3">
             {filtered.map((p) => (
-              <PlayerGridCard
-                key={p.id}
-                player={p}
-                isLive={liveIds.has(p.id)}
-              />
+              <PlayerGridCard key={p.id} player={p} />
             ))}
           </div>
         )}
@@ -276,13 +268,7 @@ function FilterChip({
   );
 }
 
-function PlayerGridCard({
-  player,
-  isLive,
-}: {
-  player: PlayerListItem;
-  isLive: boolean;
-}) {
+function PlayerGridCard({ player }: { player: PlayerListItem }) {
   const primaryPlatform = player.chaines[0]?.platform ?? null;
   const ringColor = primaryPlatform
     ? PLATFORM_RING[primaryPlatform]
@@ -314,11 +300,6 @@ function PlayerGridCard({
           />
         ) : (
           initials(player.pseudo)
-        )}
-        {isLive && (
-          <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[#15171B] bg-[#E5484D]">
-            <span className="sr-only">En live</span>
-          </span>
         )}
       </span>
       <span className="flex min-w-0 flex-col">
