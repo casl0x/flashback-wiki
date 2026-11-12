@@ -1,7 +1,12 @@
 import { ButtonLink, PageHeader, TextInput } from "@/app/_composents/admin/ui";
 import { prisma } from "@/lib/db";
 import { versionRank } from "@/lib/version-rank";
-import { GROUPE_TYPES, GROUPE_TYPE_META, type GroupeType } from "@/lib/groupe-types";
+import {
+  GROUPE_STATUT_LABEL,
+  GROUPE_TYPES,
+  GROUPE_TYPE_META,
+  type GroupeType,
+} from "@/lib/groupe-types";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -145,7 +150,11 @@ export default async function AdminGroupes({
                     {GROUPE_TYPE_META[g.type].label}
                   </td>
                   <td className="px-3 py-2.5 text-[#C4C7CF]">
-                    {g.categorie?.nom ?? (
+                    {(g.type === "GROUPE"
+                      ? g.statut
+                        ? GROUPE_STATUT_LABEL[g.statut]
+                        : null
+                      : g.categorie?.nom) ?? (
                       <span className="text-[#6E7380]">—</span>
                     )}
                   </td>
