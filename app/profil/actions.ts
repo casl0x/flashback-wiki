@@ -3,6 +3,7 @@
 import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { detectSoundPlatform } from "@/lib/media-embed";
+import { getKickAvatar } from "@/lib/kick";
 import { notifyBadgesEarned } from "@/lib/notifications";
 import { HEX_COLOR_RE } from "@/lib/profile-banner";
 import { getTwitchAvatar } from "@/lib/twitch";
@@ -185,6 +186,22 @@ export async function fetchMyTwitchAvatar(channelUrl: string): Promise<string> {
   if (!login) throw new Error("Pseudo Twitch introuvable dans le lien.");
   const avatarUrl = await getTwitchAvatar(login);
   if (!avatarUrl) throw new Error("Avatar introuvable sur Twitch.");
+  return avatarUrl;
+}
+
+/** Avatar Kick d'un lien de chaîne, pour le joueur lié qui édite sa propre fiche. */
+export async function fetchMyKickAvatar(channelUrl: string): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  await requireLinkedPlayerId(userId);
+
+  if (detectStreamPlatform(channelUrl) !== "kick") {
+    throw new Error("Ce n'est pas un lien Kick.");
+  }
+  const slug = extractStreamUsername(channelUrl);
+  if (!slug) throw new Error("Pseudo Kick introuvable dans le lien.");
+  const avatarUrl = await getKickAvatar(slug);
+  if (!avatarUrl) throw new Error("Avatar introuvable sur Kick.");
   return avatarUrl;
 }
 

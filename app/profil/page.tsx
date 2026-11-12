@@ -40,6 +40,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   deleteCreatorPost,
+  fetchMyKickAvatar,
   fetchMyTwitchAvatar,
   requestPlayerLink,
   updateBannerColor,
@@ -1088,6 +1089,7 @@ function PlayerProfileCard({
 
   const unusedReseaux = RESEAUX_OPTIONS.filter((r) => !(r.key in f.reseaux));
   const twitchChaines = f.chaines.filter((c) => detectStreamPlatform(c) === "twitch");
+  const kickChaines = f.chaines.filter((c) => detectStreamPlatform(c) === "kick");
 
   function startEditing() {
     setF(player);
@@ -1098,6 +1100,22 @@ function PlayerProfileCard({
     setFetchingAvatar(url);
     try {
       const avatarUrl = await fetchMyTwitchAvatar(url);
+      setF((s) => ({ ...s, imageUrl: avatarUrl }));
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Avatar introuvable",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setFetchingAvatar(null);
+    }
+  }
+
+  async function applyKickAvatar(url: string) {
+    setFetchingAvatar(url);
+    try {
+      const avatarUrl = await fetchMyKickAvatar(url);
       setF((s) => ({ ...s, imageUrl: avatarUrl }));
     } catch (err) {
       toast({
@@ -1264,6 +1282,18 @@ function PlayerProfileCard({
                 {fetchingAvatar === url
                   ? "…"
                   : `Utiliser la pp Twitch (${extractStreamUsername(url)})`}
+              </button>
+            ))}
+            {kickChaines.map((url) => (
+              <button
+                key={url}
+                disabled={fetchingAvatar === url}
+                onClick={() => applyKickAvatar(url)}
+                className="flex min-h-9 w-fit items-center gap-1.5 rounded-md border border-[#3A3E47] px-3 text-[13px] font-semibold text-[#C4C7CF] hover:border-[#6E7380] disabled:opacity-50"
+              >
+                {fetchingAvatar === url
+                  ? "…"
+                  : `Utiliser la pp Kick (${extractStreamUsername(url)})`}
               </button>
             ))}
           </div>

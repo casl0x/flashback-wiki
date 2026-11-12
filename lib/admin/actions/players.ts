@@ -3,6 +3,7 @@
 import { requireAdmin } from "@/lib/admin/auth";
 import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
+import { getKickAvatar } from "@/lib/kick";
 import { getTwitchAvatar } from "@/lib/twitch";
 import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
@@ -58,6 +59,23 @@ export async function fetchTwitchAvatar(channelUrl: string): Promise<ActionResul
     if (!login) return { ok: false, error: "Pseudo Twitch introuvable dans le lien." };
     const avatarUrl = await getTwitchAvatar(login);
     if (!avatarUrl) return { ok: false, error: "Avatar introuvable sur Twitch." };
+    return { ok: true, data: { avatarUrl } };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/** Avatar Kick d'un lien de chaîne, pour le bouton « Utiliser cette pp » de l'admin. */
+export async function fetchKickAvatar(channelUrl: string): Promise<ActionResult<{ avatarUrl: string }>> {
+  try {
+    await requireAdmin();
+    if (detectStreamPlatform(channelUrl) !== "kick") {
+      return { ok: false, error: "Ce n'est pas un lien Kick." };
+    }
+    const slug = extractStreamUsername(channelUrl);
+    if (!slug) return { ok: false, error: "Pseudo Kick introuvable dans le lien." };
+    const avatarUrl = await getKickAvatar(slug);
+    if (!avatarUrl) return { ok: false, error: "Avatar introuvable sur Kick." };
     return { ok: true, data: { avatarUrl } };
   } catch (e) {
     return failure(e);
