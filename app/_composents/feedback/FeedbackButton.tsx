@@ -1,11 +1,12 @@
 "use client";
 
 import { useToast } from "@/app/_composents/toast/ToastProvider";
+import { FEEDBACK_CATEGORIES, type FeedbackType } from "@/lib/feedback-categories";
 import { cn } from "@/lib/utils";
 import { MessageSquareWarning } from "lucide-react";
 import { useState } from "react";
 
-type FeedbackType = "bug" | "suggestion";
+const MIN = 5;
 
 const field =
   "rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 py-2 text-[13px] text-[#ECECEE] outline-none focus:border-[#2F6FEB]";
@@ -13,6 +14,7 @@ const field =
 export default function FeedbackButton() {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<FeedbackType>("bug");
+  const [categorie, setCategorie] = useState("");
   const [message, setMessage] = useState("");
   const [etapes, setEtapes] = useState("");
   const [website, setWebsite] = useState(""); // honeypot
@@ -27,6 +29,7 @@ export default function FeedbackButton() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type,
+          categorie,
           message,
           etapes,
           website,
@@ -43,6 +46,7 @@ export default function FeedbackButton() {
       setOpen(false);
       setMessage("");
       setEtapes("");
+      setCategorie("");
     } catch (err) {
       toast({
         tone: "error",
@@ -57,7 +61,10 @@ export default function FeedbackButton() {
   const tab = (t: FeedbackType, label: string) => (
     <button
       type="button"
-      onClick={() => setType(t)}
+      onClick={() => {
+        setType(t);
+        setCategorie("");
+      }}
       aria-pressed={type === t}
       className={cn(
         "flex-1 rounded-md border px-3 py-1.5 text-[13px] font-semibold",
@@ -99,6 +106,24 @@ export default function FeedbackButton() {
               {tab("bug", "🐛 Bug")}
               {tab("suggestion", "💡 Suggestion")}
             </div>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#6E7380]">
+                {type === "bug" ? "Où est le problème ?" : "Sujet de l'idée"}
+              </span>
+              <select
+                value={categorie}
+                onChange={(e) => setCategorie(e.target.value)}
+                aria-label="Catégorie"
+                className={field}
+              >
+                <option value="">— Choisir —</option>
+                {FEEDBACK_CATEGORIES[type].map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -107,6 +132,11 @@ export default function FeedbackButton() {
               aria-label="Message"
               className={cn(field, "h-24 resize-none")}
             />
+            {message.trim().length < MIN && (
+              <p className="m-0 text-[11px] text-[#6E7380]">
+                Minimum {MIN} caractères ({message.trim().length}/{MIN}).
+              </p>
+            )}
             {type === "bug" && (
               <textarea
                 value={etapes}
@@ -139,7 +169,7 @@ export default function FeedbackButton() {
               <button
                 type="button"
                 onClick={submit}
-                disabled={sending || message.trim().length < 5}
+                disabled={sending || !categorie || message.trim().length < MIN}
                 className="rounded-md bg-[#2F6FEB] px-3 py-1.5 text-[13px] font-bold text-white hover:bg-[#2860CF] disabled:opacity-50"
               >
                 {sending ? "…" : "Envoyer"}
