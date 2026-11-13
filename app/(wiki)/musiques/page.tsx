@@ -30,13 +30,19 @@ export default async function MusiquesPage() {
           Musiques
         </h1>
         <p className="mt-3 max-w-2xl text-[16px] text-[#A3A8B3]">
-          Les sons des joueurs, liés à leurs personnages. Écoute la playlist
-          complète du serveur.
+          Les sons des joueurs, liés à leurs personnages. Retrouve aussi{" "}
+          <a href="#playlists" className="text-[#8AB4FF] hover:underline">
+            les playlists complètes du serveur
+          </a>
+          .
         </p>
       </header>
 
       <main className="mx-auto flex max-w-295 flex-col gap-6 px-4 pb-16 sm:px-5">
-        <section aria-labelledby="playlists-h" className="flex flex-col gap-4">
+
+        <MusicExplorer players={players} />
+
+        <section id="playlists" aria-labelledby="playlists-h" className="flex flex-col gap-4 scroll-mt-20">
           <SectionTitle id="playlists-h">
             Les playlists du serveur
           </SectionTitle>
@@ -79,8 +85,6 @@ export default async function MusiquesPage() {
             </PlaylistCard>
           </div>
         </section>
-
-        <MusicExplorer players={players} />
       </main>
     </div>
   );
