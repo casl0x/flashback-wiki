@@ -1,5 +1,5 @@
 import { parseRediffusions, prisma, type Rediffusion } from "@/lib/db";
-import { PARCOURS_TYPES, type GroupeStatut, type GroupeType } from "@/lib/groupe-types";
+import { MATRICULE_TYPES, PARCOURS_TYPES, type GroupeStatut, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
 import { relationKind, type RelationKind } from "@/lib/relation-kinds";
 import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
@@ -159,10 +159,10 @@ function lastStep(list: Membership[], keep: (m: Membership) => boolean): Parcour
   return last ? toStep(last) : null;
 }
 
-/** Texte à afficher pour le matricule : réservé aux services publics, précédé du libellé du groupe s'il y en a un. */
+/** Texte à afficher pour le matricule / la juridiction : réservé aux services publics et aux entreprises, précédé du libellé du groupe s'il y en a un. */
 function matriculeText(m: Membership): string | null {
   const value = m.matricule?.trim();
-  if (!value || m.groupe.type !== "SERVICE_PUBLIC") return null;
+  if (!value || !MATRICULE_TYPES.includes(m.groupe.type)) return null;
   const label = m.groupe.matriculeLabel?.trim();
   return label ? `${label} ${value}` : value;
 }

@@ -24,6 +24,8 @@ import {
   GROUPE_STATUT_LABEL,
   GROUPE_TYPES,
   GROUPE_TYPE_META,
+  MATRICULE_LABEL_DEFAULT,
+  MATRICULE_TYPES,
   groupeHref,
   type GroupeStatut,
   type GroupeType,
@@ -225,13 +227,22 @@ export default function GroupeEditor({
               >
                 <Select
                   value={f.type}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const type = e.target.value as GroupeType;
+                    // Un libellé resté à sa valeur par défaut suit le type (matricule ↔ juridiction).
+                    const isDefault = Object.values(MATRICULE_LABEL_DEFAULT).includes(
+                      f.matriculeLabel,
+                    );
                     setF({
                       ...f,
-                      type: e.target.value as GroupeType,
+                      type,
                       categorieId: null,
-                    })
-                  }
+                      matriculeLabel:
+                        isDefault && MATRICULE_LABEL_DEFAULT[type]
+                          ? MATRICULE_LABEL_DEFAULT[type]!
+                          : f.matriculeLabel,
+                    });
+                  }}
                 >
                   {GROUPE_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -291,15 +302,15 @@ export default function GroupeEditor({
                 />
                 Groupe dissous
               </label>
-              {f.type === "SERVICE_PUBLIC" && (
+              {MATRICULE_TYPES.includes(f.type) && (
                 <Field
                   label="Libellé du numéro"
-                  hint="Affiché devant le matricule du membre (ex. « matricule 245 »). Vide : seule la valeur est affichée."
+                  hint="Affiché devant le numéro ou le texte du membre (ex. « matricule 245 », « juridiction LS »). Vide : seule la valeur est affichée."
                   className="sm:col-span-2"
                 >
                   <TextInput
                     value={f.matriculeLabel}
-                    placeholder="matricule"
+                    placeholder={MATRICULE_LABEL_DEFAULT[f.type] ?? ""}
                     onChange={(e) =>
                       setF({ ...f, matriculeLabel: e.target.value })
                     }

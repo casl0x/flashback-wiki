@@ -34,3 +34,17 @@ export const GROUPE_STATUT_LABEL: Record<GroupeStatut, string> = {
   ORGA: "Orga",
   GM: "GM",
 };
+
+/** Types de groupe dont les membres ont un champ libre « numéro » (matricule, juridiction…). */
+export const MATRICULE_TYPES: GroupeType[] = ["SERVICE_PUBLIC", "ENTREPRISE"];
+
+/** Libellé par défaut de ce champ selon le type de groupe. */
+export const MATRICULE_LABEL_DEFAULT: Partial<Record<GroupeType, string>> = {
+  SERVICE_PUBLIC: "matricule",
+  ENTREPRISE: "juridiction",
+};
+
+/** Valeurs proposées en liste pour le champ numéro de certains types ; sans entrée, le champ est un texte libre. */
+export const MATRICULE_OPTIONS: Partial<Record<GroupeType, string[]>> = {
+  ENTREPRISE: ["Nord", "Sud"],
+};

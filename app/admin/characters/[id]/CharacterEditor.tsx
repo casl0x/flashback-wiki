@@ -21,6 +21,7 @@ import {
   saveCharacterLocation,
   type CharacterInput,
 } from "@/lib/admin/actions/characters";
+import { MATRICULE_OPTIONS, MATRICULE_TYPES } from "@/lib/groupe-types";
 import { savePlayer } from "@/lib/admin/actions/players";
 import { shortDate } from "@/lib/admin/format";
 import { cloudinaryUrl, initials } from "@/lib/cloudinary";
@@ -558,15 +559,44 @@ export default function CharacterEditor({
                         </option>
                       ))}
                     </Select>
-                    {g?.type === "SERVICE_PUBLIC" && (
-                      <TextInput
-                        aria-label={g.matriculeLabel || "Matricule"}
-                        placeholder={g.matriculeLabel || "Valeur"}
-                        value={m.matricule}
-                        onChange={(e) => update({ matricule: e.target.value })}
-                        className="w-40 flex-none"
-                      />
-                    )}
+                    {g &&
+                      MATRICULE_TYPES.includes(g.type) &&
+                      (MATRICULE_OPTIONS[g.type] ? (
+                        <Select
+                          aria-label={g.matriculeLabel || "Valeur"}
+                          value={m.matricule}
+                          onChange={(e) =>
+                            update({ matricule: e.target.value })
+                          }
+                          className="w-40 flex-none"
+                        >
+                          <option value="">
+                            {g.matriculeLabel || "Valeur"} : —
+                          </option>
+                          {[
+                            ...MATRICULE_OPTIONS[g.type]!,
+                            // Une ancienne valeur libre reste sélectionnable pour ne pas être perdue à l'enregistrement.
+                            ...(m.matricule &&
+                            !MATRICULE_OPTIONS[g.type]!.includes(m.matricule)
+                              ? [m.matricule]
+                              : []),
+                          ].map((v) => (
+                            <option key={v} value={v}>
+                              {v}
+                            </option>
+                          ))}
+                        </Select>
+                      ) : (
+                        <TextInput
+                          aria-label={g.matriculeLabel || "Matricule"}
+                          placeholder={g.matriculeLabel || "Valeur"}
+                          value={m.matricule}
+                          onChange={(e) =>
+                            update({ matricule: e.target.value })
+                          }
+                          className="w-40 flex-none"
+                        />
+                      ))}
                     {last && (
                       <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
                         actuel
