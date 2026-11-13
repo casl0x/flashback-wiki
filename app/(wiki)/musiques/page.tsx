@@ -1,7 +1,11 @@
+import MusicExplorer from "@/app/_composents/music/MusicExplorer";
 import SectionTitle from "@/app/_composents/characters/SectionTitle";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
+import { getMusicPlayers } from "@/lib/music";
 import type { Metadata } from "next";
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Musiques – Flashback Wiki",
@@ -12,7 +16,8 @@ const PLATFORMS = {
   spotify: { label: "Spotify", bg: "#1DB954", fg: "#0E0F12" },
 } as const;
 
-export default function MusiquesPage() {
+export default async function MusiquesPage() {
+  const players = await getMusicPlayers();
   return (
     <div className="min-h-full bg-[#0E0F12] text-[15px] leading-normal text-[#ECECEE]">
       <header className="mx-auto max-w-295 px-4 pt-10 pb-4 sm:px-5 sm:pt-14">
@@ -74,6 +79,8 @@ export default function MusiquesPage() {
             </PlaylistCard>
           </div>
         </section>
+
+        <MusicExplorer players={players} />
       </main>
     </div>
   );
