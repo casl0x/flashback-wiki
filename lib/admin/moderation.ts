@@ -257,6 +257,8 @@ export async function loadSuggestionDetail(id: string) {
     author: author ?? "Utilisateur",
     createdAt: s.createdAt.toISOString(),
     note: s.note,
+    imageUrl: s.imageUrl,
+    currentImageUrl: c?.imageUrl ?? null,
     rows,
   };
 }

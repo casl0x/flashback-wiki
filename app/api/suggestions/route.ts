@@ -34,6 +34,10 @@ export async function POST(req: Request) {
   const role = ROLES.includes(body.role as Role) ? (body.role as Role) : null;
   const etatVie = ETATS.includes(body.etatVie as EtatVie) ? (body.etatVie as EtatVie) : null;
 
+  // public_id Cloudinary uniquement (pas d'URL externe).
+  const rawImage = text(body.imageUrl, 300);
+  const image = rawImage && /^[\w\-./]+$/.test(rawImage) ? rawImage : null;
+
   const suggestion = await prisma.suggestion.create({
     data: {
       clerkUserId: userId,
@@ -47,6 +51,7 @@ export async function POST(req: Request) {
       role,
       etatVie,
       versionId: version?.id ?? null,
+      imageUrl: image,
     },
   });
   return NextResponse.json({ id: suggestion.id });
