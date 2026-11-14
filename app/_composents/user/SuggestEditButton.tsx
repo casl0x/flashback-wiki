@@ -18,9 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cloudinaryUrl } from "@/lib/cloudinary";
 import { Character, Version } from "@/lib/db";
 import { useUser } from "@clerk/nextjs";
 import { Pencil, Plus } from "lucide-react";
+import { CldUploadWidget } from "next-cloudinary";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -79,6 +81,7 @@ export function SuggestButton({
   const [versions, setVersions] = useState<Version[]>([]);
   const [groupeNames, setGroupeNames] = useState<string[]>([]);
   const [playerPseudos, setPlayerPseudos] = useState<string[]>([]);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState(() =>
     mode === "edit" && character
@@ -148,6 +151,7 @@ export function SuggestButton({
       joueur: form.joueur || null,
       versionId: form.versionId || null,
       lienReddif: form.lienReddif || null,
+      imageUrl,
     };
 
     try {
@@ -416,17 +420,54 @@ export function SuggestButton({
                 />
               </div>
 
-              <div>
-                <p className="text-sm text-text-muted">
-                  Vous pouvez envoyer les images de personnage ici :{" "}
-                  <a
-                    href="https://discord.gg/eyStpqcYwa"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent hover:underline"
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                  Image du personnage (optionnel)
+                </label>
+                <div className="flex items-center gap-2">
+                  {imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={cloudinaryUrl(imageUrl, "w_112,h_112,c_fill,g_face")}
+                      alt="aperçu"
+                      className="h-14 w-14 rounded-md object-cover border border-border"
+                    />
+                  ) : (
+                    <div className="h-14 w-14 rounded-md border border-dashed border-border bg-elevated" />
+                  )}
+                  <CldUploadWidget
+                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
+                    onSuccess={(result) => {
+                      const info = result?.info;
+                      const publicId =
+                        typeof info === "object" && info && "public_id" in info
+                          ? String(info.public_id)
+                          : "";
+                      if (publicId) setImageUrl(publicId);
+                    }}
                   >
-                    https://discord.gg/eyStpqcYwa
-                  </a>
+                    {({ open: openWidget }) => (
+                      <button
+                        type="button"
+                        onClick={() => openWidget()}
+                        className="text-[11px] border border-border-mid text-text-secondary px-3 py-1.5 rounded-md hover:bg-elevated transition-colors"
+                      >
+                        {imageUrl ? "Changer l'image" : "Choisir une image"}
+                      </button>
+                    )}
+                  </CldUploadWidget>
+                  {imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl(null)}
+                      className="text-[11px] text-text-muted hover:underline"
+                    >
+                      Retirer
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  Elle sera vérifiée par un modérateur avant d'être publiée.
                 </p>
               </div>
             </div>

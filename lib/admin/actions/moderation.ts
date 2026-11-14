@@ -2,6 +2,7 @@
 
 import { requireAdmin } from "@/lib/admin/auth";
 import { applyAcceptedSuggestion } from "@/lib/admin/suggestions";
+import { deleteCloudinaryImage } from "@/lib/cloudinary-server";
 import { prisma } from "@/lib/db";
 import { notifyUser } from "@/lib/notifications";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
@@ -56,6 +57,11 @@ export async function rejectSuggestion(
       },
       include: { character: { select: { nom: true } } },
     });
+    // Proposition refusée : l'image envoyée n'a plus d'utilité.
+    if (s.imageUrl) {
+      await deleteCloudinaryImage(s.imageUrl);
+      await prisma.suggestion.update({ where: { id }, data: { imageUrl: null } });
+    }
     if (s.clerkUserId) {
       await notifyUser(
         s.clerkUserId,
