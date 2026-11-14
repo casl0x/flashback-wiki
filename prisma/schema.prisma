@@ -32,12 +32,13 @@ enum GroupeType {
   SERVICE_PUBLIC
 }
 
-// Statut d'un groupe illégal (type GROUPE) : indépendant, gang, organisation, GM.
+// Catégorie d'un groupe (type GROUPE) : indépendant, gang, organisation, GM, civil.
 enum GroupeStatut {
   INDE
   GANG
   ORGA
   GM
+  CIVIL
 }
 
 enum CreatorType {
