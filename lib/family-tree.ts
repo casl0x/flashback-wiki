@@ -118,6 +118,15 @@ const ROWS: { key: RowKey; label: string; hint: string }[] = [
 const spanOf = (count: number, gap: number) =>
   count === 0 ? 0 : count * CARD_W + (count - 1) * gap;
 
+/** Conjoint·e placé·e dans l'arbre : la première relation « marié », sinon la première « couple ». */
+export function pickSpouse(relations: LinkedCharacter[]): LinkedCharacter | null {
+  return (
+    relations.find((r) => r.kind === "marie") ??
+    relations.find((r) => r.kind === "couple") ??
+    null
+  );
+}
+
 export function buildFamilyTree(c: CharacterPageData): FamilyTree | null {
   const of = (...kinds: LinkedCharacter["kind"][]) =>
     c.relations.filter((r) => kinds.includes(r.kind));
@@ -125,7 +134,7 @@ export function buildFamilyTree(c: CharacterPageData): FamilyTree | null {
   const parents = of("parent");
   const siblings = of("fratrie");
   const children = of("enfant");
-  const spouse = of("marie")[0] ?? of("couple")[0] ?? null;
+  const spouse = pickSpouse(c.relations);
   const grandparents = of("grand-parent");
   const uncles = of("oncle-tante");
   const cousins = of("cousin");
@@ -299,14 +308,20 @@ export function buildFamilyTree(c: CharacterPageData): FamilyTree | null {
   placeExtended("grands-parents", grandparents, null, sibMid);
 
   // 5. Enfants, centrés sous la fiche ou sous le milieu du couple.
-  const anchor = spouse ? (selfX + spouseX + CARD_W) / 2 : selfC;
+  // Les enfants partent du couple seulement s'ils sont tous aussi ceux du conjoint ;
+  // sinon le trait part de la fiche seule.
+  const fromCouple =
+    spouse !== null &&
+    children.length > 0 &&
+    children.every((k) => c.spouseChildIds.includes(k.id));
+  const anchor = fromCouple ? (selfX + spouseX + CARD_W) / 2 : selfC;
   if (hasRow("enfants")) {
     const kidTop = rowTop("enfants");
     const kidStart = anchor - spanOf(children.length, CARD_GAP) / 2;
     const kidCards = placeRow("enfants", kidStart, children, "famille");
 
     if (children.length > 0) {
-      const fromY = spouse ? curMid : curTop + CARD_TOP + CARD_H;
+      const fromY = fromCouple ? curMid : curTop + CARD_TOP + CARD_H;
       const toY = children.length === 1 ? kidTop + CARD_TOP : kidTop + FAMILY_STROKE;
       vLine(anchor, fromY, toY - fromY);
       if (children.length > 1) {

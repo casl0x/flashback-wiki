@@ -1,6 +1,7 @@
 import { parseRediffusions, prisma, type Rediffusion } from "@/lib/db";
 import { MATRICULE_TYPES, PARCOURS_TYPES, type GroupeStatut, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
+import { pickSpouse } from "@/lib/family-tree";
 import { relationKind, type RelationKind } from "@/lib/relation-kinds";
 import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
 import { Prisma } from "@prisma/client";
@@ -81,6 +82,8 @@ export type CharacterPageData = {
   relations: LinkedCharacter[];
   /** Lien entre les deux premiers parents (marié, en couple, ex), s'ils sont renseignés. */
   parentsLink: ParentsLink;
+  /** Parmi les enfants de la fiche, ceux qui sont aussi liés comme enfants à son conjoint·e (celui de l'arbre). */
+  spouseChildIds: string[];
   player: {
     id: string;
     pseudo: string;
@@ -216,6 +219,39 @@ async function loadParentsLink(relations: LinkedCharacter[]): Promise<ParentsLin
   return kind === "marie" || kind === "couple" || kind === "ex" ? kind : null;
 }
 
+/** Enfants de la fiche qui sont aussi ceux de son conjoint·e : le lien conjoint → enfant existe. */
+async function loadSpouseChildIds(relations: LinkedCharacter[]): Promise<string[]> {
+  const spouse = pickSpouse(relations);
+  const kids = relations.filter((r) => r.kind === "enfant").map((r) => r.id);
+  if (!spouse || kids.length === 0) return [];
+  const links = await prisma.relation.findMany({
+    where: {
+      OR: [
+        { personnageAId: spouse.id, personnageBId: { in: kids } },
+        { personnageBId: spouse.id, personnageAId: { in: kids } },
+      ],
+    },
+    select: {
+      personnageAId: true,
+      personnageBId: true,
+      typeRelation: true,
+      typeRelationInverse: true,
+    },
+  });
+  const shared = new Set<string>();
+  for (const l of links) {
+    const spouseIsA = l.personnageAId === spouse.id;
+    const kid = spouseIsA ? l.personnageBId : l.personnageAId;
+    // typeRelation décrit B vu de A ; typeRelationInverse décrit A vu de B.
+    const kidLabel = spouseIsA ? l.typeRelation : l.typeRelationInverse;
+    const spouseLabel = spouseIsA ? l.typeRelationInverse : l.typeRelation;
+    if (relationKind(kidLabel) === "enfant" || relationKind(spouseLabel) === "parent") {
+      shared.add(kid);
+    }
+  }
+  return kids.filter((id) => shared.has(id));
+}
+
 async function loadCharacterPage(id: string): Promise<CharacterPageData | null> {
   // `null` = fiche réellement introuvable (404). Une erreur de base de données
   // (pool saturé, Neon injoignable…) ne doit PAS devenir un 404 : on retente une
@@ -263,6 +299,7 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
   ];
 
   const parentsLink = await loadParentsLink(relations);
+  const spouseChildIds = await loadSpouseChildIds(relations);
 
   const others: OtherCharacter[] = (c.player?.characters ?? [])
     .map((o) => {
@@ -306,6 +343,7 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
     })),
     relations,
     parentsLink,
+    spouseChildIds,
     player: c.player
       ? {
           id: c.player.id,
