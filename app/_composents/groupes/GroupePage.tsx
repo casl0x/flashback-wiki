@@ -92,7 +92,7 @@ export default async function GroupePage({
   const meta = GROUPE_TYPE_META[g.type];
 
   const accent = g.color ?? "#2F6FEB";
-  // Le matricule / la juridiction n'existe que pour les services publics et les entreprises (les autres types l'ignorent).
+  // Le matricule n'existe que pour les services publics (les autres types l'ignorent).
   const matriculeOf = (value: string | null) =>
     MATRICULE_TYPES.includes(g.type) ? (value?.trim() ?? "") : "";
   const onAccent = textOn(accent);
