@@ -118,25 +118,51 @@ export function stripFormatting(text: string): string {
     .replace(/\*(?!\s)([^*\n]+?)(?<!\s)\*/g, "$1");
 }
 
-// Cause de la mort : stockée à la fin de la description, dans un bloc
-// [mort]…[/mort], pour ne pas nécessiter de colonne dédiée en base.
-const CAUSE_MORT_PATTERN = /(?:\n\n)?\[mort\]([\s\S]*?)\[\/mort\]\s*$/;
+// Blocs optionnels stockés à la fin de la description, sans colonne dédiée :
+//   [prison]motif de l'incarcération[/prison]
+//   [mort]cause de la mort[/mort]
+// (dans cet ordre quand les deux existent).
+export type DescriptionParts = {
+  histoire: string;
+  prison: string;
+  mort: string;
+};
+
+const BLOCK_PATTERN = /(?:\n\n)?\[(mort|prison)\]([\s\S]*?)\[\/\1\]\s*$/;
 
 // Pas de trim ici : ces fonctions servent aussi de valeur contrôlée des
 // champs de l'éditeur, trimer empêcherait de taper un espace en fin de texte.
-export function splitCauseMort(description: string | null | undefined): {
-  histoire: string;
-  cause: string;
-} {
-  const text = description ?? "";
-  const m = CAUSE_MORT_PATTERN.exec(text);
-  if (!m) return { histoire: text, cause: "" };
-  return { histoire: text.slice(0, m.index), cause: m[1] };
+export function splitDescription(
+  description: string | null | undefined,
+): DescriptionParts {
+  let text = description ?? "";
+  const parts: DescriptionParts = { histoire: "", prison: "", mort: "" };
+  let m: RegExpExecArray | null;
+  while ((m = BLOCK_PATTERN.exec(text)) !== null) {
+    const key = m[1] as "mort" | "prison";
+    if (!parts[key]) parts[key] = m[2];
+    text = text.slice(0, m.index);
+  }
+  parts.histoire = text;
+  return parts;
 }
 
-export function joinCauseMort(histoire: string, cause: string): string {
-  const c = cause.replace(/\[\/?mort\]/g, "");
-  return c.trim() ? `${histoire}\n\n[mort]${c}[/mort]` : histoire;
+export function joinDescription(parts: DescriptionParts): string {
+  const clean = (v: string) => v.replace(/\[\/?(?:mort|prison)\]/g, "");
+  let out = parts.histoire;
+  const prison = clean(parts.prison);
+  const mort = clean(parts.mort);
+  if (prison.trim()) out += `\n\n[prison]${prison}[/prison]`;
+  if (mort.trim()) out += `\n\n[mort]${mort}[/mort]`;
+  return out;
+}
+
+/** Remplace une ou plusieurs parties de la description en gardant les autres. */
+export function updateDescription(
+  description: string | null | undefined,
+  patch: Partial<DescriptionParts>,
+): string {
+  return joinDescription({ ...splitDescription(description), ...patch });
 }
 
 // Lien vers le profil public d'un membre (le pseudo peut contenir des espaces).

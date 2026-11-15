@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { Character, Version } from "@/lib/db";
-import { joinCauseMort, splitCauseMort } from "@/lib/utils";
+import { splitDescription, updateDescription } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { Pencil, Plus } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
@@ -395,41 +395,59 @@ export function SuggestButton({
                 </label>
                 <textarea
                   className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
-                  value={splitCauseMort(form.description).histoire}
+                  value={splitDescription(form.description).histoire}
                   onChange={(e) =>
                     setForm((p) => ({
                       ...p,
-                      description: joinCauseMort(
-                        e.target.value,
-                        splitCauseMort(p.description).cause,
-                      ),
+                      description: updateDescription(p.description, {
+                        histoire: e.target.value,
+                      }),
                     }))
                   }
                   placeholder={
                     isEdit
-                      ? (splitCauseMort(character?.description).histoire ||
+                      ? (splitDescription(character?.description).histoire ||
                         "—")
                       : "Description du personnage"
                   }
                 />
               </div>
 
-              {(form.etatVie === "MORT" ||
-                splitCauseMort(form.description).cause) && (
+              {(form.etatVie === "PRISON" || splitDescription(form.description).prison) && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                    Motif de l’incarcération
+                  </label>
+                  <textarea
+                    className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
+                    value={splitDescription(form.description).prison}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        description: updateDescription(p.description, {
+                          prison: e.target.value,
+                        }),
+                      }))
+                    }
+                    placeholder="Pourquoi le personnage est-il en prison ?"
+                  />
+                </div>
+              )}
+
+              {(form.etatVie === "MORT" || splitDescription(form.description).mort) && (
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] uppercase tracking-widest text-text-muted">
                     Cause de la mort
                   </label>
                   <textarea
                     className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
-                    value={splitCauseMort(form.description).cause}
+                    value={splitDescription(form.description).mort}
                     onChange={(e) =>
                       setForm((p) => ({
                         ...p,
-                        description: joinCauseMort(
-                          splitCauseMort(p.description).histoire,
-                          e.target.value,
-                        ),
+                        description: updateDescription(p.description, {
+                          mort: e.target.value,
+                        }),
                       }))
                     }
                     placeholder="Comment le personnage est-il mort ?"

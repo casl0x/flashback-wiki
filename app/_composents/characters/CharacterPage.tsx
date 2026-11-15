@@ -4,8 +4,8 @@ import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
 import type { CharacterPageData } from "@/lib/character-page";
 import type { Character } from "@/lib/db";
 import { youtubeThumbnail } from "@/lib/media-embed";
-import { splitCauseMort } from "@/lib/utils";
-import { Skull } from "lucide-react";
+import { splitDescription } from "@/lib/utils";
+import { Lock, Skull } from "lucide-react";
 import Image from "next/image";
 import { Suspense } from "react";
 import { OtherCharacters, PlayerPanel } from "./CharacterAside";
@@ -53,8 +53,10 @@ export default function CharacterPage({
   c: CharacterPageData;
   isOwner?: boolean;
 }) {
-  const { histoire, cause: rawCause } = splitCauseMort(c.description);
-  const cause = rawCause.trim();
+  const parts = splitDescription(c.description);
+  const histoire = parts.histoire;
+  const prison = parts.prison.trim();
+  const cause = parts.mort.trim();
   const firstName = c.nom.split(/\s+/)[0];
 
   return (
@@ -99,7 +101,7 @@ export default function CharacterPage({
             </InlineNotice>
           )}
 
-          {(histoire.trim() || cause) && (
+          {(histoire.trim() || prison || cause) && (
             <section
               aria-labelledby="histoire-h"
               className="flex flex-col gap-3"
@@ -111,6 +113,17 @@ export default function CharacterPage({
                     text={histoire.replace(/\r\n?/g, "\n").replace(/\\n/g, "\n")}
                   />
                 </p>
+              )}
+              {prison && (
+                <aside className="mt-1 rounded-lg border border-[#2A3A5E] border-l-4 border-l-[#3B5BA5] bg-[#101725] px-4 py-3">
+                  <div className="mb-1 flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.06em] text-[#8AB4FF]">
+                    <Lock className="h-3.5 w-3.5" aria-hidden />
+                    Motif de l’incarcération
+                  </div>
+                  <p className="m-0 whitespace-pre-wrap wrap-break-word text-[15px] leading-relaxed text-[#D5DDEE]">
+                    <MentionText text={prison} />
+                  </p>
+                </aside>
               )}
               {cause && (
                 <aside className="mt-1 rounded-lg border border-[#5A2A2D] border-l-4 border-l-[#E5484D] bg-[#1E1214] px-4 py-3">
