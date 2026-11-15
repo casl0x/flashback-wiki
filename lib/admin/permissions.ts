@@ -37,6 +37,7 @@ export const EDITOR_SECTIONS: readonly AdminSection[] = [
   "characters",
   "players",
   "groupes",
+  "categories",
   "suggestions",
 ];
 
