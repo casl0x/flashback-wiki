@@ -29,6 +29,14 @@ export default function AdminCharacterFilters({ versions, resultCount }: Props) 
     router.replace(`${pathname}?${params}`);
   };
 
+  // Un seul router.replace : trois setParam d'affilée partent du même `sp`
+  // et seul le dernier serait pris en compte.
+  const resetFilters = () => {
+    const params = new URLSearchParams(sp);
+    ["version", "etat", "role", "page"].forEach((k) => params.delete(k));
+    router.replace(`${pathname}?${params}`);
+  };
+
   // Recherche : on attend la fin de la frappe avant de recharger.
   useEffect(() => {
     if (query === (sp.get("q") ?? "")) return;
@@ -53,6 +61,7 @@ export default function AdminCharacterFilters({ versions, resultCount }: Props) 
       showPanel={showPanel}
       onTogglePanel={() => setShowPanel((v) => !v)}
       resultCount={resultCount}
+      onResetFilters={resetFilters}
     />
   );
 }
