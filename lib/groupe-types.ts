@@ -49,3 +49,14 @@ export const MATRICULE_LABEL_DEFAULT: Partial<Record<GroupeType, string>> = {
 export const MATRICULE_OPTIONS: Partial<Record<GroupeType, string[]>> = {
   ENTREPRISE: ["Nord", "Sud"],
 };
+
+// Juridiction d'une entreprise (champ `juridiction` du groupe).
+export type GroupeJuridiction = "NORD" | "SUD" | "LES_DEUX";
+
+export const GROUPE_JURIDICTIONS: GroupeJuridiction[] = ["NORD", "SUD", "LES_DEUX"];
+
+export const GROUPE_JURIDICTION_LABEL: Record<GroupeJuridiction, string> = {
+  NORD: "Nord",
+  SUD: "Sud",
+  LES_DEUX: "Les deux (Staff)",
+};

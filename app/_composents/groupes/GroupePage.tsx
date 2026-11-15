@@ -2,6 +2,7 @@ import { visibleCharacter } from "@/lib/hidden-characters";
 import { textOn } from "@/app/_composents/characters/CharacterHero";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import {
+  GROUPE_JURIDICTION_LABEL,
   GROUPE_STATUT_LABEL,
   GROUPE_TYPE_META,
   MATRICULE_TYPES,
@@ -195,8 +196,13 @@ export default async function GroupePage({
               >
                 {g.nom}
               </h1>
-              {(g.statut || g.dissous) && (
+              {(g.statut || g.dissous || g.juridiction) && (
                 <div className="mt-2 flex flex-wrap gap-2">
+                  {g.juridiction && (
+                    <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
+                      Juridiction : {GROUPE_JURIDICTION_LABEL[g.juridiction]}
+                    </span>
+                  )}
                   {g.statut && (
                     <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
                       {GROUPE_STATUT_LABEL[g.statut]}

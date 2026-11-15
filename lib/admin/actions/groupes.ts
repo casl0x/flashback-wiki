@@ -4,7 +4,13 @@ import { requireAdmin } from "@/lib/admin/auth";
 import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/admin/slug";
-import { GROUPE_STATUTS, type GroupeStatut, type GroupeType } from "@/lib/groupe-types";
+import {
+  GROUPE_JURIDICTIONS,
+  GROUPE_STATUTS,
+  type GroupeJuridiction,
+  type GroupeStatut,
+  type GroupeType,
+} from "@/lib/groupe-types";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
 
 export type GradeInput = { id: string | null; nom: string; color: string | null };
@@ -17,6 +23,7 @@ export type GroupeInput = {
   imageUrl: string | null;
   type: GroupeType;
   statut: GroupeStatut | null; // type GROUPE uniquement
+  juridiction: GroupeJuridiction | null; // type ENTREPRISE uniquement
   dissous: boolean;
   matriculeLabel: string | null; // services publics ; vide = valeur seule
   categorieId: string | null; // ignoré pour le type GROUPE
@@ -35,6 +42,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
     if (new Set(gradeNames).size !== gradeNames.length) return { ok: false, error: "Deux grades portent le même nom." };
 
     if (input.statut && !GROUPE_STATUTS.includes(input.statut)) return { ok: false, error: "Statut inconnu." };
+    if (input.juridiction && !GROUPE_JURIDICTIONS.includes(input.juridiction)) return { ok: false, error: "Juridiction inconnue." };
     if (input.categorieId && input.type !== "GROUPE") {
       const cat = await prisma.groupeCategorie.findUnique({ where: { id: input.categorieId } });
       if (!cat || cat.type !== input.type) return { ok: false, error: "Catégorie incompatible avec le type." };
@@ -43,6 +51,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
     const data = {
       type: input.type,
       statut: input.type === "GROUPE" ? input.statut : null,
+      juridiction: input.type === "ENTREPRISE" ? input.juridiction : null,
       dissous: input.dissous,
       matriculeLabel: clean(input.matriculeLabel),
       categorieId: input.type === "GROUPE" ? null : input.categorieId,

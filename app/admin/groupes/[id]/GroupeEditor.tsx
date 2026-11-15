@@ -20,6 +20,8 @@ import {
 } from "@/lib/admin/actions/groupes";
 import { slugify } from "@/lib/admin/slug";
 import {
+  GROUPE_JURIDICTIONS,
+  GROUPE_JURIDICTION_LABEL,
   GROUPE_STATUTS,
   GROUPE_STATUT_LABEL,
   GROUPE_TYPES,
@@ -27,6 +29,7 @@ import {
   MATRICULE_LABEL_DEFAULT,
   MATRICULE_TYPES,
   groupeHref,
+  type GroupeJuridiction,
   type GroupeStatut,
   type GroupeType,
 } from "@/lib/groupe-types";
@@ -53,6 +56,7 @@ type G = {
   imageUrl: string | null;
   type: GroupeType;
   statut: "" | GroupeStatut;
+  juridiction: "" | GroupeJuridiction;
   dissous: boolean;
   matriculeLabel: string;
   categorieId: string | null;
@@ -120,6 +124,7 @@ export default function GroupeEditor({
         imageUrl: f.imageUrl,
         type: f.type,
         statut: f.statut || null,
+        juridiction: f.juridiction || null,
         dissous: f.dissous,
         matriculeLabel: f.matriculeLabel,
         categorieId: f.categorieId,
@@ -270,6 +275,29 @@ export default function GroupeEditor({
                           {c.nom}
                         </option>
                       ))}
+                  </Select>
+                </Field>
+              )}
+              {f.type === "ENTREPRISE" && (
+                <Field
+                  label="Juridiction"
+                  hint="Nord, Sud, ou Les deux (Staff). Affichée sur la fiche de l'entreprise."
+                >
+                  <Select
+                    value={f.juridiction}
+                    onChange={(e) =>
+                      setF({
+                        ...f,
+                        juridiction: e.target.value as "" | GroupeJuridiction,
+                      })
+                    }
+                  >
+                    <option value="">Aucune</option>
+                    {GROUPE_JURIDICTIONS.map((j) => (
+                      <option key={j} value={j}>
+                        {GROUPE_JURIDICTION_LABEL[j]}
+                      </option>
+                    ))}
                   </Select>
                 </Field>
               )}
