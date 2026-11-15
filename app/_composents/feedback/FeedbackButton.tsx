@@ -17,6 +17,7 @@ export default function FeedbackButton() {
   const [categorie, setCategorie] = useState("");
   const [message, setMessage] = useState("");
   const [etapes, setEtapes] = useState("");
+  const [discord, setDiscord] = useState("");
   const [website, setWebsite] = useState(""); // honeypot
   const [sending, setSending] = useState(false);
   const toast = useToast();
@@ -32,6 +33,7 @@ export default function FeedbackButton() {
           categorie,
           message,
           etapes,
+          discord,
           website,
           page: window.location.href,
         }),
@@ -147,6 +149,19 @@ export default function FeedbackButton() {
                 className={cn(field, "h-16 resize-none")}
               />
             )}
+            <input
+              type="text"
+              value={discord}
+              onChange={(e) => setDiscord(e.target.value)}
+              maxLength={60}
+              placeholder="Ton pseudo Discord (optionnel, pour te répondre)"
+              aria-label="Pseudo Discord"
+              autoComplete="off"
+              className={field}
+            />
+            <p className="m-0 -mt-1 text-[11px] text-[#6E7380]">
+              Utilisé uniquement pour te recontacter à propos de ce report.
+            </p>
             {/* Honeypot : invisible pour les humains. */}
             <input
               type="text"

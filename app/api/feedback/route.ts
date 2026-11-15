@@ -36,8 +36,8 @@ const text = (v: unknown, max: number) => {
 };
 
 const CONFIG = {
-  bug: { env: "DISCORD_WEBHOOK_BUG", color: 0xc8343a, title: "🐛 Nouveau bug", username: "🐛 Bug Report" },
-  suggestion: { env: "DISCORD_WEBHOOK_SUGGESTION", color: 0x2ea043, title: "💡 Nouvelle suggestion", username: "💡 Suggestion" },
+  bug: { env: "DISCORD_WEBHOOK_BUG", color: 0xc8343a, title: "🐛 Nouveau bug", thread: "🐛 Bug", username: "🐛 Bug Report" },
+  suggestion: { env: "DISCORD_WEBHOOK_SUGGESTION", color: 0x2ea043, title: "💡 Nouvelle suggestion", thread: "💡 Suggestion", username: "💡 Suggestion" },
 } as const;
 
 export async function POST(req: Request) {
@@ -60,6 +60,7 @@ export async function POST(req: Request) {
   if (!categorie) return NextResponse.json({ error: "Catégorie invalide" }, { status: 400 });
   const etapes = type === "bug" ? text(body.etapes, 1000) : null;
   const page = text(body.page, 300);
+  const discord = text(body.discord, 60);
 
   const cfg = CONFIG[type];
   const url = process.env[cfg.env];
@@ -77,28 +78,37 @@ export async function POST(req: Request) {
 
   const fields = [
     { name: "Catégorie", value: categorie },
+    ...(discord ? [{ name: "Discord", value: discord, inline: true }] : []),
     ...(page ? [{ name: "Page", value: page }] : []),
     ...(etapes ? [{ name: "Étapes pour reproduire", value: etapes }] : []),
   ];
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: cfg.username,
-      // Aucune mention (@everyone, @role, @user) ne doit être déclenchée.
-      allowed_mentions: { parse: [] },
-      embeds: [
-        {
-          title: cfg.title,
-          description: message,
-          color: cfg.color,
-          fields,
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    }),
-  }).catch(() => null);
+  const payload = {
+    username: cfg.username,
+    // Aucune mention (@everyone, @role, @user) ne doit être déclenchée.
+    allowed_mentions: { parse: [] },
+    embeds: [
+      {
+        title: cfg.title,
+        description: message,
+        color: cfg.color,
+        fields,
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  };
+  const send = (extra: Record<string, unknown>) =>
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, ...extra }),
+    }).catch(() => null);
+
+  // Salon « forum » : chaque report ouvre un post (ticket) avec son fil de discussion.
+  const threadName = `${cfg.thread} · ${categorie} · ${message.replace(/\s+/g, " ")}`.slice(0, 100);
+  let res = await send({ thread_name: threadName });
+  // Salon texte classique : Discord refuse thread_name (400), on renvoie sans.
+  if (res && res.status === 400) res = await send({});
 
   if (!res || !res.ok) {
     return NextResponse.json({ error: "Échec de l'envoi" }, { status: 502 });
