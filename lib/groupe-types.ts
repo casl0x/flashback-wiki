@@ -23,16 +23,17 @@ export const PARCOURS_TYPES: GroupeType[] = ["ENTREPRISE", "SERVICE_PUBLIC"];
 export const groupeHref = (g: { slug: string; type: GroupeType }) =>
   `${GROUPE_TYPE_META[g.type].base}/${g.slug}`;
 
-// Statut d'un groupe illégal (type GROUPE).
-export type GroupeStatut = "INDE" | "GANG" | "ORGA" | "GM";
+// Catégorie d'un groupe (type GROUPE), stockée dans `statut`.
+export type GroupeStatut = "INDE" | "GANG" | "ORGA" | "GM" | "CIVIL";
 
-export const GROUPE_STATUTS: GroupeStatut[] = ["INDE", "GANG", "ORGA", "GM"];
+export const GROUPE_STATUTS: GroupeStatut[] = ["INDE", "GANG", "ORGA", "GM", "CIVIL"];
 
 export const GROUPE_STATUT_LABEL: Record<GroupeStatut, string> = {
   INDE: "Indé",
   GANG: "Gang",
   ORGA: "Orga",
   GM: "GM",
+  CIVIL: "Civil",
 };
 
 /** Types de groupe dont les membres ont un champ libre « numéro » (matricule, juridiction…). */

@@ -32,12 +32,13 @@ enum GroupeType {
   SERVICE_PUBLIC
 }
 
-// Statut d'un groupe illégal (type GROUPE) : indépendant, gang, organisation, GM.
+// Catégorie d'un groupe (type GROUPE) : indépendant, gang, organisation, GM, civil.
 enum GroupeStatut {
   INDE
   GANG
   ORGA
   GM
+  CIVIL
 }
 
 enum CreatorType {
@@ -443,6 +444,8 @@ model Suggestion {
   versionId   String?    @map("version_id")
   version     Version?   @relation(fields: [versionId], references: [id], onDelete: SetNull)
   lienReddif  String?    @map("lien_reddif")
+  // public_id Cloudinary de l'image proposée (supprimée de Cloudinary si refus).
+  imageUrl    String?    @map("image_url")
   status      String     @default("pending") // pending | accepted | rejected
   createdAt   DateTime   @default(now())
 

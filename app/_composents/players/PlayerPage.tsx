@@ -1,4 +1,5 @@
 import type { PlayerPageData } from "@/lib/player-page";
+import PlayerMusic from "./PlayerMusic";
 import PlayerHero from "./PlayerHero";
 import PlayerVersionRows from "./PlayerVersionRows";
 
@@ -15,6 +16,7 @@ export default function PlayerPage({ p }: { p: PlayerPageData }) {
         ) : (
           <PlayerVersionRows rows={p.rows} />
         )}
+        <PlayerMusic tracks={p.tracks} />
       </main>
     </div>
   );

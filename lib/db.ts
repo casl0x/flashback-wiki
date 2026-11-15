@@ -42,7 +42,7 @@ export type Groupe = {
   color: string | null;
   createdAt: string;
   type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC";
-  statut: "INDE" | "GANG" | "ORGA" | "GM" | null;
+  statut: "INDE" | "GANG" | "ORGA" | "GM" | "CIVIL" | null;
   dissous: boolean;
   categorieId: string | null;
   /** Nombre de persos distincts (renseigné par fetchWikiData). */

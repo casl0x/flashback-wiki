@@ -276,7 +276,7 @@ export default function GroupeEditor({
               {f.type === "GROUPE" && (
                 <Field
                   label="Catégorie"
-                  hint="Groupes illégaux : Indé, Gang, Orga ou GM (liste fixe)."
+                  hint="Indé, Gang, Orga, GM ou Civil (liste fixe)."
                 >
                   <Select
                     value={f.statut}

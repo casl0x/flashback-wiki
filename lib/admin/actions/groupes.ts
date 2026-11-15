@@ -16,7 +16,7 @@ export type GroupeInput = {
   description: string | null;
   imageUrl: string | null;
   type: GroupeType;
-  statut: GroupeStatut | null; // groupes illégaux (type GROUPE) uniquement
+  statut: GroupeStatut | null; // type GROUPE uniquement
   dissous: boolean;
   matriculeLabel: string | null; // services publics ; vide = valeur seule
   categorieId: string | null; // ignoré pour le type GROUPE

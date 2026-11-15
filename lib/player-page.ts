@@ -1,5 +1,7 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import type { EtatVie, VersionTag } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
+import { toTracks, type MusicTrack } from "@/lib/music";
 import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
 import { versionRank } from "@/lib/version-rank";
 import { unstable_cache } from "next/cache";
@@ -80,6 +82,7 @@ export type PlayerPageData = {
   versionCount: number;
   rows: PlayerVersionRow[];
   bannerCharacters: PlayerBannerCharacter[];
+  tracks: MusicTrack[];
 };
 
 const toVersionTag = (v: {
@@ -112,9 +115,11 @@ async function loadPlayerPageUnsafe(id: string): Promise<PlayerPageData | null> 
     where: { id },
     include: {
       characters: {
+        where: visibleCharacter,
         orderBy: { nom: "asc" },
         include: {
           versions: true,
+          sounds: { orderBy: [{ ordre: "asc" }, { createdAt: "asc" }] },
           groupes: { include: { groupe: true, grade: true } },
         },
       },
@@ -191,6 +196,7 @@ async function loadPlayerPageUnsafe(id: string): Promise<PlayerPageData | null> 
     versionCount: versionIds.size,
     rows: sortedRows,
     bannerCharacters,
+    tracks: toTracks(p.characters),
   };
 }
 

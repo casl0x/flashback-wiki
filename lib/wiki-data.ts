@@ -1,3 +1,4 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import { Character, Groupe, parseRediffusions, Player, Version, prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
@@ -122,6 +123,7 @@ export async function fetchWikiData(): Promise<WikiData> {
       prisma.version.findMany({ orderBy: { id: "asc" } }),
       prisma.player.findMany({ orderBy: { pseudo: "asc" } }),
       prisma.character.findMany({
+        where: visibleCharacter,
         orderBy: { nom: "asc" },
         include: {
           player: true,
@@ -132,7 +134,7 @@ export async function fetchWikiData(): Promise<WikiData> {
       }),
       prisma.groupe.findMany({
         orderBy: { nom: "asc" },
-        include: { members: { select: { characterId: true, versionId: true } } },
+        include: { members: { where: { character: visibleCharacter }, select: { characterId: true, versionId: true } } },
       }),
     ]);
 
@@ -376,7 +378,7 @@ export const getCharacterById = unstable_cache(
 export const getCharactersByPlayerId = unstable_cache(
   async (playerId: string) => {
     const chars = await prisma.character.findMany({
-      where: { playerId },
+      where: { playerId, ...visibleCharacter },
       include: { player: true, versions: true, groupes: { include: { groupe: true }, orderBy: { ordre: "asc" } } },
       orderBy: { nom: "asc" },
     });

@@ -1,3 +1,4 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import { textOn } from "@/app/_composents/characters/CharacterHero";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import {
@@ -35,6 +36,7 @@ export const loadGroupe = unstable_cache(
       include: {
         grades: { orderBy: { ordre: "asc" } },
         members: {
+          where: { character: visibleCharacter },
           include: {
             version: { select: { id: true, label: true, color: true } },
             character: {

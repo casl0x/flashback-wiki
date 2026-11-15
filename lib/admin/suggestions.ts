@@ -29,6 +29,7 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
     ...(s.role ? { role: s.role } : {}),
     ...(s.etatVie ? { etatVie: s.etatVie } : {}),
     ...(joueur ? { playerId: joueur.id } : {}),
+    ...(s.imageUrl ? { imageUrl: s.imageUrl } : {}),
     ...(s.versionId ? { versions: { connect: { id: s.versionId } } } : {}),
   };
 

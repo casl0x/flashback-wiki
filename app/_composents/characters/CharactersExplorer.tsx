@@ -137,6 +137,53 @@ export default function CharactersExplorer({
     etatGroupe,
   ]);
 
+  // Position de défilement : sauvegardée en continu, rétablie une fois la
+  // liste (filtres + page) restaurée et rendue.
+  useEffect(() => {
+    if (!restored) return;
+    const key = `${STORAGE_KEY}-scroll`;
+    let y = 0;
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.search === window.location.search && typeof s.y === "number") {
+          y = s.y;
+        }
+      }
+    } catch {}
+
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (y > 0) window.scrollTo(0, y);
+      });
+    });
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        try {
+          sessionStorage.setItem(
+            key,
+            JSON.stringify({
+              search: window.location.search,
+              y: window.scrollY,
+            }),
+          );
+        } catch {}
+      }, 100);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [restored]);
+
   useEffect(() => {
     if (!restored) return;
     try {
