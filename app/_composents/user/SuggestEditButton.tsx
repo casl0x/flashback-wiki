@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { Character, Version } from "@/lib/db";
+import { joinCauseMort, splitCauseMort } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { Pencil, Plus } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
@@ -394,17 +395,47 @@ export function SuggestButton({
                 </label>
                 <textarea
                   className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
-                  value={form.description}
+                  value={splitCauseMort(form.description).histoire}
                   onChange={(e) =>
-                    setForm((p) => ({ ...p, description: e.target.value }))
+                    setForm((p) => ({
+                      ...p,
+                      description: joinCauseMort(
+                        e.target.value,
+                        splitCauseMort(p.description).cause,
+                      ),
+                    }))
                   }
                   placeholder={
                     isEdit
-                      ? (character?.description ?? "—")
+                      ? (splitCauseMort(character?.description).histoire ||
+                        "—")
                       : "Description du personnage"
                   }
                 />
               </div>
+
+              {(form.etatVie === "MORT" ||
+                splitCauseMort(form.description).cause) && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                    Cause de la mort
+                  </label>
+                  <textarea
+                    className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
+                    value={splitCauseMort(form.description).cause}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        description: joinCauseMort(
+                          splitCauseMort(p.description).histoire,
+                          e.target.value,
+                        ),
+                      }))
+                    }
+                    placeholder="Comment le personnage est-il mort ?"
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-text-muted">
