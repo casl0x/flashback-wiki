@@ -159,6 +159,9 @@ export default function FeedbackButton() {
               autoComplete="off"
               className={field}
             />
+            <p className="m-0 -mt-1 text-[11px] text-[#6E7380]">
+              Utilisé uniquement pour te recontacter à propos de ce report.
+            </p>
             {/* Honeypot : invisible pour les humains. */}
             <input
               type="text"
