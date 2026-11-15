@@ -401,7 +401,7 @@ export default function CharacterEditor({
                     aria-label="Version"
                     value={m.versionId ?? ""}
                     onChange={(e) => update({ versionId: e.target.value || null })}
-                    className="w-23 flex-none font-bold"
+                    className="w-18 flex-none px-2 font-bold"
                     style={{
                       color: m.versionId
                         ? versionById.get(m.versionId)?.color
