@@ -387,103 +387,109 @@ export default function CharacterEditor({
             return (
               <div
                 key={m.key}
-                className="flex flex-wrap items-center gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
+                className="flex flex-col gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
               >
-                <OrderButtons
-                  index={i}
-                  length={rows.length}
-                  label={g?.nom ?? (isParcours ? "ce métier" : "ce groupe")}
-                  onMove={(to) => setSide(side, move(rows, i, to))}
-                />
-                <Select
-                  aria-label="Version"
-                  value={m.versionId ?? ""}
-                  onChange={(e) => update({ versionId: e.target.value || null })}
-                  className="w-23 flex-none font-bold"
-                  style={{
-                    color: m.versionId
-                      ? versionById.get(m.versionId)?.color
-                      : undefined,
-                  }}
-                >
-                  <option value="">—</option>
-                  {versions.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.id}
+                {/* Étage 1 : ordre, version, groupe ; « actuel » et retrait calés à droite. */}
+                <div className="flex items-center gap-2">
+                  <OrderButtons
+                    index={i}
+                    length={rows.length}
+                    label={g?.nom ?? (isParcours ? "ce métier" : "ce groupe")}
+                    onMove={(to) => setSide(side, move(rows, i, to))}
+                  />
+                  <Select
+                    aria-label="Version"
+                    value={m.versionId ?? ""}
+                    onChange={(e) => update({ versionId: e.target.value || null })}
+                    className="w-23 flex-none font-bold"
+                    style={{
+                      color: m.versionId
+                        ? versionById.get(m.versionId)?.color
+                        : undefined,
+                    }}
+                  >
+                    <option value="">—</option>
+                    {versions.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.id}
+                      </option>
+                    ))}
+                  </Select>
+                  <SearchSelect
+                    label={isParcours ? "Entreprise / service public" : "Groupe"}
+                    className="min-w-0 flex-1"
+                    options={groupes
+                      .filter((x) => sideOfType(x.type) === side)
+                      .map((x) => ({
+                        value: x.id,
+                        label: x.nom,
+                      }))}
+                    value={m.groupeId || null}
+                    allowClear={false}
+                    onChange={(v) => update({ groupeId: v ?? "", gradeId: null })}
+                    placeholder={isParcours ? "Entreprise ou service public…" : "Groupe…"}
+                  />
+                  {last && (
+                    <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
+                      actuel
+                    </span>
+                  )}
+                  <RemoveButton
+                    label={`Retirer ${g?.nom ?? (isParcours ? "ce métier" : "ce groupe")}`}
+                    onClick={() => setSide(side, rows.filter((x) => x.key !== m.key))}
+                  />
+                </div>
+                {/* Étage 2 : grade et numéro. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    aria-label="Grade"
+                    value={m.gradeId ?? ""}
+                    onChange={(e) => update({ gradeId: e.target.value || null })}
+                    className="w-37.5 flex-none"
+                    disabled={!g || g.grades.length === 0}
+                  >
+                    <option value="">
+                      {g && g.grades.length === 0 ? "Aucun grade" : "—"}
                     </option>
-                  ))}
-                </Select>
-                <SearchSelect
-                  label={isParcours ? "Entreprise / service public" : "Groupe"}
-                  className="min-w-40 flex-[1_1_180px]"
-                  options={groupes
-                    .filter((x) => sideOfType(x.type) === side)
-                    .map((x) => ({
-                      value: x.id,
-                      label: x.nom,
-                    }))}
-                  value={m.groupeId || null}
-                  allowClear={false}
-                  onChange={(v) => update({ groupeId: v ?? "", gradeId: null })}
-                  placeholder={isParcours ? "Entreprise ou service public…" : "Groupe…"}
-                />
-                <Select
-                  aria-label="Grade"
-                  value={m.gradeId ?? ""}
-                  onChange={(e) => update({ gradeId: e.target.value || null })}
-                  className="w-37.5 flex-none"
-                  disabled={!g || g.grades.length === 0}
-                >
-                  <option value="">
-                    {g && g.grades.length === 0 ? "Aucun grade" : "—"}
-                  </option>
-                  {g?.grades.map((gr) => (
-                    <option key={gr.id} value={gr.id}>
-                      {gr.nom}
-                    </option>
-                  ))}
-                </Select>
-                {g &&
-                  MATRICULE_TYPES.includes(g.type) &&
-                  (MATRICULE_OPTIONS[g.type] ? (
-                    <Select
-                      aria-label={g.matriculeLabel || "Valeur"}
-                      value={m.matricule}
-                      onChange={(e) => update({ matricule: e.target.value })}
-                      className="w-40 flex-none"
-                    >
-                      <option value="">{g.matriculeLabel || "Valeur"} : —</option>
-                      {[
-                        ...MATRICULE_OPTIONS[g.type]!,
-                        // Une ancienne valeur libre reste sélectionnable pour ne pas être perdue à l'enregistrement.
-                        ...(m.matricule &&
-                        !MATRICULE_OPTIONS[g.type]!.includes(m.matricule)
-                          ? [m.matricule]
-                          : []),
-                      ].map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </Select>
-                  ) : (
-                    <TextInput
-                      aria-label={g.matriculeLabel || "Matricule"}
-                      placeholder={g.matriculeLabel || "Valeur"}
-                      value={m.matricule}
-                      onChange={(e) => update({ matricule: e.target.value })}
-                      className="w-40 flex-none"
-                    />
-                  ))}
-                {last && (
-                  <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
-                    actuel
-                  </span>
-                )}
-                <RemoveButton
-                  label={`Retirer ${g?.nom ?? (isParcours ? "ce métier" : "ce groupe")}`}
-                  onClick={() => setSide(side, rows.filter((x) => x.key !== m.key))}
-                />
+                    {g?.grades.map((gr) => (
+                      <option key={gr.id} value={gr.id}>
+                        {gr.nom}
+                      </option>
+                    ))}
+                  </Select>
+                  {g &&
+                    MATRICULE_TYPES.includes(g.type) &&
+                    (MATRICULE_OPTIONS[g.type] ? (
+                      <Select
+                        aria-label={g.matriculeLabel || "Valeur"}
+                        value={m.matricule}
+                        onChange={(e) => update({ matricule: e.target.value })}
+                        className="w-40 flex-none"
+                      >
+                        <option value="">{g.matriculeLabel || "Valeur"} : —</option>
+                        {[
+                          ...MATRICULE_OPTIONS[g.type]!,
+                          // Une ancienne valeur libre reste sélectionnable pour ne pas être perdue à l'enregistrement.
+                          ...(m.matricule &&
+                          !MATRICULE_OPTIONS[g.type]!.includes(m.matricule)
+                            ? [m.matricule]
+                            : []),
+                        ].map((v) => (
+                          <option key={v} value={v}>
+                            {v}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <TextInput
+                        aria-label={g.matriculeLabel || "Matricule"}
+                        placeholder={g.matriculeLabel || "Valeur"}
+                        value={m.matricule}
+                        onChange={(e) => update({ matricule: e.target.value })}
+                        className="w-40 flex-none"
+                      />
+                    ))}
+                </div>
               </div>
             );
           })}
