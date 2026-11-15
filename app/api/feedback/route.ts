@@ -60,6 +60,7 @@ export async function POST(req: Request) {
   if (!categorie) return NextResponse.json({ error: "Catégorie invalide" }, { status: 400 });
   const etapes = type === "bug" ? text(body.etapes, 1000) : null;
   const page = text(body.page, 300);
+  const discord = text(body.discord, 60);
 
   const cfg = CONFIG[type];
   const url = process.env[cfg.env];
@@ -77,6 +78,7 @@ export async function POST(req: Request) {
 
   const fields = [
     { name: "Catégorie", value: categorie },
+    ...(discord ? [{ name: "Discord", value: discord, inline: true }] : []),
     ...(page ? [{ name: "Page", value: page }] : []),
     ...(etapes ? [{ name: "Étapes pour reproduire", value: etapes }] : []),
   ];
