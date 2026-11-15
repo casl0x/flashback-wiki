@@ -120,8 +120,10 @@ export function stripFormatting(text: string): string {
 
 // Cause de la mort : stockée à la fin de la description, dans un bloc
 // [mort]…[/mort], pour ne pas nécessiter de colonne dédiée en base.
-const CAUSE_MORT_PATTERN = /\s*\[mort\]([\s\S]*?)\[\/mort\]\s*$/;
+const CAUSE_MORT_PATTERN = /(?:\n\n)?\[mort\]([\s\S]*?)\[\/mort\]\s*$/;
 
+// Pas de trim ici : ces fonctions servent aussi de valeur contrôlée des
+// champs de l'éditeur, trimer empêcherait de taper un espace en fin de texte.
 export function splitCauseMort(description: string | null | undefined): {
   histoire: string;
   cause: string;
@@ -129,12 +131,12 @@ export function splitCauseMort(description: string | null | undefined): {
   const text = description ?? "";
   const m = CAUSE_MORT_PATTERN.exec(text);
   if (!m) return { histoire: text, cause: "" };
-  return { histoire: text.slice(0, m.index), cause: m[1].trim() };
+  return { histoire: text.slice(0, m.index), cause: m[1] };
 }
 
 export function joinCauseMort(histoire: string, cause: string): string {
-  const c = cause.trim().replace(/\[\/?mort\]/g, "");
-  return c ? `${histoire.replace(/\s+$/, "")}\n\n[mort]${c}[/mort]` : histoire;
+  const c = cause.replace(/\[\/?mort\]/g, "");
+  return c.trim() ? `${histoire}\n\n[mort]${c}[/mort]` : histoire;
 }
 
 // Lien vers le profil public d'un membre (le pseudo peut contenir des espaces).

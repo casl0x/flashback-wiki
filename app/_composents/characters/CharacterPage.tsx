@@ -53,7 +53,8 @@ export default function CharacterPage({
   c: CharacterPageData;
   isOwner?: boolean;
 }) {
-  const { histoire, cause } = splitCauseMort(c.description);
+  const { histoire, cause: rawCause } = splitCauseMort(c.description);
+  const cause = rawCause.trim();
   const firstName = c.nom.split(/\s+/)[0];
 
   return (
