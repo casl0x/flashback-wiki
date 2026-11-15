@@ -1,5 +1,3 @@
-import "server-only";
-
 /**
  * Persos masqués du site public (ex. perso de test) : identifiants séparés par
  * des virgules dans la variable d'environnement HIDDEN_CHARACTER_IDS.
