@@ -25,11 +25,12 @@ enum Role {
 }
 
 // Nature d'un groupe : détermine la section du site où il apparaît
-// (/groupes, /entreprises, /services-publics) et sa présence dans le parcours d'un perso.
+// (/groupes, /entreprises, /services-publics, /associations) et sa présence dans le parcours d'un perso.
 enum GroupeType {
   GROUPE
   ENTREPRISE
   SERVICE_PUBLIC
+  ASSOCIATION
 }
 
 // Catégorie d'un groupe (type GROUPE) : indépendant, gang, organisation, GM, civil.

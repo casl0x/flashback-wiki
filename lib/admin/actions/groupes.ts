@@ -5,6 +5,7 @@ import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/admin/slug";
 import {
+  CATEGORIE_TYPES,
   GROUPE_JURIDICTIONS,
   GROUPE_STATUTS,
   type GroupeJuridiction,
@@ -43,7 +44,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
 
     if (input.statut && !GROUPE_STATUTS.includes(input.statut)) return { ok: false, error: "Statut inconnu." };
     if (input.juridiction && !GROUPE_JURIDICTIONS.includes(input.juridiction)) return { ok: false, error: "Juridiction inconnue." };
-    if (input.categorieId && input.type !== "GROUPE") {
+    if (input.categorieId && CATEGORIE_TYPES.includes(input.type)) {
       const cat = await prisma.groupeCategorie.findUnique({ where: { id: input.categorieId } });
       if (!cat || cat.type !== input.type) return { ok: false, error: "Catégorie incompatible avec le type." };
     }
@@ -54,7 +55,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
       juridiction: input.type === "ENTREPRISE" ? input.juridiction : null,
       dissous: input.dissous,
       matriculeLabel: clean(input.matriculeLabel),
-      categorieId: input.type === "GROUPE" ? null : input.categorieId,
+      categorieId: CATEGORIE_TYPES.includes(input.type) ? input.categorieId : null,
       nom,
       slug,
       color: clean(input.color),
@@ -163,7 +164,7 @@ export type CategorieInput = { id: string | null; nom: string };
 export async function saveCategories(type: GroupeType, list: CategorieInput[]): Promise<ActionResult> {
   try {
     await requireAdmin("categories");
-    if (type === "GROUPE") return { ok: false, error: "Ce type n'a pas de catégories." };
+    if (!CATEGORIE_TYPES.includes(type)) return { ok: false, error: "Ce type n'a pas de catégories." };
     const names = list.map((c) => c.nom.trim().toLowerCase());
     if (names.some((n) => !n)) return { ok: false, error: "Chaque catégorie doit avoir un nom." };
     if (new Set(names).size !== names.length) return { ok: false, error: "Deux catégories portent le même nom." };

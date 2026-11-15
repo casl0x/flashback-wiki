@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
         destination: "/personnages?vue=groupes&type=SERVICE_PUBLIC",
         permanent: false,
       },
+      {
+        source: "/associations",
+        destination: "/personnages?vue=groupes&type=ASSOCIATION",
+        permanent: false,
+      },
     ];
   },
   async rewrites() {

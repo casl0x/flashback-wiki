@@ -1,4 +1,5 @@
 "use client";
+import { PARCOURS_TYPES } from "@/lib/groupe-types";
 import { useToast } from "@/app/_composents/toast/ToastProvider";
 import { Button } from "@/components/ui/button";
 import {
@@ -116,7 +117,9 @@ export function SuggestButton({
         // Seuls les entreprises et services publics figurent dans le parcours d'un perso.
         setGroupeNames(
           (g ?? [])
-            .filter((x: { type: string }) => x.type !== "GROUPE")
+            .filter((x: { type: string }) =>
+              (PARCOURS_TYPES as string[]).includes(x.type),
+            )
             .map((x: { nom: string }) => x.nom),
         );
         setPlayerPseudos((p ?? []).map((x: { pseudo: string }) => x.pseudo));

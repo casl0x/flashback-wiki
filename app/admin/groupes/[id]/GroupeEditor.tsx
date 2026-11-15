@@ -20,6 +20,7 @@ import {
 } from "@/lib/admin/actions/groupes";
 import { slugify } from "@/lib/admin/slug";
 import {
+  CATEGORIE_TYPES,
   GROUPE_JURIDICTIONS,
   GROUPE_JURIDICTION_LABEL,
   GROUPE_STATUTS,
@@ -256,7 +257,7 @@ export default function GroupeEditor({
                   ))}
                 </Select>
               </Field>
-              {f.type !== "GROUPE" && (
+              {CATEGORIE_TYPES.includes(f.type) && (
                 <Field
                   label="Catégorie"
                   hint="Se gère dans Données › Catégories."

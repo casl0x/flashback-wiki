@@ -2,6 +2,7 @@ import { ButtonLink, PageHeader, TextInput } from "@/app/_composents/admin/ui";
 import { prisma } from "@/lib/db";
 import { versionRank } from "@/lib/version-rank";
 import {
+  CATEGORIE_TYPES,
   GROUPE_STATUT_LABEL,
   GROUPE_TYPES,
   GROUPE_TYPE_META,
@@ -154,7 +155,9 @@ export default async function AdminGroupes({
                       ? g.statut
                         ? GROUPE_STATUT_LABEL[g.statut]
                         : null
-                      : g.categorie?.nom) ?? (
+                      : CATEGORIE_TYPES.includes(g.type)
+                        ? g.categorie?.nom
+                        : null) ?? (
                       <span className="text-[#6E7380]">—</span>
                     )}
                   </td>
