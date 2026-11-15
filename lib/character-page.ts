@@ -164,7 +164,7 @@ function lastStep(list: Membership[], keep: (m: Membership) => boolean): Parcour
   return last ? toStep(last) : null;
 }
 
-/** Texte à afficher pour le matricule / la juridiction : réservé aux services publics et aux entreprises, précédé du libellé du groupe s'il y en a un. */
+/** Texte à afficher pour le matricule : réservé aux services publics, précédé du libellé du groupe s'il y en a un. */
 function matriculeText(m: Membership): string | null {
   const value = m.matricule?.trim();
   if (!value || !MATRICULE_TYPES.includes(m.groupe.type)) return null;

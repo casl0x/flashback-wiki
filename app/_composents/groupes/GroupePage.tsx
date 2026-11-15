@@ -36,6 +36,7 @@ export const loadGroupe = unstable_cache(
       where: { slug },
       include: {
         grades: { orderBy: { ordre: "asc" } },
+        categorie: { select: { nom: true } },
         members: {
           where: { character: visibleCharacter },
           include: {
@@ -91,7 +92,7 @@ export default async function GroupePage({
   const meta = GROUPE_TYPE_META[g.type];
 
   const accent = g.color ?? "#2F6FEB";
-  // Le matricule / la juridiction n'existe que pour les services publics et les entreprises (les autres types l'ignorent).
+  // Le matricule n'existe que pour les services publics (les autres types l'ignorent).
   const matriculeOf = (value: string | null) =>
     MATRICULE_TYPES.includes(g.type) ? (value?.trim() ?? "") : "";
   const onAccent = textOn(accent);
@@ -196,16 +197,22 @@ export default async function GroupePage({
               >
                 {g.nom}
               </h1>
-              {(g.statut || g.dissous || g.juridiction) && (
+              {(g.categorie || g.statut || g.juridiction || g.dissous) && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {g.juridiction && (
+                  {/* Catégorie d'abord : celle du groupe (entreprise, service public) ou son statut (groupe). */}
+                  {g.categorie && (
                     <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
-                      Juridiction : {GROUPE_JURIDICTION_LABEL[g.juridiction]}
+                      {g.categorie.nom}
                     </span>
                   )}
                   {g.statut && (
                     <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
                       {GROUPE_STATUT_LABEL[g.statut]}
+                    </span>
+                  )}
+                  {g.juridiction && (
+                    <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
+                      Juridiction : {GROUPE_JURIDICTION_LABEL[g.juridiction]}
                     </span>
                   )}
                   {g.dissous && (
