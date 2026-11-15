@@ -508,3 +508,28 @@ model PollVote {
 
   @@unique([userId, optionId])
 }
+
+// Modèles de grades : listes de grades réutilisables, copiées dans un groupe depuis l'éditeur de groupe.
+// `type` (facultatif) sert à ne proposer un modèle que pour les groupes de ce type.
+model GradeModele {
+  id     String      @id @default(cuid())
+  nom    String      @unique
+  type   GroupeType?
+  ordre  Int         @default(0)
+  grades GradeModeleItem[]
+
+  @@map("grade_modeles")
+}
+
+// Grades d'un modèle, du plus haut (ordre 0) au plus bas.
+model GradeModeleItem {
+  id       String      @id @default(cuid())
+  nom      String
+  color    String?
+  ordre    Int         @default(0)
+  modeleId String      @map("modele_id")
+  modele   GradeModele @relation(fields: [modeleId], references: [id], onDelete: Cascade)
+
+  @@index([modeleId])
+  @@map("grade_modele_items")
+}

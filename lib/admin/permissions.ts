@@ -18,6 +18,7 @@ export type AdminSection =
   | "players"
   | "groupes"
   | "categories"
+  | "grade-modeles"
   | "versions"
   | "creators"
   | "announcements"
@@ -38,6 +39,7 @@ export const EDITOR_SECTIONS: readonly AdminSection[] = [
   "players",
   "groupes",
   "categories",
+  "grade-modeles",
   "suggestions",
 ];
 
@@ -60,7 +62,7 @@ export function sectionFromPath(pathname: string): AdminSection | null {
   const seg = m[1];
   if (!seg) return "dashboard";
   const known: AdminSection[] = [
-    "moderation", "characters", "players", "groupes", "categories",
+    "moderation", "characters", "players", "groupes", "categories", "grade-modeles",
     "versions", "creators", "announcements", "polls", "suggestions", "users",
   ];
   return (known as string[]).includes(seg) ? (seg as AdminSection) : null;

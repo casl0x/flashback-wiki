@@ -64,6 +64,12 @@ type G = {
   grades: Grade[];
 };
 type Categorie = { id: string; nom: string; type: GroupeType };
+type Modele = {
+  id: string;
+  nom: string;
+  type: GroupeType | null;
+  grades: { nom: string; color: string | null }[];
+};
 
 // Couleurs proposées par défaut pour un nouveau grade, du plus haut au plus bas.
 // Libre à l'admin de les changer : rien n'impose une hiérarchie "militaire" type.
@@ -85,6 +91,7 @@ export default function GroupeEditor({
   presence,
   others,
   categories,
+  modeles,
 }: {
   initial: G;
   backHref: string;
@@ -92,6 +99,7 @@ export default function GroupeEditor({
   presence: { id: string; color: string; count: number }[];
   others: { id: string; nom: string }[];
   categories: Categorie[];
+  modeles: Modele[];
 }) {
   const router = useRouter();
   const [f, setF] = useState(initial);
@@ -106,6 +114,32 @@ export default function GroupeEditor({
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);
 
   const setGrades = (grades: Grade[]) => setF({ ...f, grades });
+  const [modeleId, setModeleId] = useState("");
+  const modelesFor = modeles.filter((m) => !m.type || m.type === f.type);
+  const applyModele = () => {
+    const m = modeles.find((x) => x.id === modeleId);
+    if (!m) return;
+    const have = new Set(f.grades.map((g) => g.nom.trim().toLowerCase()));
+    const add = m.grades.filter((g) => !have.has(g.nom.trim().toLowerCase()));
+    if (add.length === 0) {
+      setMsg({ tone: "ok", text: `Tous les grades de « ${m.nom} » sont déjà là.` });
+      return;
+    }
+    setGrades([
+      ...f.grades,
+      ...add.map((g, i) => ({
+        key: `new-${++seq}`,
+        id: null,
+        nom: g.nom,
+        color: g.color ?? GRADE_PALETTE[(f.grades.length + i) % GRADE_PALETTE.length],
+        members: 0,
+      })),
+    ]);
+    setMsg({
+      tone: "ok",
+      text: `${add.length} grade(s) ajouté(s) depuis « ${m.nom} ». Pense à enregistrer.`,
+    });
+  };
   const moveGrade = (i: number, to: number) => {
     if (to < 0 || to >= f.grades.length) return;
     const g = [...f.grades];
@@ -400,6 +434,29 @@ export default function GroupeEditor({
             }
           >
             <div className="flex flex-col gap-2">
+              {modelesFor.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-[#2C3038] p-2">
+                  <Select
+                    aria-label="Modèle de grades"
+                    value={modeleId}
+                    onChange={(e) => setModeleId(e.target.value)}
+                    className="min-w-40 flex-[1_1_180px]"
+                  >
+                    <option value="">Modèle de grades…</option>
+                    {modelesFor.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nom}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button disabled={!modeleId} onClick={applyModele}>
+                    Appliquer
+                  </Button>
+                  <span className="w-full text-[12px] text-[#9AA0AA]">
+                    Ajoute seulement les grades qui manquent, sans en retirer.
+                  </span>
+                </div>
+              )}
               {f.grades.length === 0 && (
                 <p className="m-0 text-[13px] text-[#9AA0AA]">
                   Aucun grade. Les membres seront listés sans hiérarchie.
