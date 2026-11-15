@@ -222,9 +222,21 @@ export function buildFamilyTree(c: CharacterPageData): FamilyTree | null {
   };
 
   // 1. Sa génération : fratrie, fiche, conjoint·e.
+  // Avec des parents, seuls les frères et sœurs aussi liés à ces parents sont rattachés à leur
+  // trait ; les autres se placent à gauche, sans trait. Sans parent, toute la fratrie est reliée.
+  const linkedIds = new Set(c.parentSiblingIds);
+  const grouped =
+    parents.length > 0 ? siblings.filter((s) => linkedIds.has(s.id)) : siblings;
+  const loose = siblings.filter((s) => !grouped.includes(s));
   const selfX = siblings.length * (CARD_W + CARD_GAP);
   const selfC = selfX + CARD_W / 2;
-  const siblingCards = placeRow("self", 0, siblings, "famille");
+  placeRow("self", 0, loose, "famille");
+  const groupedCards = placeRow(
+    "self",
+    loose.length * (CARD_W + CARD_GAP),
+    grouped,
+    "famille",
+  );
   const selfCard: TreeCard = {
     key: "self",
     id: c.id,
@@ -258,11 +270,11 @@ export function buildFamilyTree(c: CharacterPageData): FamilyTree | null {
   placeExtended("self", cousins, curRight, selfC);
 
   // 2. Barre de fratrie.
-  const firstC = siblings.length > 0 ? CARD_W / 2 : selfC;
+  const firstC = grouped.length > 0 ? groupedCards[0].x + CARD_W / 2 : selfC;
   const sibMid = (firstC + selfC) / 2;
-  if (siblings.length > 0) {
+  if (grouped.length > 0) {
     hLine(firstC, curTop + FAMILY_STROKE / 2, selfC - firstC);
-    for (const card of [...siblingCards, selfCard]) {
+    for (const card of [...groupedCards, selfCard]) {
       vLine(card.x + CARD_W / 2, curTop, CARD_TOP);
     }
   }
@@ -295,7 +307,7 @@ export function buildFamilyTree(c: CharacterPageData): FamilyTree | null {
       });
       // Avec exactement deux parents, le trait part du milieu de leur lien.
       const fromY = parents.length === 2 ? parMid : parBottom;
-      const toY = siblings.length > 0 ? curTop + FAMILY_STROKE : curTop + CARD_TOP;
+      const toY = grouped.length > 0 ? curTop + FAMILY_STROKE : curTop + CARD_TOP;
       vLine(sibMid, fromY, toY - fromY);
     }
 

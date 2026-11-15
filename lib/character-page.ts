@@ -84,6 +84,8 @@ export type CharacterPageData = {
   parentsLink: ParentsLink;
   /** Parmi les enfants de la fiche, ceux qui sont aussi liés comme enfants à son conjoint·e (celui de l'arbre). */
   spouseChildIds: string[];
+  /** Parmi les frères et sœurs, ceux qui sont aussi liés comme enfants aux parents de la fiche. */
+  parentSiblingIds: string[];
   player: {
     id: string;
     pseudo: string;
@@ -219,16 +221,14 @@ async function loadParentsLink(relations: LinkedCharacter[]): Promise<ParentsLin
   return kind === "marie" || kind === "couple" || kind === "ex" ? kind : null;
 }
 
-/** Enfants de la fiche qui sont aussi ceux de son conjoint·e : le lien conjoint → enfant existe. */
-async function loadSpouseChildIds(relations: LinkedCharacter[]): Promise<string[]> {
-  const spouse = pickSpouse(relations);
-  const kids = relations.filter((r) => r.kind === "enfant").map((r) => r.id);
-  if (!spouse || kids.length === 0) return [];
+/** Parmi `kidIds`, ceux qui sont liés comme enfants à au moins un des `parentIds`. */
+async function linkedChildIds(parentIds: string[], kidIds: string[]): Promise<string[]> {
+  if (parentIds.length === 0 || kidIds.length === 0) return [];
   const links = await prisma.relation.findMany({
     where: {
       OR: [
-        { personnageAId: spouse.id, personnageBId: { in: kids } },
-        { personnageBId: spouse.id, personnageAId: { in: kids } },
+        { personnageAId: { in: parentIds }, personnageBId: { in: kidIds } },
+        { personnageBId: { in: parentIds }, personnageAId: { in: kidIds } },
       ],
     },
     select: {
@@ -238,18 +238,32 @@ async function loadSpouseChildIds(relations: LinkedCharacter[]): Promise<string[
       typeRelationInverse: true,
     },
   });
-  const shared = new Set<string>();
+  const linked = new Set<string>();
   for (const l of links) {
-    const spouseIsA = l.personnageAId === spouse.id;
-    const kid = spouseIsA ? l.personnageBId : l.personnageAId;
+    const parentIsA = parentIds.includes(l.personnageAId) && kidIds.includes(l.personnageBId);
+    const kid = parentIsA ? l.personnageBId : l.personnageAId;
     // typeRelation décrit B vu de A ; typeRelationInverse décrit A vu de B.
-    const kidLabel = spouseIsA ? l.typeRelation : l.typeRelationInverse;
-    const spouseLabel = spouseIsA ? l.typeRelationInverse : l.typeRelation;
-    if (relationKind(kidLabel) === "enfant" || relationKind(spouseLabel) === "parent") {
-      shared.add(kid);
+    const kidLabel = parentIsA ? l.typeRelation : l.typeRelationInverse;
+    const parentLabel = parentIsA ? l.typeRelationInverse : l.typeRelation;
+    if (relationKind(kidLabel) === "enfant" || relationKind(parentLabel) === "parent") {
+      linked.add(kid);
     }
   }
-  return kids.filter((id) => shared.has(id));
+  return kidIds.filter((id) => linked.has(id));
+}
+
+const idsOf = (relations: LinkedCharacter[], kind: RelationKind) =>
+  relations.filter((r) => r.kind === kind).map((r) => r.id);
+
+/** Enfants de la fiche qui sont aussi ceux de son conjoint·e (celui de l'arbre). */
+function loadSpouseChildIds(relations: LinkedCharacter[]): Promise<string[]> {
+  const spouse = pickSpouse(relations);
+  return linkedChildIds(spouse ? [spouse.id] : [], idsOf(relations, "enfant"));
+}
+
+/** Frères et sœurs de la fiche qui sont aussi liés comme enfants à ses parents. */
+function loadParentSiblingIds(relations: LinkedCharacter[]): Promise<string[]> {
+  return linkedChildIds(idsOf(relations, "parent"), idsOf(relations, "fratrie"));
 }
 
 async function loadCharacterPage(id: string): Promise<CharacterPageData | null> {
@@ -299,7 +313,10 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
   ];
 
   const parentsLink = await loadParentsLink(relations);
-  const spouseChildIds = await loadSpouseChildIds(relations);
+  const [spouseChildIds, parentSiblingIds] = await Promise.all([
+    loadSpouseChildIds(relations),
+    loadParentSiblingIds(relations),
+  ]);
 
   const others: OtherCharacter[] = (c.player?.characters ?? [])
     .map((o) => {
@@ -344,6 +361,7 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
     relations,
     parentsLink,
     spouseChildIds,
+    parentSiblingIds,
     player: c.player
       ? {
           id: c.player.id,
