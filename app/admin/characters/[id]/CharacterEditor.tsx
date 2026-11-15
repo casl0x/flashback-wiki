@@ -28,7 +28,7 @@ import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import type { Character, Rediffusion } from "@/lib/db";
 import { PLATFORM_STYLE, detectSoundPlatform } from "@/lib/media-embed";
 import { relationKind } from "@/lib/relation-kinds";
-import { cn, joinCauseMort, splitCauseMort } from "@/lib/utils";
+import { cn, splitDescription, updateDescription } from "@/lib/utils";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -640,30 +640,40 @@ export default function CharacterEditor({
           {/* Description */}
           <Panel legend="Description">
             <MentionTextarea
-              value={splitCauseMort(f.description).histoire}
+              value={splitDescription(f.description).histoire}
               onChange={(v) =>
-                set(
-                  "description",
-                  joinCauseMort(v, splitCauseMort(f.description).cause),
-                )
+                set("description", updateDescription(f.description, { histoire: v }))
               }
               characters={mentionChars}
               placeholder="Parcours, anecdotes… Tape @ pour lier un perso."
               className="min-h-36 w-full rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
             />
-            {(f.etatVie === "MORT" ||
-              splitCauseMort(f.description).cause) && (
+            {(f.etatVie === "PRISON" ||
+              splitDescription(f.description).prison) && (
+              <div className="mt-3 flex flex-col gap-1">
+                <span className="text-[12px] font-semibold text-[#8AB4FF]">
+                  Motif de l&apos;incarcération
+                </span>
+                <MentionTextarea
+                  value={splitDescription(f.description).prison}
+                  onChange={(v) =>
+                    set("description", updateDescription(f.description, { prison: v }))
+                  }
+                  characters={mentionChars}
+                  placeholder="Pourquoi le personnage est-il en prison ? (affiché à la fin de l'Histoire)"
+                  className="min-h-20 w-full rounded-lg border border-[#2A3A5E] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
+                />
+              </div>
+            )}
+            {(f.etatVie === "MORT" || splitDescription(f.description).mort) && (
               <div className="mt-3 flex flex-col gap-1">
                 <span className="text-[12px] font-semibold text-[#FF8A8E]">
                   Cause de la mort
                 </span>
                 <MentionTextarea
-                  value={splitCauseMort(f.description).cause}
+                  value={splitDescription(f.description).mort}
                   onChange={(v) =>
-                    set(
-                      "description",
-                      joinCauseMort(splitCauseMort(f.description).histoire, v),
-                    )
+                    set("description", updateDescription(f.description, { mort: v }))
                   }
                   characters={mentionChars}
                   placeholder="Comment le personnage est-il mort ? (affiché à la fin de l'Histoire)"
