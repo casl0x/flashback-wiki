@@ -14,7 +14,7 @@ export default async function EditGroupePage({ params, searchParams }: Props) {
   const { id } = await params;
   const { back } = await searchParams;
   const isNew = id === "new";
-  const [g, others, versions, categories] = await Promise.all([
+  const [g, others, versions, categories, modeles] = await Promise.all([
     isNew
       ? null
       : prisma.groupe.findUnique({
@@ -27,6 +27,18 @@ export default async function EditGroupePage({ params, searchParams }: Props) {
     prisma.groupe.findMany({ where: isNew ? {} : { NOT: { id } }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
     prisma.version.findMany({ select: { id: true, color: true } }),
     prisma.groupeCategorie.findMany({ orderBy: [{ ordre: "asc" }, { nom: "asc" }], select: { id: true, nom: true, type: true } }),
+    // Tables absentes tant que la migration n'est pas appliquée : on n'affiche simplement pas le menu.
+    prisma.gradeModele
+      .findMany({
+        orderBy: [{ ordre: "asc" }, { nom: "asc" }],
+        select: {
+          id: true,
+          nom: true,
+          type: true,
+          grades: { orderBy: { ordre: "asc" }, select: { nom: true, color: true } },
+        },
+      })
+      .catch(() => []),
   ]);
   if (!isNew && !g) notFound();
 
@@ -66,6 +78,7 @@ export default async function EditGroupePage({ params, searchParams }: Props) {
       presence={presence}
       others={others}
       categories={categories}
+      modeles={modeles}
     />
   );
 }

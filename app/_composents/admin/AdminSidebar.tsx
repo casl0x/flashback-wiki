@@ -35,6 +35,7 @@ export default function AdminSidebar({
         { href: "/admin/players", label: "Joueurs" },
         { href: "/admin/groupes", label: "Groupes" },
         { href: "/admin/categories", label: "Catégories" },
+        { href: "/admin/grade-modeles", label: "Modèles de grades" },
         { href: "/admin/versions", label: "Versions" },
       ],
     },
