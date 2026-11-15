@@ -656,11 +656,9 @@ export default function CharacterEditor({
             </div>
           </Panel>
 
-          {/* Côte à côte dès la vue tablette, l'un sous l'autre sur téléphone. */}
-          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
-            <div className="min-w-0">{membershipsPanel("groupe")}</div>
-            <div className="min-w-0">{membershipsPanel("parcours")}</div>
-          </div>
+          {/* Groupes puis parcours, l'un au-dessus de l'autre. */}
+          {membershipsPanel("groupe")}
+          {membershipsPanel("parcours")}
 
           {/* Description */}
           <Panel legend="Description">
