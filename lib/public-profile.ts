@@ -1,3 +1,4 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import type { EtatVie, VersionTag } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
 import {
@@ -103,7 +104,7 @@ async function loadPublicProfile(
 
   const characters = profile.playerId
     ? await prisma.character.findMany({
-        where: { playerId: profile.playerId },
+        where: { playerId: profile.playerId, ...visibleCharacter },
         orderBy: { nom: "asc" },
         select: {
           id: true,

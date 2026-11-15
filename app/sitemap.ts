@@ -1,3 +1,4 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import { prisma } from "@/lib/db";
 import { groupeHref } from "@/lib/groupe-types";
 import { SITE_URL } from "@/lib/site";
@@ -8,7 +9,7 @@ export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [characters, players, groupes] = await Promise.all([
-    prisma.character.findMany({ select: { id: true, updatedAt: true } }),
+    prisma.character.findMany({ where: visibleCharacter, select: { id: true, updatedAt: true } }),
     prisma.player.findMany({ select: { id: true, updatedAt: true } }),
     prisma.groupe.findMany({ select: { slug: true, type: true, updatedAt: true } }),
   ]);

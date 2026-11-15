@@ -1,3 +1,4 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import type { EtatVie, VersionTag } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
 import { toTracks, type MusicTrack } from "@/lib/music";
@@ -114,6 +115,7 @@ async function loadPlayerPageUnsafe(id: string): Promise<PlayerPageData | null> 
     where: { id },
     include: {
       characters: {
+        where: visibleCharacter,
         orderBy: { nom: "asc" },
         include: {
           versions: true,
