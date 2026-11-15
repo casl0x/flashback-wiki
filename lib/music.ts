@@ -1,3 +1,4 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import { prisma } from "@/lib/db";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
 import { unstable_cache } from "next/cache";
@@ -40,14 +41,14 @@ export const toTracks = (
 async function loadMusicPlayers(): Promise<MusicPlayer[]> {
   try {
     const players = await prisma.player.findMany({
-      where: { characters: { some: { sounds: { some: {} } } } },
+      where: { characters: { some: { ...visibleCharacter, sounds: { some: {} } } } },
       orderBy: { pseudo: "asc" },
       select: {
         id: true,
         pseudo: true,
         imageUrl: true,
         characters: {
-          where: { sounds: { some: {} } },
+          where: { ...visibleCharacter, sounds: { some: {} } },
           orderBy: { nom: "asc" },
           select: {
             id: true,

@@ -1,3 +1,4 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import { prisma } from "@/lib/db";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { CreatorType } from "@prisma/client";
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest) {
     include: {
       creatorRole: { include: { userProfile: true } },
       characters: {
+        where: { character: visibleCharacter },
         include: { character: { select: { id: true, nom: true } } },
       },
       _count: { select: { likes: true } },

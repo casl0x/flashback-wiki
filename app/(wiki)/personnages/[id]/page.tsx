@@ -1,6 +1,8 @@
 import CharacterPage from "@/app/_composents/characters/CharacterPage";
 import { cloudinaryUrl, getCharacterPage } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
+import { isAdminUser } from "@/lib/admin/auth";
+import { isHiddenCharacter } from "@/lib/hidden-characters";
 import { splitCauseMort, stripFormatting, stripMentions } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
@@ -13,7 +15,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const c = await getCharacterPage(id);
-  if (!c) return { title: "Personnage introuvable – Flashback Wiki", robots: { index: false } };
+  if (!c || isHiddenCharacter(id)) return { title: "Personnage introuvable – Flashback Wiki", robots: { index: false } };
   const title = `${c.nom} – Flashback Wiki`;
   const description =
     splitCauseMort(c.description).histoire.trim() && stripFormatting(stripMentions(splitCauseMort(c.description).histoire)).replace(/\s+/g, " ").trim().slice(0, 160) ||
@@ -35,6 +37,8 @@ export default async function Page({ params }: Props) {
   // Calculé hors du cache partagé (getCharacterPage) : c'est propre à ce
   // visiteur, pas à la fiche.
   const { userId } = await auth();
+  // Perso masqué (HIDDEN_CHARACTER_IDS) : 404 pour tout le monde sauf les admins.
+  if (isHiddenCharacter(id) && !(userId && (await isAdminUser(userId)))) notFound();
   let isOwner = false;
   if (userId && character.player) {
     const profile = await prisma.userProfile.findUnique({
