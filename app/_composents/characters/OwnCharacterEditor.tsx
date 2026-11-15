@@ -4,6 +4,7 @@ import ImageUpload from "@/app/_composents/admin/ImageUpload";
 import { MentionTextarea } from "@/app/_composents/MentionTextarea";
 import { useToast } from "@/app/_composents/toast/ToastProvider";
 import { updateOwnCharacterPresentation } from "@/app/profil/actions";
+import { joinCauseMort, splitCauseMort } from "@/lib/utils";
 import { detectSoundPlatform, PLATFORM_STYLE } from "@/lib/media-embed";
 import { ArrowDown, ArrowUp, Check, Pencil, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -142,11 +143,34 @@ export default function OwnCharacterEditor({
       <label className="flex flex-col gap-1">
         <span className="text-[12px] font-semibold text-[#C4C7CF]">Histoire</span>
         <MentionTextarea
-          value={f.description}
-          onChange={(v) => setF({ ...f, description: v })}
+          value={splitCauseMort(f.description).histoire}
+          onChange={(v) =>
+            setF({
+              ...f,
+              description: joinCauseMort(v, splitCauseMort(f.description).cause),
+            })
+          }
           characters={[]}
-          placeholder="Parcours, anecdotes, circonstances de la mort…"
+          placeholder="Parcours, anecdotes…"
           className="min-h-32 w-full rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-[12px] font-semibold text-[#FF8A8E]">
+          Cause de la mort (si le personnage est mort)
+        </span>
+        <MentionTextarea
+          value={splitCauseMort(f.description).cause}
+          onChange={(v) =>
+            setF({
+              ...f,
+              description: joinCauseMort(splitCauseMort(f.description).histoire, v),
+            })
+          }
+          characters={[]}
+          placeholder="Affichée à la fin de l'Histoire"
+          className="min-h-20 w-full rounded-lg border border-[#5A2A2D] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
         />
       </label>
 

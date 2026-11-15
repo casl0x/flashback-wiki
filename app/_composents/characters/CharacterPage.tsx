@@ -4,6 +4,8 @@ import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
 import type { CharacterPageData } from "@/lib/character-page";
 import type { Character } from "@/lib/db";
 import { youtubeThumbnail } from "@/lib/media-embed";
+import { splitCauseMort } from "@/lib/utils";
+import { Skull } from "lucide-react";
 import Image from "next/image";
 import { Suspense } from "react";
 import { OtherCharacters, PlayerPanel } from "./CharacterAside";
@@ -51,6 +53,7 @@ export default function CharacterPage({
   c: CharacterPageData;
   isOwner?: boolean;
 }) {
+  const { histoire, cause } = splitCauseMort(c.description);
   const firstName = c.nom.split(/\s+/)[0];
 
   return (
@@ -95,19 +98,30 @@ export default function CharacterPage({
             </InlineNotice>
           )}
 
-          {c.description && (
+          {(histoire.trim() || cause) && (
             <section
               aria-labelledby="histoire-h"
               className="flex flex-col gap-3"
             >
               <SectionTitle id="histoire-h">Histoire</SectionTitle>
-              <p className="m-0 whitespace-pre-wrap wrap-break-word text-[16px] leading-relaxed text-[#D5D7DD]">
-                <MentionText
-                  text={c.description
-                    .replace(/\r\n?/g, "\n")
-                    .replace(/\\n/g, "\n")}
-                />
-              </p>
+              {histoire.trim() && (
+                <p className="m-0 whitespace-pre-wrap wrap-break-word text-[16px] leading-relaxed text-[#D5D7DD]">
+                  <MentionText
+                    text={histoire.replace(/\r\n?/g, "\n").replace(/\\n/g, "\n")}
+                  />
+                </p>
+              )}
+              {cause && (
+                <aside className="mt-1 rounded-lg border border-[#5A2A2D] border-l-4 border-l-[#E5484D] bg-[#1E1214] px-4 py-3">
+                  <div className="mb-1 flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.06em] text-[#FF8A8E]">
+                    <Skull className="h-3.5 w-3.5" aria-hidden />
+                    Cause de la mort
+                  </div>
+                  <p className="m-0 whitespace-pre-wrap wrap-break-word text-[15px] leading-relaxed text-[#E8D5D6]">
+                    <MentionText text={cause} />
+                  </p>
+                </aside>
+              )}
             </section>
           )}
 

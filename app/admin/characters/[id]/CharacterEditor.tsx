@@ -28,7 +28,7 @@ import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import type { Character, Rediffusion } from "@/lib/db";
 import { PLATFORM_STYLE, detectSoundPlatform } from "@/lib/media-embed";
 import { relationKind } from "@/lib/relation-kinds";
-import { cn } from "@/lib/utils";
+import { cn, joinCauseMort, splitCauseMort } from "@/lib/utils";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -640,12 +640,37 @@ export default function CharacterEditor({
           {/* Description */}
           <Panel legend="Description">
             <MentionTextarea
-              value={f.description}
-              onChange={(v) => set("description", v)}
+              value={splitCauseMort(f.description).histoire}
+              onChange={(v) =>
+                set(
+                  "description",
+                  joinCauseMort(v, splitCauseMort(f.description).cause),
+                )
+              }
               characters={mentionChars}
-              placeholder="Parcours, anecdotes, circonstances de la mort… Tape @ pour lier un perso."
+              placeholder="Parcours, anecdotes… Tape @ pour lier un perso."
               className="min-h-36 w-full rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
             />
+            {(f.etatVie === "MORT" ||
+              splitCauseMort(f.description).cause) && (
+              <div className="mt-3 flex flex-col gap-1">
+                <span className="text-[12px] font-semibold text-[#FF8A8E]">
+                  Cause de la mort
+                </span>
+                <MentionTextarea
+                  value={splitCauseMort(f.description).cause}
+                  onChange={(v) =>
+                    set(
+                      "description",
+                      joinCauseMort(splitCauseMort(f.description).histoire, v),
+                    )
+                  }
+                  characters={mentionChars}
+                  placeholder="Comment le personnage est-il mort ? (affiché à la fin de l'Histoire)"
+                  className="min-h-20 w-full rounded-lg border border-[#5A2A2D] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
+                />
+              </div>
+            )}
           </Panel>
 
           {/* Relations */}
