@@ -21,7 +21,11 @@ import {
   saveCharacterLocation,
   type CharacterInput,
 } from "@/lib/admin/actions/characters";
-import { MATRICULE_OPTIONS, MATRICULE_TYPES } from "@/lib/groupe-types";
+import {
+  MATRICULE_OPTIONS,
+  MATRICULE_TYPES,
+  PARCOURS_TYPES,
+} from "@/lib/groupe-types";
 import { savePlayer } from "@/lib/admin/actions/players";
 import { shortDate } from "@/lib/admin/format";
 import { cloudinaryUrl, initials } from "@/lib/cloudinary";
@@ -56,6 +60,8 @@ export type EditorCharacter = {
   createdAt: string | null;
   memberships: {
     key: string;
+    /** Côté de la ligne (client seulement) ; sinon déduit du type du groupe choisi. */
+    kind?: "groupe" | "parcours";
     groupeId: string;
     versionId: string | null;
     gradeId: string | null;
@@ -74,7 +80,7 @@ type Props = {
     id: string;
     nom: string;
     color: string | null;
-    type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC";
+    type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC" | "ASSOCIATION";
     matriculeLabel: string | null;
     grades: { id: string; nom: string }[];
   }[];
@@ -244,7 +250,24 @@ export default function CharacterEditor({
     [characters],
   );
   const firstName = f.nom.trim().split(/\s+/)[0] || "ce perso";
-  const current = f.memberships.at(-1);
+  // Groupes (groupes, associations) d'un côté, parcours (entreprises, services publics) de l'autre :
+  // un perso peut être dans un groupe et travailler en même temps, chaque côté a son « actuel ».
+  type Side = "groupe" | "parcours";
+  const sideOfType = (t: string): Side =>
+    (PARCOURS_TYPES as string[]).includes(t) ? "parcours" : "groupe";
+  const sideOf = (m: (typeof f.memberships)[number]): Side => {
+    if (m.kind) return m.kind;
+    const gt = groupeById.get(m.groupeId)?.type;
+    return gt ? sideOfType(gt) : "groupe";
+  };
+  const rowsOf = (side: Side) => f.memberships.filter((m) => sideOf(m) === side);
+  // On range toujours les groupes avant le parcours : l'ordre entre les deux côtés n'a pas d'importance.
+  const setSide = (side: Side, rows: typeof f.memberships) =>
+    set("memberships", [
+      ...(side === "groupe" ? rows : rowsOf("groupe")),
+      ...(side === "parcours" ? rows : rowsOf("parcours")),
+    ]);
+  const current = rowsOf("parcours").at(-1) ?? rowsOf("groupe").at(-1);
   const currentGroupe = current ? groupeById.get(current.groupeId) : null;
   const currentGrade =
     current && currentGroupe
@@ -331,6 +354,163 @@ export default function CharacterEditor({
           : x,
       ),
     }));
+  }
+
+  function membershipsPanel(side: Side) {
+    const rows = rowsOf(side);
+    const isParcours = side === "parcours";
+    return (
+      <Panel
+        legend={isParcours ? "Parcours" : "Groupes"}
+        aside={
+          <span className="text-[12px] text-[#9AA0AA]">
+            {isParcours
+              ? "Entreprises et services publics, par version ; le dernier est l’actuel"
+              : "Groupes et associations, par version ; le dernier est l’actuel"}
+          </span>
+        }
+      >
+        <div className="flex flex-col gap-2">
+          {rows.length === 0 && (
+            <p className="m-0 text-[13px] text-[#9AA0AA]">
+              {isParcours ? "Aucun métier." : "Aucun groupe."}
+            </p>
+          )}
+          {rows.map((m, i) => {
+            const g = groupeById.get(m.groupeId);
+            const last = i === rows.length - 1;
+            const update = (patch: Partial<typeof m>) =>
+              setSide(
+                side,
+                rows.map((x) => (x.key === m.key ? { ...x, ...patch } : x)),
+              );
+            return (
+              <div
+                key={m.key}
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
+              >
+                <OrderButtons
+                  index={i}
+                  length={rows.length}
+                  label={g?.nom ?? (isParcours ? "ce métier" : "ce groupe")}
+                  onMove={(to) => setSide(side, move(rows, i, to))}
+                />
+                <Select
+                  aria-label="Version"
+                  value={m.versionId ?? ""}
+                  onChange={(e) => update({ versionId: e.target.value || null })}
+                  className="w-23 flex-none font-bold"
+                  style={{
+                    color: m.versionId
+                      ? versionById.get(m.versionId)?.color
+                      : undefined,
+                  }}
+                >
+                  <option value="">—</option>
+                  {versions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.id}
+                    </option>
+                  ))}
+                </Select>
+                <SearchSelect
+                  label={isParcours ? "Entreprise / service public" : "Groupe"}
+                  className="min-w-40 flex-[1_1_180px]"
+                  options={groupes
+                    .filter((x) => sideOfType(x.type) === side)
+                    .map((x) => ({
+                      value: x.id,
+                      label: x.nom,
+                    }))}
+                  value={m.groupeId || null}
+                  allowClear={false}
+                  onChange={(v) => update({ groupeId: v ?? "", gradeId: null })}
+                  placeholder={isParcours ? "Entreprise ou service public…" : "Groupe…"}
+                />
+                <Select
+                  aria-label="Grade"
+                  value={m.gradeId ?? ""}
+                  onChange={(e) => update({ gradeId: e.target.value || null })}
+                  className="w-37.5 flex-none"
+                  disabled={!g || g.grades.length === 0}
+                >
+                  <option value="">
+                    {g && g.grades.length === 0 ? "Aucun grade" : "—"}
+                  </option>
+                  {g?.grades.map((gr) => (
+                    <option key={gr.id} value={gr.id}>
+                      {gr.nom}
+                    </option>
+                  ))}
+                </Select>
+                {g &&
+                  MATRICULE_TYPES.includes(g.type) &&
+                  (MATRICULE_OPTIONS[g.type] ? (
+                    <Select
+                      aria-label={g.matriculeLabel || "Valeur"}
+                      value={m.matricule}
+                      onChange={(e) => update({ matricule: e.target.value })}
+                      className="w-40 flex-none"
+                    >
+                      <option value="">{g.matriculeLabel || "Valeur"} : —</option>
+                      {[
+                        ...MATRICULE_OPTIONS[g.type]!,
+                        // Une ancienne valeur libre reste sélectionnable pour ne pas être perdue à l'enregistrement.
+                        ...(m.matricule &&
+                        !MATRICULE_OPTIONS[g.type]!.includes(m.matricule)
+                          ? [m.matricule]
+                          : []),
+                      ].map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <TextInput
+                      aria-label={g.matriculeLabel || "Matricule"}
+                      placeholder={g.matriculeLabel || "Valeur"}
+                      value={m.matricule}
+                      onChange={(e) => update({ matricule: e.target.value })}
+                      className="w-40 flex-none"
+                    />
+                  ))}
+                {last && (
+                  <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
+                    actuel
+                  </span>
+                )}
+                <RemoveButton
+                  label={`Retirer ${g?.nom ?? (isParcours ? "ce métier" : "ce groupe")}`}
+                  onClick={() => setSide(side, rows.filter((x) => x.key !== m.key))}
+                />
+              </div>
+            );
+          })}
+          <Button
+            className="self-start"
+            onClick={() =>
+              setSide(side, [
+                ...rows,
+                {
+                  key: newKey(),
+                  kind: side,
+                  groupeId: "",
+                  versionId: f.versionIds.at(-1) ?? null,
+                  gradeId: null,
+                  matricule: "",
+                },
+              ])
+            }
+          >
+            {isParcours ? "+ Ajouter au parcours" : "+ Ajouter un groupe"}
+          </Button>
+          <span className="text-[12px] text-[#9AA0AA]">
+            Les grades proposés sont ceux définis dans la fiche du groupe.
+          </span>
+        </div>
+      </Panel>
+    );
   }
 
   const actions = (
@@ -470,172 +650,8 @@ export default function CharacterEditor({
             </div>
           </Panel>
 
-          {/* Groupes par version */}
-          <Panel
-            legend="Groupes"
-            aside={
-              <span className="text-[12px] text-[#9AA0AA]">
-                Par version, dans l’ordre chronologique ; le dernier est
-                l’actuel
-              </span>
-            }
-          >
-            <div className="flex flex-col gap-2">
-              {f.memberships.length === 0 && (
-                <p className="m-0 text-[13px] text-[#9AA0AA]">Aucun groupe.</p>
-              )}
-              {f.memberships.map((m, i) => {
-                const g = groupeById.get(m.groupeId);
-                const last = i === f.memberships.length - 1;
-                const update = (patch: Partial<typeof m>) =>
-                  set(
-                    "memberships",
-                    f.memberships.map((x) =>
-                      x.key === m.key ? { ...x, ...patch } : x,
-                    ),
-                  );
-                return (
-                  <div
-                    key={m.key}
-                    className="flex flex-wrap items-center gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
-                  >
-                    <OrderButtons
-                      index={i}
-                      length={f.memberships.length}
-                      label={g?.nom ?? "ce groupe"}
-                      onMove={(to) =>
-                        set("memberships", move(f.memberships, i, to))
-                      }
-                    />
-                    <Select
-                      aria-label="Version"
-                      value={m.versionId ?? ""}
-                      onChange={(e) =>
-                        update({ versionId: e.target.value || null })
-                      }
-                      className="w-23 flex-none font-bold"
-                      style={{
-                        color: m.versionId
-                          ? versionById.get(m.versionId)?.color
-                          : undefined,
-                      }}
-                    >
-                      <option value="">—</option>
-                      {versions.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.id}
-                        </option>
-                      ))}
-                    </Select>
-                    <SearchSelect
-                      label="Groupe"
-                      className="min-w-40 flex-[1_1_180px]"
-                      options={groupes.map((x) => ({
-                        value: x.id,
-                        label: x.nom,
-                      }))}
-                      value={m.groupeId || null}
-                      allowClear={false}
-                      onChange={(v) =>
-                        update({ groupeId: v ?? "", gradeId: null })
-                      }
-                      placeholder="Groupe…"
-                    />
-                    <Select
-                      aria-label="Grade"
-                      value={m.gradeId ?? ""}
-                      onChange={(e) =>
-                        update({ gradeId: e.target.value || null })
-                      }
-                      className="w-37.5 flex-none"
-                      disabled={!g || g.grades.length === 0}
-                    >
-                      <option value="">
-                        {g && g.grades.length === 0 ? "Aucun grade" : "—"}
-                      </option>
-                      {g?.grades.map((gr) => (
-                        <option key={gr.id} value={gr.id}>
-                          {gr.nom}
-                        </option>
-                      ))}
-                    </Select>
-                    {g &&
-                      MATRICULE_TYPES.includes(g.type) &&
-                      (MATRICULE_OPTIONS[g.type] ? (
-                        <Select
-                          aria-label={g.matriculeLabel || "Valeur"}
-                          value={m.matricule}
-                          onChange={(e) =>
-                            update({ matricule: e.target.value })
-                          }
-                          className="w-40 flex-none"
-                        >
-                          <option value="">
-                            {g.matriculeLabel || "Valeur"} : —
-                          </option>
-                          {[
-                            ...MATRICULE_OPTIONS[g.type]!,
-                            // Une ancienne valeur libre reste sélectionnable pour ne pas être perdue à l'enregistrement.
-                            ...(m.matricule &&
-                            !MATRICULE_OPTIONS[g.type]!.includes(m.matricule)
-                              ? [m.matricule]
-                              : []),
-                          ].map((v) => (
-                            <option key={v} value={v}>
-                              {v}
-                            </option>
-                          ))}
-                        </Select>
-                      ) : (
-                        <TextInput
-                          aria-label={g.matriculeLabel || "Matricule"}
-                          placeholder={g.matriculeLabel || "Valeur"}
-                          value={m.matricule}
-                          onChange={(e) =>
-                            update({ matricule: e.target.value })
-                          }
-                          className="w-40 flex-none"
-                        />
-                      ))}
-                    {last && (
-                      <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
-                        actuel
-                      </span>
-                    )}
-                    <RemoveButton
-                      label={`Retirer ${g?.nom ?? "ce groupe"}`}
-                      onClick={() =>
-                        set(
-                          "memberships",
-                          f.memberships.filter((x) => x.key !== m.key),
-                        )
-                      }
-                    />
-                  </div>
-                );
-              })}
-              <Button
-                className="self-start"
-                onClick={() =>
-                  set("memberships", [
-                    ...f.memberships,
-                    {
-                      key: newKey(),
-                      groupeId: "",
-                      versionId: f.versionIds.at(-1) ?? null,
-                      gradeId: null,
-                      matricule: "",
-                    },
-                  ])
-                }
-              >
-                + Ajouter un groupe
-              </Button>
-              <span className="text-[12px] text-[#9AA0AA]">
-                Les grades proposés sont ceux définis dans la fiche du groupe.
-              </span>
-            </div>
-          </Panel>
+          {membershipsPanel("groupe")}
+          {membershipsPanel("parcours")}
 
           {/* Description */}
           <Panel legend="Description">

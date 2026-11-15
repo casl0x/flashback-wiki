@@ -41,7 +41,7 @@ export type Groupe = {
   imageUrl: string | null;
   color: string | null;
   createdAt: string;
-  type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC";
+  type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC" | "ASSOCIATION";
   statut: "INDE" | "GANG" | "ORGA" | "GM" | "CIVIL" | null;
   dissous: boolean;
   juridiction?: "NORD" | "SUD" | "LES_DEUX" | null;

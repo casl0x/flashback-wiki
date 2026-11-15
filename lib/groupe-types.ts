@@ -1,7 +1,7 @@
-// Les trois natures de groupe et la section du site où chacune vit.
-export type GroupeType = "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC";
+// Les natures de groupe et la section du site où chacune vit.
+export type GroupeType = "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC" | "ASSOCIATION";
 
-export const GROUPE_TYPES: GroupeType[] = ["GROUPE", "ENTREPRISE", "SERVICE_PUBLIC"];
+export const GROUPE_TYPES: GroupeType[] = ["GROUPE", "ENTREPRISE", "SERVICE_PUBLIC", "ASSOCIATION"];
 
 export const GROUPE_TYPE_META: Record<
   GroupeType,
@@ -15,10 +15,19 @@ export const GROUPE_TYPE_META: Record<
     plural: "Services publics",
     kicker: "Service public",
   },
+  ASSOCIATION: {
+    base: "/associations",
+    label: "Association",
+    plural: "Associations",
+    kicker: "Association",
+  },
 };
 
-/** Types des groupes qui apparaissent dans le parcours d'un perso. */
+/** Types des groupes qui apparaissent dans le parcours (métier) d'un perso. Les autres (groupes, associations) sont côté « groupes ». */
 export const PARCOURS_TYPES: GroupeType[] = ["ENTREPRISE", "SERVICE_PUBLIC"];
+
+/** Types de groupe qui se rangent dans des catégories libres, gérées dans l'admin. */
+export const CATEGORIE_TYPES: GroupeType[] = ["ENTREPRISE", "SERVICE_PUBLIC"];
 
 export const groupeHref = (g: { slug: string; type: GroupeType }) =>
   `${GROUPE_TYPE_META[g.type].base}/${g.slug}`;
