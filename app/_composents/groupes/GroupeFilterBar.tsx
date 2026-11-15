@@ -13,10 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  GROUPE_JURIDICTIONS,
+  GROUPE_JURIDICTION_LABEL,
   GROUPE_STATUTS,
   GROUPE_STATUT_LABEL,
   GROUPE_TYPES,
   GROUPE_TYPE_META,
+  type GroupeJuridiction,
   type GroupeStatut,
   type GroupeType,
 } from "@/lib/groupe-types";
@@ -30,6 +33,7 @@ import type { ReactNode } from "react";
 
 export type GroupeTypeFilter = "all" | GroupeType;
 export type GroupeStatutFilter = "all" | GroupeStatut;
+export type GroupeJuridictionFilter = "all" | GroupeJuridiction;
 export type GroupeEtatFilter = "all" | "actif" | "dissous";
 /** Valeur du filtre de catégorie pour les groupes sans catégorie. */
 export const NO_CATEGORIE = "__none__";
@@ -49,6 +53,8 @@ type Props = {
   onCatChange: (value: string) => void;
   statutFilter: GroupeStatutFilter;
   onStatutChange: (value: GroupeStatutFilter) => void;
+  juridictionFilter: GroupeJuridictionFilter;
+  onJuridictionChange: (value: GroupeJuridictionFilter) => void;
   etatFilter: GroupeEtatFilter;
   onEtatChange: (value: GroupeEtatFilter) => void;
   sort: SortOrder;
@@ -90,6 +96,8 @@ export default function GroupeFilterBar({
   onCatChange,
   statutFilter,
   onStatutChange,
+  juridictionFilter,
+  onJuridictionChange,
   etatFilter,
   onEtatChange,
   sort,
@@ -102,6 +110,7 @@ export default function GroupeFilterBar({
     versionFilter !== "all",
     typeFilter !== "all",
     statutFilter !== "all",
+    juridictionFilter !== "all",
     catFilter !== "all",
     etatFilter !== "all",
   ].filter(Boolean).length;
@@ -252,6 +261,22 @@ export default function GroupeFilterBar({
             </Section>
           )}
 
+          {typeFilter === "ENTREPRISE" && (
+            <Section title="Juridiction">
+              {GROUPE_JURIDICTIONS.map((j) => (
+                <button
+                  key={j}
+                  onClick={() =>
+                    onJuridictionChange(juridictionFilter === j ? "all" : j)
+                  }
+                  className={chipCls(juridictionFilter === j)}
+                >
+                  {GROUPE_JURIDICTION_LABEL[j]}
+                </button>
+              ))}
+            </Section>
+          )}
+
           <Section title="Activité">
             {(
               [
@@ -293,6 +318,12 @@ export default function GroupeFilterBar({
             <FilterChip
               label={GROUPE_STATUT_LABEL[statutFilter]}
               onRemove={() => onStatutChange("all")}
+            />
+          )}
+          {juridictionFilter !== "all" && (
+            <FilterChip
+              label={GROUPE_JURIDICTION_LABEL[juridictionFilter]}
+              onRemove={() => onJuridictionChange("all")}
             />
           )}
           {catFilter !== "all" && catLabel && (

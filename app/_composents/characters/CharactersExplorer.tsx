@@ -8,11 +8,14 @@ import GroupeFilterBar, {
   NO_CATEGORIE,
   type CategorieOption,
   type GroupeEtatFilter,
+  type GroupeJuridictionFilter,
   type GroupeStatutFilter,
   type GroupeTypeFilter,
 } from "@/app/_composents/groupes/GroupeFilterBar";
 import { Character, Groupe, Version } from "@/lib/db";
 import {
+  GROUPE_JURIDICTIONS,
+  GROUPE_JURIDICTION_LABEL,
   GROUPE_STATUTS,
   GROUPE_TYPES,
   groupeHref,
@@ -55,6 +58,8 @@ export default function CharactersExplorer({
   const [groupeVersion, setGroupeVersion] = useState("all");
   const [catFilter, setCatFilter] = useState("all");
   const [statutFilter, setStatutFilter] = useState<GroupeStatutFilter>("all");
+  const [juridictionFilter, setJuridictionFilter] =
+    useState<GroupeJuridictionFilter>("all");
   const [etatGroupe, setEtatGroupe] = useState<GroupeEtatFilter>("all");
   const [groupeSort, setGroupeSort] = useState<SortOrder>("a→z");
   const [showGroupePanel, setShowGroupePanel] = useState(false);
@@ -101,6 +106,13 @@ export default function CharactersExplorer({
       if (statut && (GROUPE_STATUTS as string[]).includes(statut)) {
         setStatutFilter(statut as GroupeStatutFilter);
       }
+      const juridiction = params.get("juridiction");
+      if (
+        juridiction &&
+        (GROUPE_JURIDICTIONS as string[]).includes(juridiction)
+      ) {
+        setJuridictionFilter(juridiction as GroupeJuridictionFilter);
+      }
       const etat = params.get("etat");
       if (etat === "actif" || etat === "dissous") setEtatGroupe(etat);
     } catch {}
@@ -124,6 +136,10 @@ export default function CharactersExplorer({
       );
       set("cat", onGroupes && catFilter !== "all" ? catFilter : null);
       set("statut", onGroupes && statutFilter !== "all" ? statutFilter : null);
+      set(
+        "juridiction",
+        onGroupes && juridictionFilter !== "all" ? juridictionFilter : null,
+      );
       set("etat", onGroupes && etatGroupe !== "all" ? etatGroupe : null);
       window.history.replaceState(null, "", url);
     } catch {}
@@ -134,6 +150,7 @@ export default function CharactersExplorer({
     groupeVersion,
     catFilter,
     statutFilter,
+    juridictionFilter,
     etatGroupe,
   ]);
 
@@ -283,6 +300,8 @@ export default function CharactersExplorer({
               !!g.versionIds?.includes(groupeVersion)) &&
             (typeFilter === "all" || g.type === typeFilter) &&
             (statutFilter === "all" || g.statut === statutFilter) &&
+            (juridictionFilter === "all" ||
+              g.juridiction === juridictionFilter) &&
             (catFilter === "all" ||
               (catFilter === NO_CATEGORIE
                 ? !g.categorieId || !categorieNom.has(g.categorieId)
@@ -301,6 +320,7 @@ export default function CharactersExplorer({
       groupeVersion,
       typeFilter,
       statutFilter,
+      juridictionFilter,
       catFilter,
       etatGroupe,
       groupeSort,
@@ -346,6 +366,18 @@ export default function CharactersExplorer({
     </div>
   );
 
+  const groupesGrid = (items: Groupe[]) => (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+      {items.map((g) => (
+        <GroupeCard
+          key={g.id}
+          groupe={g}
+          categorie={g.categorieId ? categorieNom.get(g.categorieId) : null}
+        />
+      ))}
+    </div>
+  );
+
   if (vue === "groupes") {
     return (
       <section className="flex flex-col gap-4">
@@ -362,12 +394,15 @@ export default function CharactersExplorer({
             // Les sous-filtres dépendent du type : on les remet à zéro.
             setCatFilter("all");
             setStatutFilter("all");
+            setJuridictionFilter("all");
           }}
           categories={categories}
           catFilter={catFilter}
           onCatChange={setCatFilter}
           statutFilter={statutFilter}
           onStatutChange={setStatutFilter}
+          juridictionFilter={juridictionFilter}
+          onJuridictionChange={setJuridictionFilter}
           etatFilter={etatGroupe}
           onEtatChange={setEtatGroupe}
           sort={groupeSort}
@@ -378,18 +413,36 @@ export default function CharactersExplorer({
         />
         {groupesFiltered.length === 0 ? (
           <EmptyState />
-        ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
-            {groupesFiltered.map((g) => (
-              <GroupeCard
-                key={g.id}
-                groupe={g}
-                categorie={
-                  g.categorieId ? categorieNom.get(g.categorieId) : null
-                }
-              />
-            ))}
+        ) : typeFilter === "ENTREPRISE" ? (
+          // Seules les entreprises sont affichées : on les sépare par juridiction.
+          <div className="flex flex-col gap-6">
+            {[
+              ...GROUPE_JURIDICTIONS.map((j) => ({
+                key: j,
+                label: GROUPE_JURIDICTION_LABEL[j],
+                items: groupesFiltered.filter((g) => g.juridiction === j),
+              })),
+              {
+                key: "none",
+                label: "Sans juridiction",
+                items: groupesFiltered.filter((g) => !g.juridiction),
+              },
+            ]
+              .filter((section) => section.items.length > 0)
+              .map((section) => (
+                <div key={section.key} className="flex flex-col gap-3">
+                  <h2 className="m-0 flex items-baseline gap-2 text-sm font-semibold uppercase tracking-wide text-text-faint">
+                    {section.label}
+                    <span className="text-xs font-medium normal-case">
+                      {section.items.length}
+                    </span>
+                  </h2>
+                  {groupesGrid(section.items)}
+                </div>
+              ))}
           </div>
+        ) : (
+          groupesGrid(groupesFiltered)
         )}
       </section>
     );

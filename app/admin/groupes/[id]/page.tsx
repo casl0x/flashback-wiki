@@ -56,6 +56,7 @@ export default async function EditGroupePage({ params, searchParams }: Props) {
         imageUrl: g?.imageUrl ?? null,
         type: g?.type ?? "GROUPE",
         statut: g?.statut ?? "",
+        juridiction: g?.juridiction ?? "",
         dissous: g?.dissous ?? false,
         matriculeLabel: g ? (g.matriculeLabel ?? "") : "matricule",
         categorieId: g?.categorieId ?? null,

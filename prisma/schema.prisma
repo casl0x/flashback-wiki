@@ -41,6 +41,13 @@ enum GroupeStatut {
   CIVIL
 }
 
+// Juridiction d'une entreprise : Nord, Sud, ou les deux (Staff).
+enum GroupeJuridiction {
+  NORD
+  SUD
+  LES_DEUX
+}
+
 enum CreatorType {
   ARTISTE
   EDITEUR
@@ -339,6 +346,9 @@ model Groupe {
 
   // Groupes illégaux (type GROUPE) : statut affiché en pastille ; vide pour les autres types.
   statut GroupeStatut?
+  // Entreprises : juridiction de l'entreprise elle-même (distincte du numéro de ses membres).
+  juridiction GroupeJuridiction?
+
   // Groupe dissous (sans date).
   dissous Boolean @default(false)
 
