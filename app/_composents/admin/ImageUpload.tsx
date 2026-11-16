@@ -1,6 +1,6 @@
 "use client";
 
-import { cloudinaryUrl } from "@/lib/cloudinary";
+import { cloudinaryUrl, CLOUDINARY_FOLDER } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import { CldUploadWidget } from "next-cloudinary";
 
@@ -20,6 +20,7 @@ export default function ImageUpload({ value, onChange, label, hint, preview = "w
     <div className="flex flex-col gap-2.5">
       <CldUploadWidget
         uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
+        options={{ folder: CLOUDINARY_FOLDER }}
         onSuccess={(result) => {
           const info = result?.info;
           const publicId = typeof info === "object" && info && "public_id" in info ? String(info.public_id) : "";

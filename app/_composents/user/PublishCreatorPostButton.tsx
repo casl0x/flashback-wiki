@@ -17,6 +17,7 @@ import { CREATOR_RULES } from "@/lib/creator-rules";
 import { useUser } from "@clerk/nextjs";
 import { ChevronDown, Film, Sparkles, Upload, X } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
+import { CLOUDINARY_FOLDER } from "@/lib/cloudinary";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -262,6 +263,7 @@ export function PublishCreatorPostButton({
                       uploadPreset={
                         process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!
                       }
+                      options={{ folder: CLOUDINARY_FOLDER }}
                       onSuccess={(result) => {
                         const info = result?.info;
                         const publicId =
