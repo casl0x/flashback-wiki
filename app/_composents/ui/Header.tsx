@@ -7,7 +7,7 @@ import {
   useOrganizationList,
   useUser,
 } from "@clerk/nextjs";
-import { LogOut, Menu, Settings, User, X } from "lucide-react";
+import { Coffee, LogOut, Menu, Settings, User, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,6 +23,27 @@ const LINKS = [
   { href: "/createurs", label: "Créateurs" },
   { href: "/classement", label: "Classement" },
 ];
+
+const KOFI_URL = process.env.NEXT_PUBLIC_KOFI_URL;
+
+function SupportButton({ className }: { className?: string }) {
+  if (!KOFI_URL) return null;
+  return (
+    <a
+      href={KOFI_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "inline-flex h-9 items-center gap-1.5 rounded-lg border border-border-mid px-3 text-sm font-medium text-text-primary hover:bg-elevated",
+        className,
+      )}
+    >
+      <Coffee className="h-4 w-4" aria-hidden />
+      <span className="hidden sm:inline">Soutenir le projet</span>
+      <span className="sm:hidden">Soutenir</span>
+    </a>
+  );
+}
 
 function UserMenu() {
   const { user } = useUser();
@@ -176,6 +197,7 @@ export default function Header() {
         <div className="flex items-center gap-1.5">
           <NewsButton />
           <FeedbackButton />
+          <SupportButton />
           {isLoaded && isSignedIn && (
             <>
               <NotificationBell />
