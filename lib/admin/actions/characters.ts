@@ -1,5 +1,6 @@
 "use server";
 
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { logChange } from "@/lib/changelog";
 import { prisma, type Rediffusion } from "@/lib/db";
@@ -72,6 +73,10 @@ export async function saveCharacter(
       playerId: input.playerId || null,
     };
 
+    const previousImage = id
+      ? (await prisma.character.findUnique({ where: { id }, select: { imageUrl: true } }))?.imageUrl
+      : null;
+
     const savedId = await prisma.$transaction(async (tx) => {
       const c = id
         ? await tx.character.update({
@@ -137,6 +142,7 @@ export async function saveCharacter(
       return c.id;
     }, { timeout: 20000 });
 
+    await cleanupReplacedImage(previousImage, base.imageUrl);
     await logChange(id ? "edit_info" : "add_global", base.nom, input.versionIds.at(-1));
     await refreshAll();
     return { ok: true, data: { id: savedId } };
@@ -148,7 +154,8 @@ export async function saveCharacter(
 export async function deleteCharacter(id: string): Promise<ActionResult> {
   try {
     await requireAdmin("characters");
-    const c = await prisma.character.delete({ where: { id }, select: { nom: true } });
+    const c = await prisma.character.delete({ where: { id }, select: { nom: true, imageUrl: true } });
+    await cleanupReplacedImage(c.imageUrl, null);
     await logChange("edit_info", c.nom, "Personnage supprimé");
     await refreshAll();
     return { ok: true };

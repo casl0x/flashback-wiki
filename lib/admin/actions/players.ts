@@ -1,5 +1,6 @@
 "use server";
 
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
@@ -37,9 +38,13 @@ export async function savePlayer(id: string | null, input: PlayerInput): Promise
       // Ancien champ : gardé synchronisé avec le badge « streamer ».
       stream: badges.includes("streamer"),
     };
+    const previousImage = id
+      ? (await prisma.player.findUnique({ where: { id }, select: { imageUrl: true } }))?.imageUrl
+      : null;
     const p = id
       ? await prisma.player.update({ where: { id }, data })
       : await prisma.player.create({ data });
+    await cleanupReplacedImage(previousImage, data.imageUrl);
     await logChange(id ? "edit_player" : "add_player", p.pseudo);
     await refreshAll();
     return { ok: true, data: { id: p.id } };
@@ -86,7 +91,8 @@ export async function deletePlayer(id: string): Promise<ActionResult> {
   try {
     await requireAdmin("players");
     // Les persos du joueur restent, sans joueur (onDelete: SetNull).
-    await prisma.player.delete({ where: { id } });
+    const p = await prisma.player.delete({ where: { id }, select: { imageUrl: true } });
+    await cleanupReplacedImage(p.imageUrl, null);
     await refreshAll();
     return { ok: true };
   } catch (e) {
