@@ -1,5 +1,6 @@
 "use server";
 
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
@@ -63,6 +64,10 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
       imageUrl: clean(input.imageUrl),
     };
 
+    const previousImage = id
+      ? (await prisma.groupe.findUnique({ where: { id }, select: { imageUrl: true } }))?.imageUrl
+      : null;
+
     const saved = await prisma.$transaction(async (tx) => {
       const g = id ? await tx.groupe.update({ where: { id }, data }) : await tx.groupe.create({ data });
 
@@ -80,6 +85,7 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
       return g;
     }, { timeout: 20000 });
 
+    await cleanupReplacedImage(previousImage, data.imageUrl);
     await logChange(id ? "edit_groupe" : "add_groupe", saved.nom);
     await refreshAll();
     return { ok: true, data: { id: saved.id, slug: saved.slug } };
@@ -91,7 +97,8 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
 export async function deleteGroupe(id: string): Promise<ActionResult> {
   try {
     await requireAdmin("groupes");
-    await prisma.groupe.delete({ where: { id } });
+    const g = await prisma.groupe.delete({ where: { id }, select: { imageUrl: true } });
+    await cleanupReplacedImage(g.imageUrl, null);
     await refreshAll();
     return { ok: true };
   } catch (e) {

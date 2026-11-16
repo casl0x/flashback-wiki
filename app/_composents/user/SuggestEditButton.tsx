@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cloudinaryUrl } from "@/lib/cloudinary";
+import { cloudinaryUrl, CLOUDINARY_FOLDER } from "@/lib/cloudinary";
 import { Character, Version } from "@/lib/db";
 import { splitDescription, updateDescription } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
@@ -489,6 +489,7 @@ export function SuggestButton({
                   )}
                   <CldUploadWidget
                     uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
+                    options={{ folder: CLOUDINARY_FOLDER }}
                     onSuccess={(result) => {
                       const info = result?.info;
                       const publicId =

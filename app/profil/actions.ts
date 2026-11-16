@@ -1,5 +1,6 @@
 "use server";
 
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { detectSoundPlatform } from "@/lib/media-embed";
@@ -164,10 +165,13 @@ export async function updateLinkedPlayerProfile(data: {
   );
   const chaines = data.chaines.map((c) => c.trim()).filter(Boolean);
 
+  const newImage = data.imageUrl?.trim() || null;
+  const previous = await prisma.player.findUnique({ where: { id: playerId }, select: { imageUrl: true } });
   await prisma.player.update({
     where: { id: playerId },
-    data: { pseudo, chaines, reseaux, imageUrl: data.imageUrl?.trim() || null },
+    data: { pseudo, chaines, reseaux, imageUrl: newImage },
   });
+  await cleanupReplacedImage(previous?.imageUrl, newImage);
 
   await invalidateWikiCache();
   await invalidateProfilesCache();
@@ -227,7 +231,7 @@ export async function updateOwnCharacterPresentation(
 
   const character = await prisma.character.findUnique({
     where: { id: characterId },
-    select: { playerId: true },
+    select: { playerId: true, imageUrl: true },
   });
   if (!character || character.playerId !== playerId) {
     throw new Error("Ce personnage ne t'appartient pas.");
@@ -268,6 +272,7 @@ export async function updateOwnCharacterPresentation(
     }
   });
 
+  await cleanupReplacedImage(character.imageUrl, data.imageUrl?.trim() || null);
   await invalidateWikiCache();
 }
 
@@ -284,6 +289,7 @@ export async function deleteCreatorPost(id: string) {
   }
 
   await prisma.creatorPost.delete({ where: { id } });
+  await cleanupReplacedImage(post.imageUrl, null);
   await invalidateProfilesCache();
 }
 

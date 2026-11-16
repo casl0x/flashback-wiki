@@ -1,3 +1,4 @@
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import "server-only";
 
 import { invalidateWikiCache } from "@/lib/actions";
@@ -50,6 +51,9 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
         { url: s.lienReddif, titre: null },
       ] as Prisma.InputJsonValue;
     }
+    const previousImage = s.imageUrl
+      ? (await prisma.character.findUnique({ where: { id: s.characterId }, select: { imageUrl: true } }))?.imageUrl
+      : null;
     const c = await prisma.character.update({
       where: { id: s.characterId },
       data: {
@@ -59,6 +63,7 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
       },
     });
     characterId = c.id;
+    await cleanupReplacedImage(previousImage, s.imageUrl);
     await logChange("edit_info", c.nom);
   } else if (s.nom) {
     const c = await prisma.character.create({

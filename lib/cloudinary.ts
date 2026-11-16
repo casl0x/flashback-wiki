@@ -1,4 +1,8 @@
 // Images Cloudinary (utilisable côté client comme côté serveur).
+
+/** Dossier Cloudinary dans lequel sont rangées toutes les images uploadées. */
+export const CLOUDINARY_FOLDER = "flashback-wiki";
+
 export function cloudinaryUrl(imageUrl: string, transform: string): string {
   if (/^https?:\/\//.test(imageUrl)) return imageUrl;
   return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${transform}/${imageUrl}`;
