@@ -42,7 +42,7 @@ enum GroupeStatut {
   CIVIL
 }
 
-// Juridiction d'une entreprise : Nord, Sud, ou les deux (Staff).
+// Juridiction d'une entreprise : Nord, Sud, ou les deux.
 enum GroupeJuridiction {
   NORD
   SUD

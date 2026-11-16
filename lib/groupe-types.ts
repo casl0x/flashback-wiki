@@ -67,5 +67,5 @@ export const GROUPE_JURIDICTIONS: GroupeJuridiction[] = ["NORD", "SUD", "LES_DEU
 export const GROUPE_JURIDICTION_LABEL: Record<GroupeJuridiction, string> = {
   NORD: "Nord",
   SUD: "Sud",
-  LES_DEUX: "Les deux (Staff)",
+  LES_DEUX: "Les deux",
 };

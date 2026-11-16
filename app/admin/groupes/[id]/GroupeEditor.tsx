@@ -316,7 +316,7 @@ export default function GroupeEditor({
               {f.type === "ENTREPRISE" && (
                 <Field
                   label="Juridiction"
-                  hint="Nord, Sud, ou Les deux (Staff). Affichée sur la fiche de l'entreprise."
+                  hint="Nord, Sud, ou Les deux. Affichée sur la fiche de l'entreprise."
                 >
                   <Select
                     value={f.juridiction}
