@@ -12,7 +12,9 @@ export type ActionResult<T = undefined> =
 export async function refreshAll() {
   await invalidateWikiCache();
   await invalidateProfilesCache();
-  revalidatePath("/admin", "layout");
+  // Les pages publiques (Explorer, fiches de groupe…) lisent la base directement et sont en cache
+  // ISR : sans ceci, une modification n'y apparaît qu'après la fin du délai de revalidation.
+  revalidatePath("/", "layout");
 }
 
 export function failure(err: unknown): { ok: false; error: string } {
