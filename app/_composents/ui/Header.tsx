@@ -21,7 +21,6 @@ const LINKS = [
   { href: "/joueurs", label: "Joueurs" },
   { href: "/musiques", label: "Musiques" },
   { href: "/createurs", label: "Créateurs" },
-  { href: "/classement", label: "Classement" },
 ];
 
 const KOFI_URL = process.env.NEXT_PUBLIC_KOFI_URL;
@@ -33,14 +32,14 @@ function SupportButton({ className }: { className?: string }) {
       href={KOFI_URL}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label="Soutenir le projet"
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-lg border border-border-mid px-3 text-sm font-medium text-text-primary hover:bg-elevated",
+        "flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-elevated hover:text-text-primary",
         className,
       )}
     >
       <Coffee className="h-4 w-4" aria-hidden />
-      <span className="hidden sm:inline">Soutenir le projet</span>
-      <span className="sm:hidden">Soutenir</span>
+      <span className="hidden sm:inline">Soutenir</span>
     </a>
   );
 }
