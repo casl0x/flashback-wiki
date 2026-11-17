@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import FeedbackButton from "@/app/_composents/feedback/FeedbackButton";
 import NewsButton from "@/app/_composents/feedback/NewsButton";
+import SupportButton from "@/app/_composents/feedback/SupportButton";
 import NotificationBell from "./Notificationbell";
 
 const LINKS = [
@@ -175,6 +176,7 @@ export default function Header() {
         <div className="flex items-center gap-1.5">
           <NewsButton />
           <FeedbackButton />
+          <SupportButton />
           {isLoaded && isSignedIn && (
             <>
               <NotificationBell />
