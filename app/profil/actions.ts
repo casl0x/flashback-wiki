@@ -29,6 +29,9 @@ export async function createCreatorPost(data: {
   if (data.type === "EDITEUR" && !data.linkUrl?.trim()) {
     throw new Error("Un lien est requis pour un edit");
   }
+  if (data.type === "BESTOF" && !data.linkUrl?.trim()) {
+    throw new Error("Le lien de la chaîne est requis pour un best-of");
+  }
 
   const profile = await prisma.userProfile.upsert({
     where: { clerkUserId: userId },
@@ -55,7 +58,7 @@ export async function createCreatorPost(data: {
       status: "approved",
       imageUrl: data.imageUrl,
       linkUrl: data.linkUrl?.trim() || null,
-      platform: data.platform,
+      platform: data.type === "BESTOF" ? "YOUTUBE" : data.platform,
       caption: data.caption?.trim() || null,
       characters: characterIds.length
         ? {

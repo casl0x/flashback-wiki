@@ -15,13 +15,20 @@ import { Input } from "@/components/ui/input";
 import { Character } from "@/lib/db";
 import { CREATOR_RULES } from "@/lib/creator-rules";
 import { useUser } from "@clerk/nextjs";
-import { ChevronDown, Film, Sparkles, Upload, X } from "lucide-react";
+import {
+  ChevronDown,
+  Film,
+  Sparkles,
+  SquarePlay,
+  Upload,
+  X,
+} from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import { CLOUDINARY_FOLDER } from "@/lib/cloudinary";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-type PostType = "ARTISTE" | "EDITEUR";
+type PostType = "ARTISTE" | "EDITEUR" | "BESTOF";
 
 const PLATFORMS = [
   "TWITTER",
@@ -56,7 +63,7 @@ const EMPTY_STATE: {
 
 export function PublishCreatorPostButton({
   defaultType = "ARTISTE",
-  allowedTypes = ["ARTISTE", "EDITEUR"],
+  allowedTypes = ["ARTISTE", "EDITEUR", "BESTOF"],
   onPublished,
   className,
 }: {
@@ -154,6 +161,10 @@ export function PublishCreatorPostButton({
       setError("Ajoute un lien vers ton edit avant de publier.");
       return;
     }
+    if (type === "BESTOF" && !form.linkUrl.trim()) {
+      setError("Ajoute le lien de ta chaîne avant de publier.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -219,6 +230,11 @@ export function PublishCreatorPostButton({
                         icon: Sparkles,
                       },
                       { key: "EDITEUR" as const, label: "Edit", icon: Film },
+                      {
+                        key: "BESTOF" as const,
+                        label: "Best-of",
+                        icon: SquarePlay,
+                      },
                     ] satisfies {
                       key: PostType;
                       label: string;
@@ -289,6 +305,20 @@ export function PublishCreatorPostButton({
                     </CldUploadWidget>
                   </div>
                 </div>
+              ) : type === "BESTOF" ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                    Lien de la chaîne YouTube
+                  </label>
+                  <Input
+                    type="url"
+                    value={form.linkUrl}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, linkUrl: e.target.value }))
+                    }
+                    placeholder="https://youtube.com/@..."
+                  />
+                </div>
               ) : (
                 <>
                   <div className="flex flex-col gap-1">
@@ -325,54 +355,58 @@ export function PublishCreatorPostButton({
                 </>
               )}
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Personnages liés (optionnel)
-                </label>
-                {form.characterIds.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-1">
-                    {form.characterIds.map((id) => {
-                      const c = characters.find((ch) => ch.id === id);
-                      return (
-                        <span
-                          key={id}
-                          className="flex items-center gap-1 text-[11px] text-text-secondary border border-border bg-elevated rounded-md pl-2 pr-1 py-0.5"
-                        >
-                          {c?.nom ?? id}
-                          <button
-                            type="button"
-                            onClick={() => removeCharacter(id)}
-                            className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-border text-text-muted hover:text-text-primary transition-colors"
+              {type !== "BESTOF" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                    Personnages liés (optionnel)
+                  </label>
+                  {form.characterIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-1">
+                      {form.characterIds.map((id) => {
+                        const c = characters.find((ch) => ch.id === id);
+                        return (
+                          <span
+                            key={id}
+                            className="flex items-center gap-1 text-[11px] text-text-secondary border border-border bg-elevated rounded-md pl-2 pr-1 py-0.5"
                           >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-                <CharacterCombobox
-                  characters={characters.filter(
-                    (c) => !form.characterIds.includes(c.id),
+                            {c?.nom ?? id}
+                            <button
+                              type="button"
+                              onClick={() => removeCharacter(id)}
+                              className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-border text-text-muted hover:text-text-primary transition-colors"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
                   )}
-                  value={characterPicker}
-                  onValueChange={addCharacter}
-                />
-              </div>
+                  <CharacterCombobox
+                    characters={characters.filter(
+                      (c) => !form.characterIds.includes(c.id),
+                    )}
+                    value={characterPicker}
+                    onValueChange={addCharacter}
+                  />
+                </div>
+              )}
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase tracking-widest text-text-muted">
-                  Description (optionnel)
-                </label>
-                <textarea
-                  className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
-                  value={form.caption}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, caption: e.target.value }))
-                  }
-                  placeholder="Un mot sur ta création..."
-                />
-              </div>
+              {type !== "BESTOF" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">
+                    Description (optionnel)
+                  </label>
+                  <textarea
+                    className="h-16 resize-none rounded-md px-3 py-2 bg-input border border-border text-[13px]"
+                    value={form.caption}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, caption: e.target.value }))
+                    }
+                    placeholder="Un mot sur ta création..."
+                  />
+                </div>
+              )}
 
               {needsAcceptance && (
                 <div className="flex flex-col gap-1.5 rounded-md border border-border bg-elevated p-2.5">

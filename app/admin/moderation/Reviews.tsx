@@ -28,6 +28,12 @@ type D<F extends (...a: never[]) => unknown> = NonNullable<
 >;
 type Result = { ok: true } | { ok: false; error: string };
 
+const CREATOR_KIND_LABEL: Record<string, string> = {
+  ARTISTE: "ARTISTE",
+  EDITEUR: "ÉDITEUR",
+  BESTOF: "BEST-OF",
+};
+
 const REASONS: Record<string, string> = {
   "Source manquante":
     "Merci pour ta proposition ! Il manque une source (clip, live, capture) pour qu’on puisse la valider.",
@@ -408,7 +414,7 @@ export function CreationReview({
   const [refusing, setRefusing] = useState(false);
   return (
     <Shell
-      kind={`${d.type === "ARTISTE" ? "ARTISTE" : "ÉDITEUR"} · POST`}
+      kind={`${CREATOR_KIND_LABEL[d.type]} · POST`}
       kindColor="#E5A3F0"
       title={d.characters.map((c) => c.nom).join(", ") || "Création"}
       meta={`Publiée par ${d.author} · ${ago(d.createdAt)}`}

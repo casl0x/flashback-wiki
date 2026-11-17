@@ -73,6 +73,12 @@ export type QueueItem = {
   createdAt: string;
 };
 
+const CREATOR_KIND_LABEL: Record<string, string> = {
+  ARTISTE: "ARTISTE",
+  EDITEUR: "ÉDITEUR",
+  BESTOF: "BEST-OF",
+};
+
 const COLORS = {
   edit: "#F6B26B",
   add: "#8AB4FF",
@@ -119,7 +125,7 @@ export async function loadQueue(tab: ModTab, take = 50): Promise<QueueItem[]> {
     return rows.map((r) => ({
       id: r.id,
       tab,
-      kind: `${r.type === "ARTISTE" ? "ARTISTE" : "ÉDITEUR"} · POST`,
+      kind: `${CREATOR_KIND_LABEL[r.type]} · POST`,
       color: COLORS.art,
       title:
         r.characters.map((c) => c.character.nom).join(", ") ||
