@@ -1,4 +1,4 @@
-import { parseRediffusions, prisma, type Rediffusion } from "@/lib/db";
+import { parseRediffusions, prisma, withDbRetry, type Rediffusion } from "@/lib/db";
 import { PARCOURS_TYPES, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
 import { relationKind, type RelationKind } from "@/lib/relation-kinds";
@@ -171,17 +171,8 @@ function toLinked(relationId: string, label: string | null, c: Linked): LinkedCh
 }
 
 async function loadCharacterPage(id: string): Promise<CharacterPageData | null> {
-  // `null` = fiche réellement introuvable (404). Une erreur de base de données
-  // (pool saturé, Neon injoignable…) ne doit PAS devenir un 404 : on retente une
-  // fois puis on laisse l'erreur remonter (page d'erreur, et rien n'est mis en
-  // cache — sinon le faux 404 serait servi pendant 5 min).
-  try {
-    return await loadCharacterPageUnsafe(id);
-  } catch (error) {
-    console.error("Failed to load character page (retry)", error);
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    return await loadCharacterPageUnsafe(id);
-  }
+  // `null` = fiche réellement introuvable (404) ; une erreur de base remonte.
+  return withDbRetry("Failed to load character page", () => loadCharacterPageUnsafe(id));
 }
 
 async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | null> {
