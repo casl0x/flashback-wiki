@@ -253,6 +253,7 @@ export default function CharactersExplorer({
       const matchSearch =
         matchesSearch(c.nom, query) ||
         matchesSearch(c.player?.pseudo, query) ||
+        (c.acteurs?.some((p) => matchesSearch(p, query)) ?? false) ||
         c.groupes.some((g) => matchesSearch(g.nom, query));
 
       return (
@@ -263,11 +264,21 @@ export default function CharactersExplorer({
       );
     });
 
-    result.sort((a, b) =>
+    // Une seule fiche par personnage multi-acteurs : la principale, ou à
+    // défaut celle qui correspond aux filtres.
+    const ids = new Set(result.map((c) => c.id));
+    const unique = result.filter(
+      (c) =>
+        !c.acteurPrincipalId ||
+        c.acteurPrincipalId === c.id ||
+        !ids.has(c.acteurPrincipalId),
+    );
+
+    unique.sort((a, b) =>
       sort === "a→z" ? a.nom.localeCompare(b.nom) : b.nom.localeCompare(a.nom),
     );
 
-    return result;
+    return unique;
   }, [characters, query, versionFilter, etatFilter, roleFilter, sort]);
 
   // Groupes dont le nom correspond à la recherche (encart sur la vue Personnages).

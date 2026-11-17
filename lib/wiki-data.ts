@@ -3,6 +3,7 @@ import { Character, Groupe, parseRediffusions, Player, Version, prisma } from "@
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { versionRank } from "@/lib/version-rank";
+import { loadActeurGroups } from "@/lib/acteurs";
 
 type CharacterWithRelations = Prisma.CharacterGetPayload<{
   include: {
@@ -119,7 +120,7 @@ const emptyWikiData: WikiData = {
 // Next.js et unstable_cache refuse silencieusement de le mettre en cache.
 export async function fetchWikiData(): Promise<WikiData> {
   try {
-    const [versions, players, characters, groupes] = await Promise.all([
+    const [versions, players, characters, groupes, acteurGroups] = await Promise.all([
       prisma.version.findMany({ orderBy: { id: "asc" } }),
       prisma.player.findMany({ orderBy: { pseudo: "asc" } }),
       prisma.character.findMany({
@@ -136,6 +137,7 @@ export async function fetchWikiData(): Promise<WikiData> {
         orderBy: { nom: "asc" },
         include: { members: { where: { character: visibleCharacter }, select: { characterId: true, versionId: true } } },
       }),
+      loadActeurGroups(),
     ]);
 
     const normalizedVersions = versions.map((version) => ({
@@ -151,8 +153,30 @@ export async function fetchWikiData(): Promise<WikiData> {
       reseaux: normalizeReseaux(player.reseaux),
     }));
 
+    // Fiches d'un même personnage (« Autre acteur ») : la plus ancienne est
+    // montrée en priorité dans la liste, avec les pseudos de tous les acteurs.
+    const visibleById = new Map(characters.map((c) => [c.id, c]));
+    const acteurInfo = (id: string) => {
+      const members = (acteurGroups.get(id) ?? [])
+        .map((m) => visibleById.get(m))
+        .filter((m): m is NonNullable<typeof m> => !!m)
+        .sort(
+          (a, b) =>
+            a.createdAt.getTime() - b.createdAt.getTime() ||
+            a.id.localeCompare(b.id),
+        );
+      if (members.length < 2) return {};
+      return {
+        acteurs: [
+          ...new Set(members.map((m) => m.player?.pseudo.trim() || "Inconnu")),
+        ],
+        acteurPrincipalId: members[0].id,
+      };
+    };
+
     const enrichedCharacters = characters.map((character) => ({
       ...character,
+      ...acteurInfo(character.id),
       createdAt: character.createdAt.toISOString(),
       lienReddifs: parseRediffusions(character.lienReddifs),
       player: buildPlayerSummary(character.player),

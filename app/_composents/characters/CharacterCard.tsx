@@ -109,8 +109,14 @@ export default function CharacterCard({ character, onClick }: Props) {
         >
           {character.nom}
         </p>
-        <span className="text-xs text-white/90">
-          Joué/e par {character.player?.pseudo ?? "Inconnu"}
+        <span
+          className="line-clamp-2 text-xs text-white/90"
+          title={character.acteurs?.join(" · ")}
+        >
+          Joué/e par{" "}
+          {character.acteurs?.length
+            ? character.acteurs.join(" · ")
+            : (character.player?.pseudo ?? "Inconnu")}
         </span>
       </div>
     </div>

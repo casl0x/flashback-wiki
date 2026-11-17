@@ -31,7 +31,7 @@ import { shortDate } from "@/lib/admin/format";
 import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import type { Character, Rediffusion } from "@/lib/db";
 import { PLATFORM_STYLE, detectSoundPlatform } from "@/lib/media-embed";
-import { relationKind } from "@/lib/relation-kinds";
+import { ACTEUR_LABEL, relationKind } from "@/lib/relation-kinds";
 import { cn, splitDescription, updateDescription } from "@/lib/utils";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -714,12 +714,12 @@ export default function CharacterEditor({
               ))}
             </datalist>
             <div className="flex flex-col gap-2">
-              {f.relations.length === 0 && (
+              {f.relations.filter((r) => r.type !== ACTEUR_LABEL).length === 0 && (
                 <p className="m-0 text-[13px] text-[#9AA0AA]">
                   Aucune relation.
                 </p>
               )}
-              {f.relations.map((r) => {
+              {f.relations.filter((r) => r.type !== ACTEUR_LABEL).map((r) => {
                 const update = (patch: Partial<typeof r>) =>
                   set(
                     "relations",
@@ -790,6 +790,67 @@ export default function CharacterEditor({
               <span className="text-[12px] text-[#9AA0AA]">
                 Le libellé place le perso dans l’arbre de la fiche (parents,
                 fratrie, cœur) ou dans « Famille élargie ».
+              </span>
+            </div>
+          </Panel>
+
+          {/* Autres acteurs */}
+          <Panel legend="Autres acteurs">
+            <div className="flex flex-col gap-2">
+              {f.relations
+                .filter((r) => r.type === ACTEUR_LABEL)
+                .map((r) => (
+                  <div
+                    key={r.key}
+                    className="flex flex-wrap items-center gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
+                  >
+                    <SearchSelect
+                      label="Autre fiche du même personnage"
+                      className="min-w-45 flex-[1_1_200px]"
+                      options={charOptions}
+                      value={r.otherId || null}
+                      allowClear={false}
+                      onChange={(v) =>
+                        set(
+                          "relations",
+                          f.relations.map((x) =>
+                            x.key === r.key ? { ...x, otherId: v ?? "" } : x,
+                          ),
+                        )
+                      }
+                      placeholder="Fiche…"
+                    />
+                    <RemoveButton
+                      label="Retirer ce lien d'acteur"
+                      onClick={() =>
+                        set(
+                          "relations",
+                          f.relations.filter((x) => x.key !== r.key),
+                        )
+                      }
+                    />
+                  </div>
+                ))}
+              <Button
+                className="self-start"
+                onClick={() =>
+                  set("relations", [
+                    ...f.relations,
+                    {
+                      key: newKey(),
+                      otherId: "",
+                      type: ACTEUR_LABEL,
+                      inverse: ACTEUR_LABEL,
+                    },
+                  ])
+                }
+              >
+                + Ajouter un autre acteur
+              </Button>
+              <span className="text-[12px] text-[#9AA0AA]">
+                Relie cette fiche à une autre fiche du même personnage jouée
+                par un autre joueur : un sélecteur « Joué par » apparaît sur les
+                deux fiches, et la liste n&apos;affiche qu&apos;une carte.
               </span>
             </div>
           </Panel>

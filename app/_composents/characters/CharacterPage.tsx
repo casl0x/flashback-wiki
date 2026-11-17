@@ -8,6 +8,7 @@ import { splitDescription } from "@/lib/utils";
 import { Lock, Skull } from "lucide-react";
 import Image from "next/image";
 import { Suspense } from "react";
+import ActeurSwitch from "./ActeurSwitch";
 import { OtherCharacters, PlayerPanel } from "./CharacterAside";
 import CharacterContributors from "./CharacterContributors";
 import CharacterHero from "./CharacterHero";
@@ -65,6 +66,8 @@ export default function CharacterPage({
 
       <div className="mx-auto flex max-w-295 flex-wrap items-start gap-8 px-4 pb-16 pt-8 sm:px-5">
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-7">
+          <ActeurSwitch acteurs={c.acteurs} />
+
           <CharacterUserNotices characterId={c.id} />
 
           {isOwner && (

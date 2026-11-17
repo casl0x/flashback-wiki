@@ -97,6 +97,11 @@ export type Character = {
 
   locationX?: number | null;
   locationY?: number | null;
+
+  // Fiches « autre acteur » du même personnage (liste publique) : pseudos de
+  // tous les acteurs, et fiche à montrer en priorité dans la liste.
+  acteurs?: string[];
+  acteurPrincipalId?: string;
 };
 
 export type LinkedRelation = {

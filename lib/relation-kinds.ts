@@ -1,6 +1,13 @@
 // Classe un libellé de relation libre (typeRelation / typeRelationInverse)
 // dans une catégorie, pour placer le lien dans l'arbre de la fiche perso.
 
+/**
+ * Libellé réservé d'une relation « même personnage, autre acteur » : les deux
+ * fiches existent, chacune avec son joueur, et un sélecteur permet de passer
+ * de l'une à l'autre. Ces relations sont exclues de l'arbre familial.
+ */
+export const ACTEUR_LABEL = "Autre acteur";
+
 export type RelationKind =
   | "parent"
   | "fratrie"

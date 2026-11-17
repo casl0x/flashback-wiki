@@ -2,7 +2,8 @@ import { parseRediffusions, prisma, type Rediffusion } from "@/lib/db";
 import { MATRICULE_TYPES, PARCOURS_TYPES, type GroupeStatut, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
 import { pickSpouse } from "@/lib/family-tree";
-import { relationKind, type RelationKind } from "@/lib/relation-kinds";
+import { loadActeurGroups } from "@/lib/acteurs";
+import { ACTEUR_LABEL, relationKind, type RelationKind } from "@/lib/relation-kinds";
 import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
@@ -63,6 +64,14 @@ export type OtherCharacter = {
   etatVie: EtatVie;
 };
 
+/** Une fiche du même personnage jouée par un autre acteur (la fiche courante est incluse). */
+export type ActeurLink = {
+  id: string;
+  pseudo: string;
+  imageUrl: string | null;
+  current: boolean;
+};
+
 export type CharacterPageData = {
   id: string;
   nom: string;
@@ -78,6 +87,8 @@ export type CharacterPageData = {
   /** Dernier passage côté légal (entreprise / service public) et côté illégal (groupe) : affichés sous le nom. */
   currentLegal: ParcoursStep | null;
   currentIllegal: ParcoursStep | null;
+  /** Vide s'il n'y a qu'un acteur ; sinon toutes les fiches du personnage, la plus ancienne d'abord. */
+  acteurs: ActeurLink[];
   sounds: CharacterSound[];
   relations: LinkedCharacter[];
   /** Lien entre les deux premiers parents (marié, en couple, ex), s'ils sont renseignés. */
@@ -307,10 +318,35 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
 
   // Point de vue de ce perso : dans relationsA il est « A », le libellé décrit B ;
   // dans relationsB il est « B », c'est le libellé inverse qui décrit A.
+  // Les liens « Autre acteur » alimentent le sélecteur d'acteur, pas l'arbre familial.
   const relations = [
-    ...c.relationsA.map((r) => toLinked(r.id, r.typeRelation, r.personnageB)),
-    ...c.relationsB.map((r) => toLinked(r.id, r.typeRelationInverse, r.personnageA)),
+    ...c.relationsA
+      .filter((r) => r.typeRelation !== ACTEUR_LABEL)
+      .map((r) => toLinked(r.id, r.typeRelation, r.personnageB)),
+    ...c.relationsB
+      .filter((r) => r.typeRelationInverse !== ACTEUR_LABEL)
+      .map((r) => toLinked(r.id, r.typeRelationInverse, r.personnageA)),
   ];
+
+  const acteurIds = (await loadActeurGroups()).get(id) ?? [];
+  const acteurRows = acteurIds.length
+    ? await prisma.character.findMany({
+        where: { id: { in: acteurIds } },
+        select: {
+          id: true,
+          imageUrl: true,
+          createdAt: true,
+          player: { select: { pseudo: true } },
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      })
+    : [];
+  const acteurs: ActeurLink[] = acteurRows.map((a) => ({
+    id: a.id,
+    pseudo: a.player?.pseudo.trim() || "Joueur inconnu",
+    imageUrl: a.imageUrl,
+    current: a.id === id,
+  }));
 
   const parentsLink = await loadParentsLink(relations);
   const [spouseChildIds, parentSiblingIds] = await Promise.all([
@@ -351,6 +387,7 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
     parcours: sortParcours(c.groupes).map(toStep),
     currentLegal: lastStep(c.groupes, (m) => PARCOURS_TYPES.includes(m.groupe.type)),
     currentIllegal: lastStep(c.groupes, (m) => !PARCOURS_TYPES.includes(m.groupe.type)),
+    acteurs,
     sounds: c.sounds.map((s) => ({
       id: s.id,
       titre: s.titre,
