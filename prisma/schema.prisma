@@ -52,6 +52,7 @@ enum GroupeJuridiction {
 enum CreatorType {
   ARTISTE
   EDITEUR
+  BESTOF
 }
 
 enum SocialPlatform {
@@ -268,7 +269,7 @@ model Player {
   // externe (ex. avatar Twitch récupéré en un clic dans l'admin).
   imageUrl  String?  @map("image_url")
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   characters   Character[]
   userProfile  UserProfile?
@@ -346,7 +347,7 @@ model Groupe {
   type GroupeType @default(GROUPE)
 
   // Groupes illégaux (type GROUPE) : statut affiché en pastille ; vide pour les autres types.
-  statut GroupeStatut?
+  statut      GroupeStatut?
   // Entreprises : juridiction de l'entreprise elle-même (distincte du numéro de ses membres).
   juridiction GroupeJuridiction?
 
@@ -512,10 +513,10 @@ model PollVote {
 // Modèles de grades : listes de grades réutilisables, copiées dans un groupe depuis l'éditeur de groupe.
 // `type` (facultatif) sert à ne proposer un modèle que pour les groupes de ce type.
 model GradeModele {
-  id     String      @id @default(cuid())
-  nom    String      @unique
+  id     String            @id @default(cuid())
+  nom    String            @unique
   type   GroupeType?
-  ordre  Int         @default(0)
+  ordre  Int               @default(0)
   grades GradeModeleItem[]
 
   @@map("grade_modeles")

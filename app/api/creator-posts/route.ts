@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const typeParam = req.nextUrl.searchParams.get("type");
   const type =
-    typeParam === "ARTISTE" || typeParam === "EDITEUR"
+    typeParam === "ARTISTE" || typeParam === "EDITEUR" || typeParam === "BESTOF"
       ? (typeParam as CreatorType)
       : undefined;
 

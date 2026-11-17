@@ -61,7 +61,7 @@ type CreatorPost = {
   characters: { id: string; nom: string }[];
 };
 type CreatorRole = {
-  type: "ARTISTE" | "EDITEUR";
+  type: "ARTISTE" | "EDITEUR" | "BESTOF";
   posts: CreatorPost[];
 };
 type Suggestion = {
