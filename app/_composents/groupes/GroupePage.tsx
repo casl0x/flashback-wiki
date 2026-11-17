@@ -1,6 +1,14 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import { textOn } from "@/app/_composents/characters/CharacterHero";
 import { cloudinaryUrl } from "@/lib/cloudinary";
-import { GROUPE_TYPE_META, groupeHref, type GroupeType } from "@/lib/groupe-types";
+import {
+  GROUPE_JURIDICTION_LABEL,
+  GROUPE_STATUT_LABEL,
+  GROUPE_TYPE_META,
+  MATRICULE_TYPES,
+  groupeHref,
+  type GroupeType,
+} from "@/lib/groupe-types";
 import { prisma } from "@/lib/db";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
@@ -28,7 +36,9 @@ export const loadGroupe = unstable_cache(
       where: { slug },
       include: {
         grades: { orderBy: { ordre: "asc" } },
+        categorie: { select: { nom: true } },
         members: {
+          where: { character: visibleCharacter },
           include: {
             version: { select: { id: true, label: true, color: true } },
             character: {
@@ -84,7 +94,7 @@ export default async function GroupePage({
   const accent = g.color ?? "#2F6FEB";
   // Le matricule n'existe que pour les services publics (les autres types l'ignorent).
   const matriculeOf = (value: string | null) =>
-    g.type === "SERVICE_PUBLIC" ? (value?.trim() ?? "") : "";
+    MATRICULE_TYPES.includes(g.type) ? (value?.trim() ?? "") : "";
   const onAccent = textOn(accent);
 
   // Périodes (versions) où le groupe a des membres, la plus récente d'abord.
@@ -187,6 +197,31 @@ export default async function GroupePage({
               >
                 {g.nom}
               </h1>
+              {(g.categorie || g.statut || g.juridiction || g.dissous) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {/* Catégorie d'abord : celle du groupe (entreprise, service public) ou son statut (groupe). */}
+                  {g.categorie && (
+                    <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
+                      {g.categorie.nom}
+                    </span>
+                  )}
+                  {g.statut && (
+                    <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
+                      {GROUPE_STATUT_LABEL[g.statut]}
+                    </span>
+                  )}
+                  {g.juridiction && (
+                    <span className="rounded bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
+                      Juridiction : {GROUPE_JURIDICTION_LABEL[g.juridiction]}
+                    </span>
+                  )}
+                  {g.dissous && (
+                    <span className="rounded bg-black/45 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] sm:text-[12px]">
+                      Dissous
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex gap-8">
@@ -212,10 +247,10 @@ export default async function GroupePage({
 
       <main className="mx-auto flex max-w-295 flex-col gap-8 px-4 pb-16 pt-6 sm:px-5 sm:pt-7">
         <Link
-          href="/personnages"
+          href="/personnages?vue=groupes"
           className="-mb-4 self-start text-[13px] text-[#A3A8B3] hover:text-[#ECECEE]"
         >
-          ← Retour aux personnages
+          ← Retour aux groupes
         </Link>
 
         {g.description && (

@@ -108,6 +108,63 @@ export function stripMentions(text: string): string {
   return text.replace(MENTION_PATTERN, "$1");
 }
 
+// Retire les marqueurs de mise en forme légère (**gras**, *italique*,
+// __souligné__, ~~barré~~) pour les aperçus en texte brut.
+export function stripFormatting(text: string): string {
+  return text
+    .replace(/\*\*(?!\s)([\s\S]+?)(?<!\s)\*\*/g, "$1")
+    .replace(/__(?!\s)([\s\S]+?)(?<!\s)__/g, "$1")
+    .replace(/~~(?!\s)([\s\S]+?)(?<!\s)~~/g, "$1")
+    .replace(/\*(?!\s)([^*\n]+?)(?<!\s)\*/g, "$1");
+}
+
+// Blocs optionnels stockés à la fin de la description, sans colonne dédiée :
+//   [prison]motif de l'incarcération[/prison]
+//   [mort]cause de la mort[/mort]
+// (dans cet ordre quand les deux existent).
+export type DescriptionParts = {
+  histoire: string;
+  prison: string;
+  mort: string;
+};
+
+const BLOCK_PATTERN = /(?:\n\n)?\[(mort|prison)\]([\s\S]*?)\[\/\1\]\s*$/;
+
+// Pas de trim ici : ces fonctions servent aussi de valeur contrôlée des
+// champs de l'éditeur, trimer empêcherait de taper un espace en fin de texte.
+export function splitDescription(
+  description: string | null | undefined,
+): DescriptionParts {
+  let text = description ?? "";
+  const parts: DescriptionParts = { histoire: "", prison: "", mort: "" };
+  let m: RegExpExecArray | null;
+  while ((m = BLOCK_PATTERN.exec(text)) !== null) {
+    const key = m[1] as "mort" | "prison";
+    if (!parts[key]) parts[key] = m[2];
+    text = text.slice(0, m.index);
+  }
+  parts.histoire = text;
+  return parts;
+}
+
+export function joinDescription(parts: DescriptionParts): string {
+  const clean = (v: string) => v.replace(/\[\/?(?:mort|prison)\]/g, "");
+  let out = parts.histoire;
+  const prison = clean(parts.prison);
+  const mort = clean(parts.mort);
+  if (prison.trim()) out += `\n\n[prison]${prison}[/prison]`;
+  if (mort.trim()) out += `\n\n[mort]${mort}[/mort]`;
+  return out;
+}
+
+/** Remplace une ou plusieurs parties de la description en gardant les autres. */
+export function updateDescription(
+  description: string | null | undefined,
+  patch: Partial<DescriptionParts>,
+): string {
+  return joinDescription({ ...splitDescription(description), ...patch });
+}
+
 // Lien vers le profil public d'un membre (le pseudo peut contenir des espaces).
 export function profileHref(pseudo: string): string {
   return `/profil/${encodeURIComponent(pseudo)}`;

@@ -1,7 +1,9 @@
 import { parseRediffusions, prisma, withDbRetry, type Rediffusion } from "@/lib/db";
-import { PARCOURS_TYPES, type GroupeType } from "@/lib/groupe-types";
+import { MATRICULE_TYPES, PARCOURS_TYPES, type GroupeStatut, type GroupeType } from "@/lib/groupe-types";
 import { detectSoundPlatform, type SoundPlatform } from "@/lib/media-embed";
-import { relationKind, type RelationKind } from "@/lib/relation-kinds";
+import { pickSpouse } from "@/lib/family-tree";
+import { loadActeurGroups } from "@/lib/acteurs";
+import { ACTEUR_LABEL, relationKind, type RelationKind } from "@/lib/relation-kinds";
 import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
@@ -13,7 +15,15 @@ export type EtatVie = "EN_VIE" | "MORT" | "PARTI" | "DISPARU" | "PRISON";
 
 export type VersionTag = { id: string; label: string; color: string };
 
-export type GroupeTag = { id: string; slug: string; nom: string; color: string | null; type: GroupeType };
+export type GroupeTag = {
+  id: string;
+  slug: string;
+  nom: string;
+  color: string | null;
+  type: GroupeType;
+  statut: GroupeStatut | null;
+  dissous: boolean;
+};
 
 export type ParcoursStep = {
   key: string;
@@ -35,6 +45,8 @@ export type LinkedCharacter = {
   version: VersionTag | null;
 };
 
+export type ParentsLink = "marie" | "couple" | "ex" | null;
+
 export type CharacterSound = {
   id: string;
   titre: string;
@@ -52,6 +64,14 @@ export type OtherCharacter = {
   etatVie: EtatVie;
 };
 
+/** Une fiche du même personnage jouée par un autre acteur (la fiche courante est incluse). */
+export type ActeurLink = {
+  id: string;
+  pseudo: string;
+  imageUrl: string | null;
+  current: boolean;
+};
+
 export type CharacterPageData = {
   id: string;
   nom: string;
@@ -64,10 +84,19 @@ export type CharacterPageData = {
   locationY: number | null;
   versions: VersionTag[];
   parcours: ParcoursStep[];
-  /** Dernier passage tous types confondus (groupes compris) : affiché sous le nom. */
-  current: ParcoursStep | null;
+  /** Dernier passage côté légal (entreprise / service public) et côté illégal (groupe) : affichés sous le nom. */
+  currentLegal: ParcoursStep | null;
+  currentIllegal: ParcoursStep | null;
+  /** Vide s'il n'y a qu'un acteur ; sinon toutes les fiches du personnage, la plus ancienne d'abord. */
+  acteurs: ActeurLink[];
   sounds: CharacterSound[];
   relations: LinkedCharacter[];
+  /** Lien entre les deux premiers parents (marié, en couple, ex), s'ils sont renseignés. */
+  parentsLink: ParentsLink;
+  /** Parmi les enfants de la fiche, ceux qui sont aussi liés comme enfants à son conjoint·e (celui de l'arbre). */
+  spouseChildIds: string[];
+  /** Parmi les frères et sœurs, ceux qui sont aussi liés comme enfants aux parents de la fiche. */
+  parentSiblingIds: string[];
   player: {
     id: string;
     pseudo: string;
@@ -126,16 +155,30 @@ function toStep(m: Membership): ParcoursStep {
   return {
     key: m.id,
     version: m.version ? toVersionTag(m.version) : null,
-    groupe: { id: m.groupe.id, slug: m.groupe.slug, nom: m.groupe.nom, color: m.groupe.color, type: m.groupe.type },
+    groupe: {
+      id: m.groupe.id,
+      slug: m.groupe.slug,
+      nom: m.groupe.nom,
+      color: m.groupe.color,
+      type: m.groupe.type,
+      statut: m.groupe.statut,
+      dissous: m.groupe.dissous,
+    },
     grade: m.grade?.nom ?? null,
     matricule: matriculeText(m),
   };
 }
 
+/** Dernier passage répondant au filtre, dans l'ordre chronologique. */
+function lastStep(list: Membership[], keep: (m: Membership) => boolean): ParcoursStep | null {
+  const last = sortMemberships(list).filter(keep).at(-1);
+  return last ? toStep(last) : null;
+}
+
 /** Texte à afficher pour le matricule : réservé aux services publics, précédé du libellé du groupe s'il y en a un. */
 function matriculeText(m: Membership): string | null {
   const value = m.matricule?.trim();
-  if (!value || m.groupe.type !== "SERVICE_PUBLIC") return null;
+  if (!value || !MATRICULE_TYPES.includes(m.groupe.type)) return null;
   const label = m.groupe.matriculeLabel?.trim();
   return label ? `${label} ${value}` : value;
 }
@@ -170,6 +213,70 @@ function toLinked(relationId: string, label: string | null, c: Linked): LinkedCh
   };
 }
 
+/** Les deux premiers parents sont-ils mariés / en couple / séparés entre eux ? */
+async function loadParentsLink(relations: LinkedCharacter[]): Promise<ParentsLink> {
+  const parents = relations.filter((r) => r.kind === "parent");
+  if (parents.length < 2) return null;
+  const [p1, p2] = parents;
+  // La paire est stockée triée (A < B).
+  const [a, b] = p1.id < p2.id ? [p1.id, p2.id] : [p2.id, p1.id];
+  const link = await prisma.relation.findUnique({
+    where: { personnageAId_personnageBId: { personnageAId: a, personnageBId: b } },
+    select: { typeRelation: true, typeRelationInverse: true },
+  });
+  if (!link) return null;
+  const kind =
+    relationKind(link.typeRelation) !== "autre"
+      ? relationKind(link.typeRelation)
+      : relationKind(link.typeRelationInverse);
+  return kind === "marie" || kind === "couple" || kind === "ex" ? kind : null;
+}
+
+/** Parmi `kidIds`, ceux qui sont liés comme enfants à au moins un des `parentIds`. */
+async function linkedChildIds(parentIds: string[], kidIds: string[]): Promise<string[]> {
+  if (parentIds.length === 0 || kidIds.length === 0) return [];
+  const links = await prisma.relation.findMany({
+    where: {
+      OR: [
+        { personnageAId: { in: parentIds }, personnageBId: { in: kidIds } },
+        { personnageBId: { in: parentIds }, personnageAId: { in: kidIds } },
+      ],
+    },
+    select: {
+      personnageAId: true,
+      personnageBId: true,
+      typeRelation: true,
+      typeRelationInverse: true,
+    },
+  });
+  const linked = new Set<string>();
+  for (const l of links) {
+    const parentIsA = parentIds.includes(l.personnageAId) && kidIds.includes(l.personnageBId);
+    const kid = parentIsA ? l.personnageBId : l.personnageAId;
+    // typeRelation décrit B vu de A ; typeRelationInverse décrit A vu de B.
+    const kidLabel = parentIsA ? l.typeRelation : l.typeRelationInverse;
+    const parentLabel = parentIsA ? l.typeRelationInverse : l.typeRelation;
+    if (relationKind(kidLabel) === "enfant" || relationKind(parentLabel) === "parent") {
+      linked.add(kid);
+    }
+  }
+  return kidIds.filter((id) => linked.has(id));
+}
+
+const idsOf = (relations: LinkedCharacter[], kind: RelationKind) =>
+  relations.filter((r) => r.kind === kind).map((r) => r.id);
+
+/** Enfants de la fiche qui sont aussi ceux de son conjoint·e (celui de l'arbre). */
+function loadSpouseChildIds(relations: LinkedCharacter[]): Promise<string[]> {
+  const spouse = pickSpouse(relations);
+  return linkedChildIds(spouse ? [spouse.id] : [], idsOf(relations, "enfant"));
+}
+
+/** Frères et sœurs de la fiche qui sont aussi liés comme enfants à ses parents. */
+function loadParentSiblingIds(relations: LinkedCharacter[]): Promise<string[]> {
+  return linkedChildIds(idsOf(relations, "parent"), idsOf(relations, "fratrie"));
+}
+
 async function loadCharacterPage(id: string): Promise<CharacterPageData | null> {
   // `null` = fiche réellement introuvable (404) ; une erreur de base remonte.
   return withDbRetry("Failed to load character page", () => loadCharacterPageUnsafe(id));
@@ -202,10 +309,41 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
 
   // Point de vue de ce perso : dans relationsA il est « A », le libellé décrit B ;
   // dans relationsB il est « B », c'est le libellé inverse qui décrit A.
+  // Les liens « Autre acteur » alimentent le sélecteur d'acteur, pas l'arbre familial.
   const relations = [
-    ...c.relationsA.map((r) => toLinked(r.id, r.typeRelation, r.personnageB)),
-    ...c.relationsB.map((r) => toLinked(r.id, r.typeRelationInverse, r.personnageA)),
+    ...c.relationsA
+      .filter((r) => r.typeRelation !== ACTEUR_LABEL)
+      .map((r) => toLinked(r.id, r.typeRelation, r.personnageB)),
+    ...c.relationsB
+      .filter((r) => r.typeRelationInverse !== ACTEUR_LABEL)
+      .map((r) => toLinked(r.id, r.typeRelationInverse, r.personnageA)),
   ];
+
+  const acteurIds = (await loadActeurGroups()).get(id) ?? [];
+  const acteurRows = acteurIds.length
+    ? await prisma.character.findMany({
+        where: { id: { in: acteurIds } },
+        select: {
+          id: true,
+          imageUrl: true,
+          createdAt: true,
+          player: { select: { pseudo: true } },
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      })
+    : [];
+  const acteurs: ActeurLink[] = acteurRows.map((a) => ({
+    id: a.id,
+    pseudo: a.player?.pseudo.trim() || "Joueur inconnu",
+    imageUrl: a.imageUrl,
+    current: a.id === id,
+  }));
+
+  const parentsLink = await loadParentsLink(relations);
+  const [spouseChildIds, parentSiblingIds] = await Promise.all([
+    loadSpouseChildIds(relations),
+    loadParentSiblingIds(relations),
+  ]);
 
   const others: OtherCharacter[] = (c.player?.characters ?? [])
     .map((o) => {
@@ -238,10 +376,9 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
     locationY: c.locationY,
     versions: [...c.versions].sort(byVersion).map(toVersionTag),
     parcours: sortParcours(c.groupes).map(toStep),
-    current: (() => {
-      const last = sortMemberships(c.groupes).at(-1);
-      return last ? toStep(last) : null;
-    })(),
+    currentLegal: lastStep(c.groupes, (m) => PARCOURS_TYPES.includes(m.groupe.type)),
+    currentIllegal: lastStep(c.groupes, (m) => !PARCOURS_TYPES.includes(m.groupe.type)),
+    acteurs,
     sounds: c.sounds.map((s) => ({
       id: s.id,
       titre: s.titre,
@@ -250,6 +387,9 @@ async function loadCharacterPageUnsafe(id: string): Promise<CharacterPageData | 
       platform: detectSoundPlatform(s.url, s.platform),
     })),
     relations,
+    parentsLink,
+    spouseChildIds,
+    parentSiblingIds,
     player: c.player
       ? {
           id: c.player.id,

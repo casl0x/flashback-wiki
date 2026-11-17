@@ -8,6 +8,10 @@ type ChangelogType =
   | "edit_relation"
   | "edit_lieu"
   | "version"
+  | "add_player"
+  | "edit_player"
+  | "add_groupe"
+  | "edit_groupe"
   | "site";
 
 export async function logChange(

@@ -21,13 +21,18 @@ import {
   saveCharacterLocation,
   type CharacterInput,
 } from "@/lib/admin/actions/characters";
+import {
+  MATRICULE_OPTIONS,
+  MATRICULE_TYPES,
+  PARCOURS_TYPES,
+} from "@/lib/groupe-types";
 import { savePlayer } from "@/lib/admin/actions/players";
 import { shortDate } from "@/lib/admin/format";
 import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import type { Character, Rediffusion } from "@/lib/db";
 import { PLATFORM_STYLE, detectSoundPlatform } from "@/lib/media-embed";
-import { relationKind } from "@/lib/relation-kinds";
-import { cn } from "@/lib/utils";
+import { ACTEUR_LABEL, relationKind } from "@/lib/relation-kinds";
+import { cn, splitDescription, updateDescription } from "@/lib/utils";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -55,6 +60,8 @@ export type EditorCharacter = {
   createdAt: string | null;
   memberships: {
     key: string;
+    /** Côté de la ligne (client seulement) ; sinon déduit du type du groupe choisi. */
+    kind?: "groupe" | "parcours";
     groupeId: string;
     versionId: string | null;
     gradeId: string | null;
@@ -73,7 +80,7 @@ type Props = {
     id: string;
     nom: string;
     color: string | null;
-    type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC";
+    type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC" | "ASSOCIATION";
     matriculeLabel: string | null;
     grades: { id: string; nom: string }[];
   }[];
@@ -243,7 +250,24 @@ export default function CharacterEditor({
     [characters],
   );
   const firstName = f.nom.trim().split(/\s+/)[0] || "ce perso";
-  const current = f.memberships.at(-1);
+  // Groupes (groupes, associations) d'un côté, parcours (entreprises, services publics) de l'autre :
+  // un perso peut être dans un groupe et travailler en même temps, chaque côté a son « actuel ».
+  type Side = "groupe" | "parcours";
+  const sideOfType = (t: string): Side =>
+    (PARCOURS_TYPES as string[]).includes(t) ? "parcours" : "groupe";
+  const sideOf = (m: (typeof f.memberships)[number]): Side => {
+    if (m.kind) return m.kind;
+    const gt = groupeById.get(m.groupeId)?.type;
+    return gt ? sideOfType(gt) : "groupe";
+  };
+  const rowsOf = (side: Side) => f.memberships.filter((m) => sideOf(m) === side);
+  // On range toujours les groupes avant le parcours : l'ordre entre les deux côtés n'a pas d'importance.
+  const setSide = (side: Side, rows: typeof f.memberships) =>
+    set("memberships", [
+      ...(side === "groupe" ? rows : rowsOf("groupe")),
+      ...(side === "parcours" ? rows : rowsOf("parcours")),
+    ]);
+  const current = rowsOf("parcours").at(-1) ?? rowsOf("groupe").at(-1);
   const currentGroupe = current ? groupeById.get(current.groupeId) : null;
   const currentGrade =
     current && currentGroupe
@@ -330,6 +354,169 @@ export default function CharacterEditor({
           : x,
       ),
     }));
+  }
+
+  function membershipsPanel(side: Side) {
+    const rows = rowsOf(side);
+    const isParcours = side === "parcours";
+    return (
+      <Panel
+        legend={isParcours ? "Parcours" : "Groupes"}
+        aside={
+          <span className="text-[12px] text-[#9AA0AA]">
+            {isParcours
+              ? "Entreprises et services publics, par version ; le dernier est l’actuel"
+              : "Groupes et associations, par version ; le dernier est l’actuel"}
+          </span>
+        }
+      >
+        <div className="flex flex-col gap-2">
+          {rows.length === 0 && (
+            <p className="m-0 text-[13px] text-[#9AA0AA]">
+              {isParcours ? "Aucun métier." : "Aucun groupe."}
+            </p>
+          )}
+          {rows.map((m, i) => {
+            const g = groupeById.get(m.groupeId);
+            const last = i === rows.length - 1;
+            const update = (patch: Partial<typeof m>) =>
+              setSide(
+                side,
+                rows.map((x) => (x.key === m.key ? { ...x, ...patch } : x)),
+              );
+            return (
+              <div
+                key={m.key}
+                className="flex flex-col gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
+              >
+                {/* Étage 1 : ordre, version, groupe ; « actuel » et retrait calés à droite. */}
+                <div className="flex items-center gap-2">
+                  <OrderButtons
+                    index={i}
+                    length={rows.length}
+                    label={g?.nom ?? (isParcours ? "ce métier" : "ce groupe")}
+                    onMove={(to) => setSide(side, move(rows, i, to))}
+                  />
+                  <Select
+                    aria-label="Version"
+                    value={m.versionId ?? ""}
+                    onChange={(e) => update({ versionId: e.target.value || null })}
+                    className="w-18 flex-none px-2 font-bold"
+                    style={{
+                      color: m.versionId
+                        ? versionById.get(m.versionId)?.color
+                        : undefined,
+                    }}
+                  >
+                    <option value="">—</option>
+                    {versions.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.id}
+                      </option>
+                    ))}
+                  </Select>
+                  <SearchSelect
+                    label={isParcours ? "Entreprise / service public" : "Groupe"}
+                    className="min-w-0 flex-1"
+                    options={groupes
+                      .filter((x) => sideOfType(x.type) === side)
+                      .map((x) => ({
+                        value: x.id,
+                        label: x.nom,
+                      }))}
+                    value={m.groupeId || null}
+                    allowClear={false}
+                    onChange={(v) => update({ groupeId: v ?? "", gradeId: null })}
+                    placeholder={isParcours ? "Entreprise ou service public…" : "Groupe…"}
+                  />
+                  {last && (
+                    <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
+                      actuel
+                    </span>
+                  )}
+                  <RemoveButton
+                    label={`Retirer ${g?.nom ?? (isParcours ? "ce métier" : "ce groupe")}`}
+                    onClick={() => setSide(side, rows.filter((x) => x.key !== m.key))}
+                  />
+                </div>
+                {/* Étage 2 : grade et numéro. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    aria-label="Grade"
+                    value={m.gradeId ?? ""}
+                    onChange={(e) => update({ gradeId: e.target.value || null })}
+                    className="w-37.5 flex-none"
+                    disabled={!g || g.grades.length === 0}
+                  >
+                    <option value="">
+                      {g && g.grades.length === 0 ? "Aucun grade" : "—"}
+                    </option>
+                    {g?.grades.map((gr) => (
+                      <option key={gr.id} value={gr.id}>
+                        {gr.nom}
+                      </option>
+                    ))}
+                  </Select>
+                  {g &&
+                    MATRICULE_TYPES.includes(g.type) &&
+                    (MATRICULE_OPTIONS[g.type] ? (
+                      <Select
+                        aria-label={g.matriculeLabel || "Valeur"}
+                        value={m.matricule}
+                        onChange={(e) => update({ matricule: e.target.value })}
+                        className="w-40 flex-none"
+                      >
+                        <option value="">{g.matriculeLabel || "Valeur"} : —</option>
+                        {[
+                          ...MATRICULE_OPTIONS[g.type]!,
+                          // Une ancienne valeur libre reste sélectionnable pour ne pas être perdue à l'enregistrement.
+                          ...(m.matricule &&
+                          !MATRICULE_OPTIONS[g.type]!.includes(m.matricule)
+                            ? [m.matricule]
+                            : []),
+                        ].map((v) => (
+                          <option key={v} value={v}>
+                            {v}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <TextInput
+                        aria-label={g.matriculeLabel || "Matricule"}
+                        placeholder={g.matriculeLabel || "Valeur"}
+                        value={m.matricule}
+                        onChange={(e) => update({ matricule: e.target.value })}
+                        className="w-40 flex-none"
+                      />
+                    ))}
+                </div>
+              </div>
+            );
+          })}
+          <Button
+            className="self-start"
+            onClick={() =>
+              setSide(side, [
+                ...rows,
+                {
+                  key: newKey(),
+                  kind: side,
+                  groupeId: "",
+                  versionId: f.versionIds.at(-1) ?? null,
+                  gradeId: null,
+                  matricule: "",
+                },
+              ])
+            }
+          >
+            {isParcours ? "+ Ajouter au parcours" : "+ Ajouter un groupe"}
+          </Button>
+          <span className="text-[12px] text-[#9AA0AA]">
+            Les grades proposés sont ceux définis dans la fiche du groupe.
+          </span>
+        </div>
+      </Panel>
+    );
   }
 
   const actions = (
@@ -469,153 +656,54 @@ export default function CharacterEditor({
             </div>
           </Panel>
 
-          {/* Groupes par version */}
-          <Panel
-            legend="Groupes"
-            aside={
-              <span className="text-[12px] text-[#9AA0AA]">
-                Par version, dans l’ordre chronologique ; le dernier est
-                l’actuel
-              </span>
-            }
-          >
-            <div className="flex flex-col gap-2">
-              {f.memberships.length === 0 && (
-                <p className="m-0 text-[13px] text-[#9AA0AA]">Aucun groupe.</p>
-              )}
-              {f.memberships.map((m, i) => {
-                const g = groupeById.get(m.groupeId);
-                const last = i === f.memberships.length - 1;
-                const update = (patch: Partial<typeof m>) =>
-                  set(
-                    "memberships",
-                    f.memberships.map((x) =>
-                      x.key === m.key ? { ...x, ...patch } : x,
-                    ),
-                  );
-                return (
-                  <div
-                    key={m.key}
-                    className="flex flex-wrap items-center gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
-                  >
-                    <OrderButtons
-                      index={i}
-                      length={f.memberships.length}
-                      label={g?.nom ?? "ce groupe"}
-                      onMove={(to) =>
-                        set("memberships", move(f.memberships, i, to))
-                      }
-                    />
-                    <Select
-                      aria-label="Version"
-                      value={m.versionId ?? ""}
-                      onChange={(e) =>
-                        update({ versionId: e.target.value || null })
-                      }
-                      className="w-23 flex-none font-bold"
-                      style={{
-                        color: m.versionId
-                          ? versionById.get(m.versionId)?.color
-                          : undefined,
-                      }}
-                    >
-                      <option value="">—</option>
-                      {versions.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.id}
-                        </option>
-                      ))}
-                    </Select>
-                    <SearchSelect
-                      label="Groupe"
-                      className="min-w-40 flex-[1_1_180px]"
-                      options={groupes.map((x) => ({
-                        value: x.id,
-                        label: x.nom,
-                      }))}
-                      value={m.groupeId || null}
-                      allowClear={false}
-                      onChange={(v) =>
-                        update({ groupeId: v ?? "", gradeId: null })
-                      }
-                      placeholder="Groupe…"
-                    />
-                    <Select
-                      aria-label="Grade"
-                      value={m.gradeId ?? ""}
-                      onChange={(e) =>
-                        update({ gradeId: e.target.value || null })
-                      }
-                      className="w-37.5 flex-none"
-                      disabled={!g || g.grades.length === 0}
-                    >
-                      <option value="">
-                        {g && g.grades.length === 0 ? "Aucun grade" : "—"}
-                      </option>
-                      {g?.grades.map((gr) => (
-                        <option key={gr.id} value={gr.id}>
-                          {gr.nom}
-                        </option>
-                      ))}
-                    </Select>
-                    {g?.type === "SERVICE_PUBLIC" && (
-                      <TextInput
-                        aria-label={g.matriculeLabel || "Matricule"}
-                        placeholder={g.matriculeLabel || "Valeur"}
-                        value={m.matricule}
-                        onChange={(e) => update({ matricule: e.target.value })}
-                        className="w-40 flex-none"
-                      />
-                    )}
-                    {last && (
-                      <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
-                        actuel
-                      </span>
-                    )}
-                    <RemoveButton
-                      label={`Retirer ${g?.nom ?? "ce groupe"}`}
-                      onClick={() =>
-                        set(
-                          "memberships",
-                          f.memberships.filter((x) => x.key !== m.key),
-                        )
-                      }
-                    />
-                  </div>
-                );
-              })}
-              <Button
-                className="self-start"
-                onClick={() =>
-                  set("memberships", [
-                    ...f.memberships,
-                    {
-                      key: newKey(),
-                      groupeId: "",
-                      versionId: f.versionIds.at(-1) ?? null,
-                      gradeId: null,
-                      matricule: "",
-                    },
-                  ])
-                }
-              >
-                + Ajouter un groupe
-              </Button>
-              <span className="text-[12px] text-[#9AA0AA]">
-                Les grades proposés sont ceux définis dans la fiche du groupe.
-              </span>
-            </div>
-          </Panel>
+          {/* Groupes puis parcours, l'un au-dessus de l'autre. */}
+          {membershipsPanel("groupe")}
+          {membershipsPanel("parcours")}
 
           {/* Description */}
           <Panel legend="Description">
             <MentionTextarea
-              value={f.description}
-              onChange={(v) => set("description", v)}
+              value={splitDescription(f.description).histoire}
+              onChange={(v) =>
+                set("description", updateDescription(f.description, { histoire: v }))
+              }
               characters={mentionChars}
-              placeholder="Parcours, anecdotes, circonstances de la mort… Tape @ pour lier un perso."
+              placeholder="Parcours, anecdotes… Tape @ pour lier un perso."
               className="min-h-36 w-full rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
             />
+            {(f.etatVie === "PRISON" ||
+              splitDescription(f.description).prison) && (
+              <div className="mt-3 flex flex-col gap-1">
+                <span className="text-[12px] font-semibold text-[#8AB4FF]">
+                  Motif de l&apos;incarcération
+                </span>
+                <MentionTextarea
+                  value={splitDescription(f.description).prison}
+                  onChange={(v) =>
+                    set("description", updateDescription(f.description, { prison: v }))
+                  }
+                  characters={mentionChars}
+                  placeholder="Pourquoi le personnage est-il en prison ? (affiché à la fin de l'Histoire)"
+                  className="min-h-20 w-full rounded-lg border border-[#2A3A5E] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
+                />
+              </div>
+            )}
+            {(f.etatVie === "MORT" || splitDescription(f.description).mort) && (
+              <div className="mt-3 flex flex-col gap-1">
+                <span className="text-[12px] font-semibold text-[#FF8A8E]">
+                  Cause de la mort
+                </span>
+                <MentionTextarea
+                  value={splitDescription(f.description).mort}
+                  onChange={(v) =>
+                    set("description", updateDescription(f.description, { mort: v }))
+                  }
+                  characters={mentionChars}
+                  placeholder="Comment le personnage est-il mort ? (affiché à la fin de l'Histoire)"
+                  className="min-h-20 w-full rounded-lg border border-[#5A2A2D] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
+                />
+              </div>
+            )}
           </Panel>
 
           {/* Relations */}
@@ -626,12 +714,12 @@ export default function CharacterEditor({
               ))}
             </datalist>
             <div className="flex flex-col gap-2">
-              {f.relations.length === 0 && (
+              {f.relations.filter((r) => r.type !== ACTEUR_LABEL).length === 0 && (
                 <p className="m-0 text-[13px] text-[#9AA0AA]">
                   Aucune relation.
                 </p>
               )}
-              {f.relations.map((r) => {
+              {f.relations.filter((r) => r.type !== ACTEUR_LABEL).map((r) => {
                 const update = (patch: Partial<typeof r>) =>
                   set(
                     "relations",
@@ -702,6 +790,67 @@ export default function CharacterEditor({
               <span className="text-[12px] text-[#9AA0AA]">
                 Le libellé place le perso dans l’arbre de la fiche (parents,
                 fratrie, cœur) ou dans « Famille élargie ».
+              </span>
+            </div>
+          </Panel>
+
+          {/* Autres acteurs */}
+          <Panel legend="Autres acteurs">
+            <div className="flex flex-col gap-2">
+              {f.relations
+                .filter((r) => r.type === ACTEUR_LABEL)
+                .map((r) => (
+                  <div
+                    key={r.key}
+                    className="flex flex-wrap items-center gap-2 rounded-lg border border-[#23262D] bg-[#0B0C0F] p-2"
+                  >
+                    <SearchSelect
+                      label="Autre fiche du même personnage"
+                      className="min-w-45 flex-[1_1_200px]"
+                      options={charOptions}
+                      value={r.otherId || null}
+                      allowClear={false}
+                      onChange={(v) =>
+                        set(
+                          "relations",
+                          f.relations.map((x) =>
+                            x.key === r.key ? { ...x, otherId: v ?? "" } : x,
+                          ),
+                        )
+                      }
+                      placeholder="Fiche…"
+                    />
+                    <RemoveButton
+                      label="Retirer ce lien d'acteur"
+                      onClick={() =>
+                        set(
+                          "relations",
+                          f.relations.filter((x) => x.key !== r.key),
+                        )
+                      }
+                    />
+                  </div>
+                ))}
+              <Button
+                className="self-start"
+                onClick={() =>
+                  set("relations", [
+                    ...f.relations,
+                    {
+                      key: newKey(),
+                      otherId: "",
+                      type: ACTEUR_LABEL,
+                      inverse: ACTEUR_LABEL,
+                    },
+                  ])
+                }
+              >
+                + Ajouter un autre acteur
+              </Button>
+              <span className="text-[12px] text-[#9AA0AA]">
+                Relie cette fiche à une autre fiche du même personnage jouée
+                par un autre joueur : un sélecteur « Joué par » apparaît sur les
+                deux fiches, et la liste n&apos;affiche qu&apos;une carte.
               </span>
             </div>
           </Panel>

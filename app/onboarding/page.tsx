@@ -10,11 +10,11 @@ import { useState } from "react";
 import { completeOnboarding } from "./action";
 
 type CreatorRoleInput = {
-  type: "ARTISTE" | "EDITEUR";
+  type: "ARTISTE" | "EDITEUR" | "BESTOF";
 };
 
 const ROLE_LABELS: Record<
-  "ARTISTE" | "EDITEUR",
+  "ARTISTE" | "EDITEUR" | "BESTOF",
   { label: string; sub: string }
 > = {
   ARTISTE: {
@@ -24,6 +24,10 @@ const ROLE_LABELS: Record<
   EDITEUR: {
     label: "Edit-maker",
     sub: "Tu montes des edits vidéo avec des clips du serveur",
+  },
+  BESTOF: {
+    label: "Monteur de best-of",
+    sub: "Tu partages le lien de ta chaîne YouTube de best-of",
   },
 };
 
@@ -39,7 +43,7 @@ export default function OnboardingPage() {
   const [wantsCreator, setWantsCreator] = useState<boolean | null>(null);
   const [roles, setRoles] = useState<CreatorRoleInput[]>([]);
 
-  function toggleRole(type: "ARTISTE" | "EDITEUR") {
+  function toggleRole(type: "ARTISTE" | "EDITEUR" | "BESTOF") {
     setRoles((prev) =>
       prev.find((r) => r.type === type)
         ? prev.filter((r) => r.type !== type)
@@ -304,7 +308,7 @@ export default function OnboardingPage() {
                   Quel type de contenu tu crées ?
                 </p>
                 <div className="space-y-1.5">
-                  {(["ARTISTE", "EDITEUR"] as const).map((type) => (
+                  {(["ARTISTE", "EDITEUR", "BESTOF"] as const).map((type) => (
                     <RoleOption
                       key={type}
                       label={ROLE_LABELS[type].label}

@@ -28,6 +28,12 @@ type D<F extends (...a: never[]) => unknown> = NonNullable<
 >;
 type Result = { ok: true } | { ok: false; error: string };
 
+const CREATOR_KIND_LABEL: Record<string, string> = {
+  ARTISTE: "ARTISTE",
+  EDITEUR: "ÉDITEUR",
+  BESTOF: "BEST-OF",
+};
+
 const REASONS: Record<string, string> = {
   "Source manquante":
     "Merci pour ta proposition ! Il manque une source (clip, live, capture) pour qu’on puisse la valider.",
@@ -253,10 +259,37 @@ export function SuggestionReview({
             </tbody>
           </table>
         </div>
-      ) : (
+      ) : d.imageUrl ? null : (
         <p className="m-0 text-[#9AA0AA]">
           Aucun changement par rapport à la fiche actuelle.
         </p>
+      )}
+
+      {d.imageUrl && (
+        <div className="flex flex-col gap-2 rounded-lg bg-[#1A1C21] px-3.5 py-3">
+          <span className="text-[12px] font-bold text-[#A3A8B3]">
+            Image proposée{d.currentImageUrl ? " (remplacera l’actuelle)" : ""}
+          </span>
+          <div className="flex flex-wrap gap-3">
+            {d.currentImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cloudinaryUrl(d.currentImageUrl, "w_240,h_320,c_fill,g_face")}
+                alt="Image actuelle"
+                className="h-40 w-30 rounded-md object-cover opacity-60"
+              />
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cloudinaryUrl(d.imageUrl, "w_240,h_320,c_fill,g_face")}
+              alt="Image proposée"
+              className="h-40 w-30 rounded-md object-cover"
+            />
+          </div>
+          <span className="text-[12px] text-[#9AA0AA]">
+            Si la proposition est refusée, l’image est supprimée de Cloudinary.
+          </span>
+        </div>
       )}
 
       {d.note && (
@@ -381,7 +414,7 @@ export function CreationReview({
   const [refusing, setRefusing] = useState(false);
   return (
     <Shell
-      kind={`${d.type === "ARTISTE" ? "ARTISTE" : "ÉDITEUR"} · POST`}
+      kind={`${CREATOR_KIND_LABEL[d.type]} · POST`}
       kindColor="#E5A3F0"
       title={d.characters.map((c) => c.nom).join(", ") || "Création"}
       meta={`Publiée par ${d.author} · ${ago(d.createdAt)}`}

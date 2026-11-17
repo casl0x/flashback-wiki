@@ -7,7 +7,7 @@ export async function createAnnouncement(
   message: string,
   targetClerkUserId?: string,
 ) {
-  await requireAdmin();
+  await requireAdmin("announcements");
   const trimmed = message.trim();
   if (!trimmed) throw new Error("Le message ne peut pas être vide.");
 
@@ -20,11 +20,11 @@ export async function createAnnouncement(
 }
 
 export async function toggleAnnouncementActive(id: string, active: boolean) {
-  await requireAdmin();
+  await requireAdmin("announcements");
   await prisma.announcement.update({ where: { id }, data: { active } });
 }
 
 export async function deleteAnnouncement(id: string) {
-  await requireAdmin();
+  await requireAdmin("announcements");
   await prisma.announcement.delete({ where: { id } });
 }

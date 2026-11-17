@@ -1,5 +1,6 @@
 "use server";
 
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
@@ -20,7 +21,7 @@ const toDate = (v: string | null) => (v ? new Date(`${v}T00:00:00Z`) : null);
 
 export async function saveVersion(originalId: string | null, input: VersionInput): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("versions");
     const id = input.id.trim().toUpperCase();
     if (!/^[A-Z0-9-]{1,12}$/.test(id)) return { ok: false, error: "Identifiant invalide (ex. V7)." };
     if (!input.label.trim()) return { ok: false, error: "Le nom affiché est requis." };
@@ -36,6 +37,10 @@ export async function saveVersion(originalId: string | null, input: VersionInput
       enCours: input.enCours,
     };
 
+    const previousImage = originalId
+      ? (await prisma.version.findUnique({ where: { id: originalId }, select: { imageUrl: true } }))?.imageUrl
+      : null;
+
     await prisma.$transaction(async (tx) => {
       // Une seule version « en cours » à la fois.
       if (input.enCours) await tx.version.updateMany({ where: { enCours: true, NOT: { id: originalId ?? id } }, data: { enCours: false } });
@@ -47,6 +52,7 @@ export async function saveVersion(originalId: string | null, input: VersionInput
       }
     });
 
+    await cleanupReplacedImage(previousImage, data.imageUrl);
     if (!originalId) await logChange("version", data.label);
     await refreshAll();
     return { ok: true, data: { id: originalId ?? id } };
@@ -58,7 +64,7 @@ export async function saveVersion(originalId: string | null, input: VersionInput
 /** Nouvel ordre des bandes de l'accueil. */
 export async function reorderVersions(ids: string[]): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("versions");
     await prisma.$transaction(ids.map((id, i) => prisma.version.update({ where: { id }, data: { ordre: i } })));
     await refreshAll();
     return { ok: true };
@@ -69,8 +75,9 @@ export async function reorderVersions(ids: string[]): Promise<ActionResult> {
 
 export async function deleteVersion(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
-    await prisma.version.delete({ where: { id } });
+    await requireAdmin("versions");
+    const v = await prisma.version.delete({ where: { id }, select: { imageUrl: true } });
+    await cleanupReplacedImage(v.imageUrl, null);
     await refreshAll();
     return { ok: true };
   } catch (e) {

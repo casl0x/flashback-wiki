@@ -36,6 +36,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 const TYPE_STYLE = {
   ARTISTE: { label: "Fan art", color: "#E5A3F0" },
   EDITEUR: { label: "Edit", color: "#8AB4FF" },
+  BESTOF: { label: "Best-of", color: "#FF6B6B" },
 } as const;
 
 // Selon le contexte, Next transmet le segment encodé ou non : on décode prudemment.
@@ -244,7 +245,7 @@ type Post = NonNullable<
 
 function PostTile({ post }: { post: Post }) {
   const style = TYPE_STYLE[post.type];
-  const thumb = post.type === "EDITEUR" ? youtubeThumbnail(post.linkUrl) : null;
+  const thumb = post.type !== "ARTISTE" ? youtubeThumbnail(post.linkUrl) : null;
   const alt = post.caption ?? style.label;
 
   const media = (

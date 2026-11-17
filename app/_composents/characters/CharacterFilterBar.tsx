@@ -41,6 +41,8 @@ type Props = {
   showPanel: boolean;
   onTogglePanel: () => void;
   resultCount: number;
+  /** Remise à zéro atomique des filtres (évite N mises à jour successives, ex. via l'URL). */
+  onResetFilters?: () => void;
 };
 
 const ROLE_LABELS: Record<RoleFilter, string> = {
@@ -50,6 +52,7 @@ const ROLE_LABELS: Record<RoleFilter, string> = {
 };
 
 export default function CharacterFilterBar({
+  onResetFilters,
   query,
   onQueryChange,
   versions,
@@ -74,6 +77,7 @@ export default function CharacterFilterBar({
   const hasActiveFilters = activeFilterCount > 0;
 
   const resetAll = () => {
+    if (onResetFilters) return onResetFilters();
     onVersionChange("all");
     onEtatChange("all");
     onRoleChange("all");
@@ -253,7 +257,7 @@ export default function CharacterFilterBar({
   );
 }
 
-function FilterChip({
+export function FilterChip({
   label,
   color,
   onRemove,

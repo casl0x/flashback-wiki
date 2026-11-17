@@ -19,7 +19,21 @@ import {
   saveGroupe,
 } from "@/lib/admin/actions/groupes";
 import { slugify } from "@/lib/admin/slug";
-import { GROUPE_TYPES, GROUPE_TYPE_META, groupeHref, type GroupeType } from "@/lib/groupe-types";
+import {
+  CATEGORIE_TYPES,
+  GROUPE_JURIDICTIONS,
+  GROUPE_JURIDICTION_LABEL,
+  GROUPE_STATUTS,
+  GROUPE_STATUT_LABEL,
+  GROUPE_TYPES,
+  GROUPE_TYPE_META,
+  MATRICULE_LABEL_DEFAULT,
+  MATRICULE_TYPES,
+  groupeHref,
+  type GroupeJuridiction,
+  type GroupeStatut,
+  type GroupeType,
+} from "@/lib/groupe-types";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
@@ -42,11 +56,20 @@ type G = {
   description: string;
   imageUrl: string | null;
   type: GroupeType;
+  statut: "" | GroupeStatut;
+  juridiction: "" | GroupeJuridiction;
+  dissous: boolean;
   matriculeLabel: string;
   categorieId: string | null;
   grades: Grade[];
 };
 type Categorie = { id: string; nom: string; type: GroupeType };
+type Modele = {
+  id: string;
+  nom: string;
+  type: GroupeType | null;
+  grades: { nom: string; color: string | null }[];
+};
 
 // Couleurs proposées par défaut pour un nouveau grade, du plus haut au plus bas.
 // Libre à l'admin de les changer : rien n'impose une hiérarchie "militaire" type.
@@ -68,6 +91,7 @@ export default function GroupeEditor({
   presence,
   others,
   categories,
+  modeles,
 }: {
   initial: G;
   backHref: string;
@@ -75,6 +99,7 @@ export default function GroupeEditor({
   presence: { id: string; color: string; count: number }[];
   others: { id: string; nom: string }[];
   categories: Categorie[];
+  modeles: Modele[];
 }) {
   const router = useRouter();
   const [f, setF] = useState(initial);
@@ -89,6 +114,32 @@ export default function GroupeEditor({
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);
 
   const setGrades = (grades: Grade[]) => setF({ ...f, grades });
+  const [modeleId, setModeleId] = useState("");
+  const modelesFor = modeles.filter((m) => !m.type || m.type === f.type);
+  const applyModele = () => {
+    const m = modeles.find((x) => x.id === modeleId);
+    if (!m) return;
+    const have = new Set(f.grades.map((g) => g.nom.trim().toLowerCase()));
+    const add = m.grades.filter((g) => !have.has(g.nom.trim().toLowerCase()));
+    if (add.length === 0) {
+      setMsg({ tone: "ok", text: `Tous les grades de « ${m.nom} » sont déjà là.` });
+      return;
+    }
+    setGrades([
+      ...f.grades,
+      ...add.map((g, i) => ({
+        key: `new-${++seq}`,
+        id: null,
+        nom: g.nom,
+        color: g.color ?? GRADE_PALETTE[(f.grades.length + i) % GRADE_PALETTE.length],
+        members: 0,
+      })),
+    ]);
+    setMsg({
+      tone: "ok",
+      text: `${add.length} grade(s) ajouté(s) depuis « ${m.nom} ». Pense à enregistrer.`,
+    });
+  };
   const moveGrade = (i: number, to: number) => {
     if (to < 0 || to >= f.grades.length) return;
     const g = [...f.grades];
@@ -107,6 +158,9 @@ export default function GroupeEditor({
         description: f.description,
         imageUrl: f.imageUrl,
         type: f.type,
+        statut: f.statut || null,
+        juridiction: f.juridiction || null,
+        dissous: f.dissous,
         matriculeLabel: f.matriculeLabel,
         categorieId: f.categorieId,
         grades: f.grades.map((g) => ({
@@ -213,13 +267,22 @@ export default function GroupeEditor({
               >
                 <Select
                   value={f.type}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const type = e.target.value as GroupeType;
+                    // Un libellé resté à sa valeur par défaut suit le type (matricule ↔ juridiction).
+                    const isDefault = Object.values(MATRICULE_LABEL_DEFAULT).includes(
+                      f.matriculeLabel,
+                    );
                     setF({
                       ...f,
-                      type: e.target.value as GroupeType,
+                      type,
                       categorieId: null,
-                    })
-                  }
+                      matriculeLabel:
+                        isDefault && MATRICULE_LABEL_DEFAULT[type]
+                          ? MATRICULE_LABEL_DEFAULT[type]!
+                          : f.matriculeLabel,
+                    });
+                  }}
                 >
                   {GROUPE_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -228,7 +291,7 @@ export default function GroupeEditor({
                   ))}
                 </Select>
               </Field>
-              {f.type !== "GROUPE" && (
+              {CATEGORIE_TYPES.includes(f.type) && (
                 <Field
                   label="Catégorie"
                   hint="Se gère dans Données › Catégories."
@@ -250,15 +313,67 @@ export default function GroupeEditor({
                   </Select>
                 </Field>
               )}
-              {f.type === "SERVICE_PUBLIC" && (
+              {f.type === "ENTREPRISE" && (
+                <Field
+                  label="Juridiction"
+                  hint="Nord, Sud, ou Les deux. Affichée sur la fiche de l'entreprise."
+                >
+                  <Select
+                    value={f.juridiction}
+                    onChange={(e) =>
+                      setF({
+                        ...f,
+                        juridiction: e.target.value as "" | GroupeJuridiction,
+                      })
+                    }
+                  >
+                    <option value="">Aucune</option>
+                    {GROUPE_JURIDICTIONS.map((j) => (
+                      <option key={j} value={j}>
+                        {GROUPE_JURIDICTION_LABEL[j]}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+              {f.type === "GROUPE" && (
+                <Field
+                  label="Catégorie"
+                  hint="Indé, Gang, Orga, GM ou Civil (liste fixe)."
+                >
+                  <Select
+                    value={f.statut}
+                    onChange={(e) =>
+                      setF({ ...f, statut: e.target.value as "" | GroupeStatut })
+                    }
+                  >
+                    <option value="">Aucune</option>
+                    {GROUPE_STATUTS.map((s) => (
+                      <option key={s} value={s}>
+                        {GROUPE_STATUT_LABEL[s]}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+              <label className="flex items-center gap-2 text-[13px] font-semibold text-[#C4C7CF] sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={f.dissous}
+                  onChange={(e) => setF({ ...f, dissous: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                Groupe dissous
+              </label>
+              {MATRICULE_TYPES.includes(f.type) && (
                 <Field
                   label="Libellé du numéro"
-                  hint="Affiché devant le matricule du membre (ex. « matricule 245 »). Vide : seule la valeur est affichée."
+                  hint="Affiché devant le numéro ou le texte du membre (ex. « matricule 245 », « juridiction LS »). Vide : seule la valeur est affichée."
                   className="sm:col-span-2"
                 >
                   <TextInput
                     value={f.matriculeLabel}
-                    placeholder="matricule"
+                    placeholder={MATRICULE_LABEL_DEFAULT[f.type] ?? ""}
                     onChange={(e) =>
                       setF({ ...f, matriculeLabel: e.target.value })
                     }
@@ -319,6 +434,29 @@ export default function GroupeEditor({
             }
           >
             <div className="flex flex-col gap-2">
+              {modelesFor.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-[#2C3038] p-2">
+                  <Select
+                    aria-label="Modèle de grades"
+                    value={modeleId}
+                    onChange={(e) => setModeleId(e.target.value)}
+                    className="min-w-40 flex-[1_1_180px]"
+                  >
+                    <option value="">Modèle de grades…</option>
+                    {modelesFor.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nom}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button disabled={!modeleId} onClick={applyModele}>
+                    Appliquer
+                  </Button>
+                  <span className="w-full text-[12px] text-[#9AA0AA]">
+                    Ajoute seulement les grades qui manquent, sans en retirer.
+                  </span>
+                </div>
+              )}
               {f.grades.length === 0 && (
                 <p className="m-0 text-[13px] text-[#9AA0AA]">
                   Aucun grade. Les membres seront listés sans hiérarchie.

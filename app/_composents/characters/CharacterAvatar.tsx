@@ -1,4 +1,4 @@
-import { cloudinaryUrl, initials } from "@/lib/character-page";
+import { cloudinaryUrl, initials } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 

@@ -70,8 +70,48 @@ export function MentionTextarea({
     });
   }
 
+  // Entoure la sélection (ou insère des marqueurs vides) avec la mise en forme
+  function wrap(marker: string) {
+    const el = ref.current;
+    if (!el) return;
+    const { selectionStart: a, selectionEnd: b } = el;
+    const selected = value.slice(a, b);
+    const next =
+      value.slice(0, a) + marker + selected + marker + value.slice(b);
+    onChange(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(a + marker.length, b + marker.length);
+    });
+  }
+
+  const tools: { label: React.ReactNode; title: string; marker: string }[] = [
+    { label: <b>G</b>, title: "Gras (Ctrl+B)", marker: "**" },
+    { label: <i>I</i>, title: "Italique (Ctrl+I)", marker: "*" },
+    { label: <u>S</u>, title: "Souligné (Ctrl+U)", marker: "__" },
+    { label: <s>B</s>, title: "Barré", marker: "~~" },
+  ];
+
   return (
     <div className="relative">
+      <div className="mb-1.5 flex flex-wrap items-center gap-1">
+        {tools.map((t) => (
+          <button
+            key={t.marker}
+            type="button"
+            title={t.title}
+            aria-label={t.title}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => wrap(t.marker)}
+            className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] text-[#ECECEE] hover:bg-[#23262D]"
+          >
+            {t.label}
+          </button>
+        ))}
+        <span className="ml-1 text-[11px] text-[#7C8190]">
+          **gras** · *italique* · __souligné__ · ~~barré~~
+        </span>
+      </div>
       <textarea
         ref={ref}
         value={value}
@@ -87,6 +127,15 @@ export function MentionTextarea({
         }}
         onBlur={() => setTrigger(null)}
         onKeyDown={(e) => {
+          if (e.ctrlKey || e.metaKey) {
+            const k = e.key.toLowerCase();
+            const marker = k === "b" ? "**" : k === "i" ? "*" : k === "u" ? "__" : null;
+            if (marker) {
+              e.preventDefault();
+              wrap(marker);
+              return;
+            }
+          }
           if (!trigger || suggestions.length === 0) return;
           if (e.key === "ArrowDown") {
             e.preventDefault();

@@ -17,10 +17,8 @@ export default async function AdminLayout({
   const { userId } = await auth();
   if (!(await isAdminUser(userId))) redirect("/");
 
-  const [pending, admin] = await Promise.all([
-    countPending(),
-    currentAdminSummary(),
-  ]);
+  const admin = await currentAdminSummary();
+  const pending = await countPending(admin?.level);
 
   return (
     <div className="min-h-dvh bg-[#0B0C0F] text-[14px] leading-normal text-[#ECECEE] lg:flex">

@@ -18,6 +18,12 @@ import SiteUpdateForm from "./SiteUpdateForm";
 export const dynamic = "force-dynamic";
 const PER_PAGE = 30;
 
+const CREATOR_TYPE_LABELS: Record<string, string> = {
+  ARTISTE: "Artiste",
+  EDITEUR: "Éditeur",
+  BESTOF: "Best-of",
+};
+
 type Props = {
   searchParams: Promise<{
     tab?: string;
@@ -189,9 +195,7 @@ export default async function AdminUsers({ searchParams }: Props) {
                   <td className="px-3 py-2.5 text-[#F6B26B]">
                     {u.creatorRoles.length ? (
                       u.creatorRoles
-                        .map((r) =>
-                          r.type === "ARTISTE" ? "Artiste" : "Éditeur",
-                        )
+                        .map((r) => CREATOR_TYPE_LABELS[r.type] ?? r.type)
                         .join(", ")
                     ) : (
                       <span className="text-[#6E7380]">—</span>

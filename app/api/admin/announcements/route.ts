@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const { userId } = await auth();
-  if (!(await isAdminUser(userId))) return NextResponse.json(null, { status: 403 });
+  if (!(await isAdminUser(userId, "announcements"))) return NextResponse.json(null, { status: 403 });
 
   const announcements = await prisma.announcement.findMany({
     orderBy: { createdAt: "desc" },

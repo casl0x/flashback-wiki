@@ -12,14 +12,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import FeedbackButton from "@/app/_composents/feedback/FeedbackButton";
+import NewsButton from "@/app/_composents/feedback/NewsButton";
 import NotificationBell from "./Notificationbell";
 
 const LINKS = [
-  { href: "/personnages", label: "Personnages" },
+  { href: "/personnages", label: "Explorer" },
   { href: "/joueurs", label: "Joueurs" },
   { href: "/musiques", label: "Musiques" },
   { href: "/createurs", label: "Créateurs" },
-  { href: "/classement", label: "Classement" },
 ];
 
 function UserMenu() {
@@ -172,6 +173,8 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-1.5">
+          <NewsButton />
+          <FeedbackButton />
           {isLoaded && isSignedIn && (
             <>
               <NotificationBell />

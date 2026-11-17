@@ -60,6 +60,15 @@ export type Groupe = {
   imageUrl: string | null;
   color: string | null;
   createdAt: string;
+  type: "GROUPE" | "ENTREPRISE" | "SERVICE_PUBLIC" | "ASSOCIATION";
+  statut: "INDE" | "GANG" | "ORGA" | "GM" | "CIVIL" | null;
+  dissous: boolean;
+  juridiction?: "NORD" | "SUD" | "LES_DEUX" | null;
+  categorieId: string | null;
+  /** Nombre de persos distincts (renseigné par fetchWikiData). */
+  membersCount?: number;
+  /** Versions où le groupe a eu des membres (renseigné par fetchWikiData). */
+  versionIds?: string[];
 };
 
 // ─── Character ───────────────────────────────────────────────────────────────
@@ -107,6 +116,11 @@ export type Character = {
 
   locationX?: number | null;
   locationY?: number | null;
+
+  // Fiches « autre acteur » du même personnage (liste publique) : pseudos de
+  // tous les acteurs, et fiche à montrer en priorité dans la liste.
+  acteurs?: string[];
+  acteurPrincipalId?: string;
 };
 
 export type LinkedRelation = {

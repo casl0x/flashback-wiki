@@ -1,4 +1,5 @@
-import { Badge } from "@/components/ui/badge";
+import { ETAT_BADGE } from "@/app/_composents/characters/CharacterHero";
+import { cn } from "@/lib/utils";
 import { Heart, Lock, Meh, Plane, Skull } from "lucide-react";
 import { ComponentType } from "react";
 
@@ -44,17 +45,19 @@ export const ETAT_VIE_CONFIG: EtatVieConfig[] = [
 
 export function LifeStateIcon({ etat }: { etat: string }) {
   const cfg = ETAT_VIE_CONFIG.find((c) => c.key === etat);
-  if (!cfg) return null;
-  const Icon = cfg.icon;
+  const badge = ETAT_BADGE[etat as keyof typeof ETAT_BADGE];
+  if (!cfg || !badge) return null;
 
+  // Même style que le badge d'état de la fiche personnage
   return (
-    <Badge
-      variant="secondary"
-      className="flex items-center gap-1.5 text-[11px] font-medium capitalize"
+    <span
       title={cfg.description}
+      className={cn(
+        "shrink-0 rounded border bg-[#0B0C0F]/85 px-2 py-0.5 text-[11px] font-bold uppercase leading-none tracking-[0.06em]",
+        badge.className,
+      )}
     >
-      <Icon className="w-3.5 h-3.5" />
-      <span>{cfg.label}</span>
-    </Badge>
+      {badge.label}
+    </span>
   );
 }

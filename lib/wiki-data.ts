@@ -1,7 +1,9 @@
+import { visibleCharacter } from "@/lib/hidden-characters";
 import { Character, Groupe, parseRediffusions, Player, Version, prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { versionRank } from "@/lib/version-rank";
+import { loadActeurGroups } from "@/lib/acteurs";
 
 type CharacterWithRelations = Prisma.CharacterGetPayload<{
   include: {
@@ -118,10 +120,11 @@ const emptyWikiData: WikiData = {
 // Next.js et unstable_cache refuse silencieusement de le mettre en cache.
 export async function fetchWikiData(): Promise<WikiData> {
   try {
-    const [versions, players, characters, groupes] = await Promise.all([
+    const [versions, players, characters, groupes, acteurGroups] = await Promise.all([
       prisma.version.findMany({ orderBy: { id: "asc" } }),
       prisma.player.findMany({ orderBy: { pseudo: "asc" } }),
       prisma.character.findMany({
+        where: visibleCharacter,
         orderBy: { nom: "asc" },
         include: {
           player: true,
@@ -130,7 +133,11 @@ export async function fetchWikiData(): Promise<WikiData> {
           _count: { select: { relationsA: true, relationsB: true } },
         },
       }),
-      prisma.groupe.findMany({ orderBy: { nom: "asc" } }),
+      prisma.groupe.findMany({
+        orderBy: { nom: "asc" },
+        include: { members: { where: { character: visibleCharacter }, select: { characterId: true, versionId: true } } },
+      }),
+      loadActeurGroups(),
     ]);
 
     const normalizedVersions = versions.map((version) => ({
@@ -146,8 +153,30 @@ export async function fetchWikiData(): Promise<WikiData> {
       reseaux: normalizeReseaux(player.reseaux),
     }));
 
+    // Fiches d'un même personnage (« Autre acteur ») : la plus ancienne est
+    // montrée en priorité dans la liste, avec les pseudos de tous les acteurs.
+    const visibleById = new Map(characters.map((c) => [c.id, c]));
+    const acteurInfo = (id: string) => {
+      const members = (acteurGroups.get(id) ?? [])
+        .map((m) => visibleById.get(m))
+        .filter((m): m is NonNullable<typeof m> => !!m)
+        .sort(
+          (a, b) =>
+            a.createdAt.getTime() - b.createdAt.getTime() ||
+            a.id.localeCompare(b.id),
+        );
+      if (members.length < 2) return {};
+      return {
+        acteurs: [
+          ...new Set(members.map((m) => m.player?.pseudo.trim() || "Inconnu")),
+        ],
+        acteurPrincipalId: members[0].id,
+      };
+    };
+
     const enrichedCharacters = characters.map((character) => ({
       ...character,
+      ...acteurInfo(character.id),
       createdAt: character.createdAt.toISOString(),
       lienReddifs: parseRediffusions(character.lienReddifs),
       player: buildPlayerSummary(character.player),
@@ -175,9 +204,14 @@ export async function fetchWikiData(): Promise<WikiData> {
       versions: normalizedVersions,
       players: normalizedPlayers,
       characters: enrichedCharacters,
-      groupes: groupes.map((g) => ({
+      groupes: groupes.map(({ members, ...g }) => ({
         ...g,
         createdAt: g.createdAt.toISOString(),
+        membersCount: new Set(members.map((m) => m.characterId)).size,
+        // Versions où le groupe a eu des membres (filtre « Version » de l'Explorer).
+        versionIds: [
+          ...new Set(members.map((m) => m.versionId).filter((v): v is string => !!v)),
+        ],
       })),
       counts,
       totalRelations,
@@ -368,7 +402,7 @@ export const getCharacterById = unstable_cache(
 export const getCharactersByPlayerId = unstable_cache(
   async (playerId: string) => {
     const chars = await prisma.character.findMany({
-      where: { playerId },
+      where: { playerId, ...visibleCharacter },
       include: { player: true, versions: true, groupes: { include: { groupe: true }, orderBy: { ordre: "asc" } } },
       orderBy: { nom: "asc" },
     });

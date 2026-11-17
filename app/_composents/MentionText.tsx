@@ -6,35 +6,61 @@ type Props = {
   className?: string;
 };
 
-// Affiche un texte libre en transformant chaque mention @[Nom](id) en
-// lien cliquable vers la fiche du personnage visé, le reste restant du
-// texte brut (les retours à la ligne doivent être gérés par le parent,
-// ex. via la classe whitespace-pre-line).
-export function MentionText({ text, className }: Props) {
-  const re = new RegExp(MENTION_PATTERN.source, "g");
+// Mise en forme légère (style Markdown) : **gras**, *italique*,
+// __souligné__, ~~barré~~. Les mentions @[Nom](id) restent des liens.
+const TOKEN = new RegExp(
+  [
+    MENTION_PATTERN.source, // 1: nom, 2: id
+    String.raw`\*\*(?!\s)([\s\S]+?)(?<!\s)\*\*`, // 3: gras
+    String.raw`__(?!\s)([\s\S]+?)(?<!\s)__`, // 4: souligné
+    String.raw`~~(?!\s)([\s\S]+?)(?<!\s)~~`, // 5: barré
+    String.raw`\*(?!\s)([^*\n]+?)(?<!\s)\*`, // 6: italique
+  ].join("|"),
+  "g",
+);
+
+function render(text: string, depth = 0): React.ReactNode[] {
+  const re = new RegExp(TOKEN.source, "g");
   const nodes: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
   while ((match = re.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      nodes.push(text.slice(lastIndex, match.index));
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const key = `${depth}-${match.index}`;
+    const [, nom, id, bold, underline, strike, italic] = match;
+    if (nom !== undefined) {
+      nodes.push(
+        <Link
+          key={key}
+          href={`/personnages/${id}`}
+          className="text-accent hover:underline font-medium"
+        >
+          {nom}
+        </Link>,
+      );
+    } else if (bold !== undefined) {
+      nodes.push(
+        <strong key={key} className="font-bold text-[#ECECEE]">
+          {render(bold, depth + 1)}
+        </strong>,
+      );
+    } else if (underline !== undefined) {
+      nodes.push(<u key={key}>{render(underline, depth + 1)}</u>);
+    } else if (strike !== undefined) {
+      nodes.push(<s key={key}>{render(strike, depth + 1)}</s>);
+    } else if (italic !== undefined) {
+      nodes.push(<em key={key}>{render(italic, depth + 1)}</em>);
     }
-    const [, nom, id] = match;
-    nodes.push(
-      <Link
-        key={`${id}-${match.index}`}
-        href={`/personnages/${id}`}
-        className="text-accent hover:underline font-medium"
-      >
-        {nom}
-      </Link>,
-    );
     lastIndex = match.index + match[0].length;
   }
-  if (lastIndex < text.length) {
-    nodes.push(text.slice(lastIndex));
-  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
+}
 
-  return <span className={className}>{nodes}</span>;
+// Affiche un texte libre en transformant les mentions en liens et en
+// appliquant la mise en forme légère. Les retours à la ligne doivent être
+// gérés par le parent (ex. via la classe whitespace-pre-line / pre-wrap).
+export function MentionText({ text, className }: Props) {
+  return <span className={className}>{render(text)}</span>;
 }

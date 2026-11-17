@@ -1,8 +1,10 @@
 "use server";
 
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { detectSoundPlatform } from "@/lib/media-embed";
+import { getKickAvatar } from "@/lib/kick";
 import { notifyBadgesEarned } from "@/lib/notifications";
 import { HEX_COLOR_RE } from "@/lib/profile-banner";
 import { getTwitchAvatar } from "@/lib/twitch";
@@ -26,6 +28,9 @@ export async function createCreatorPost(data: {
   }
   if (data.type === "EDITEUR" && !data.linkUrl?.trim()) {
     throw new Error("Un lien est requis pour un edit");
+  }
+  if (data.type === "BESTOF" && !data.linkUrl?.trim()) {
+    throw new Error("Le lien de la chaîne est requis pour un best-of");
   }
 
   const profile = await prisma.userProfile.upsert({
@@ -53,7 +58,7 @@ export async function createCreatorPost(data: {
       status: "approved",
       imageUrl: data.imageUrl,
       linkUrl: data.linkUrl?.trim() || null,
-      platform: data.platform,
+      platform: data.type === "BESTOF" ? "YOUTUBE" : data.platform,
       caption: data.caption?.trim() || null,
       characters: characterIds.length
         ? {
@@ -163,10 +168,13 @@ export async function updateLinkedPlayerProfile(data: {
   );
   const chaines = data.chaines.map((c) => c.trim()).filter(Boolean);
 
+  const newImage = data.imageUrl?.trim() || null;
+  const previous = await prisma.player.findUnique({ where: { id: playerId }, select: { imageUrl: true } });
   await prisma.player.update({
     where: { id: playerId },
-    data: { pseudo, chaines, reseaux, imageUrl: data.imageUrl?.trim() || null },
+    data: { pseudo, chaines, reseaux, imageUrl: newImage },
   });
+  await cleanupReplacedImage(previous?.imageUrl, newImage);
 
   await invalidateWikiCache();
   await invalidateProfilesCache();
@@ -185,6 +193,22 @@ export async function fetchMyTwitchAvatar(channelUrl: string): Promise<string> {
   if (!login) throw new Error("Pseudo Twitch introuvable dans le lien.");
   const avatarUrl = await getTwitchAvatar(login);
   if (!avatarUrl) throw new Error("Avatar introuvable sur Twitch.");
+  return avatarUrl;
+}
+
+/** Avatar Kick d'un lien de chaîne, pour le joueur lié qui édite sa propre fiche. */
+export async function fetchMyKickAvatar(channelUrl: string): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  await requireLinkedPlayerId(userId);
+
+  if (detectStreamPlatform(channelUrl) !== "kick") {
+    throw new Error("Ce n'est pas un lien Kick.");
+  }
+  const slug = extractStreamUsername(channelUrl);
+  if (!slug) throw new Error("Pseudo Kick introuvable dans le lien.");
+  const avatarUrl = await getKickAvatar(slug);
+  if (!avatarUrl) throw new Error("Avatar introuvable sur Kick.");
   return avatarUrl;
 }
 
@@ -210,7 +234,7 @@ export async function updateOwnCharacterPresentation(
 
   const character = await prisma.character.findUnique({
     where: { id: characterId },
-    select: { playerId: true },
+    select: { playerId: true, imageUrl: true },
   });
   if (!character || character.playerId !== playerId) {
     throw new Error("Ce personnage ne t'appartient pas.");
@@ -251,6 +275,7 @@ export async function updateOwnCharacterPresentation(
     }
   });
 
+  await cleanupReplacedImage(character.imageUrl, data.imageUrl?.trim() || null);
   await invalidateWikiCache();
 }
 
@@ -267,6 +292,7 @@ export async function deleteCreatorPost(id: string) {
   }
 
   await prisma.creatorPost.delete({ where: { id } });
+  await cleanupReplacedImage(post.imageUrl, null);
   await invalidateProfilesCache();
 }
 

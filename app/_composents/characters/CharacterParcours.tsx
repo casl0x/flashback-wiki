@@ -58,6 +58,11 @@ export default function CharacterParcours({ steps, etatVie }: Props) {
                   >
                     {s.groupe.nom}
                   </Link>
+                  {s.groupe.dissous && (
+                    <span className="text-[12px] text-[#9AA0AA]">
+                      (dissous)
+                    </span>
+                  )}
                   {last && (
                     <span className="rounded-full bg-[#11281C] px-2 py-px text-[11px] font-bold text-[#6EE7A0]">
                       {lastLabel}

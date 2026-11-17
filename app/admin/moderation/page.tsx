@@ -1,7 +1,9 @@
 import { Empty, LinkTabs, PageHeader } from "@/app/_composents/admin/ui";
+import { getAdminLevel } from "@/lib/admin/auth";
 import { ago } from "@/lib/admin/format";
 import {
   MOD_TABS,
+  allowedModTabs,
   countPending,
   loadCreationDetail,
   loadLinkRequestDetail,
@@ -11,6 +13,7 @@ import {
   type ModTab,
 } from "@/lib/admin/moderation";
 import { cn } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import {
   CreationReview,
@@ -25,10 +28,15 @@ type Props = { searchParams: Promise<{ tab?: string; id?: string }> };
 
 export default async function ModerationPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const tab: ModTab = MOD_TABS.some((t) => t.key === sp.tab)
+  const { userId } = await auth();
+  const level = await getAdminLevel(userId);
+  const allowed = allowedModTabs(level);
+  const tabs = MOD_TABS.filter((t) => allowed.includes(t.key));
+  // Un onglet interdit (URL tapée à la main) retombe sur Propositions.
+  const tab: ModTab = tabs.some((t) => t.key === sp.tab)
     ? (sp.tab as ModTab)
     : "propositions";
-  const [counts, items] = await Promise.all([countPending(), loadQueue(tab)]);
+  const [counts, items] = await Promise.all([countPending(level), loadQueue(tab)]);
 
   const selectedId = items.some((i) => i.id === sp.id) ? sp.id! : items[0]?.id;
   const idx = items.findIndex((i) => i.id === selectedId);
@@ -57,7 +65,7 @@ export default async function ModerationPage({ searchParams }: Props) {
     <>
       <PageHeader title="Modération" />
       <LinkTabs
-        tabs={MOD_TABS.map((t) => ({
+        tabs={tabs.map((t) => ({
           href: `/admin/moderation?tab=${t.key}`,
           label: t.label,
           count: counts[t.key],

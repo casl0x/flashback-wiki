@@ -1,9 +1,18 @@
 "use server";
 
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/admin/slug";
-import type { GroupeType } from "@/lib/groupe-types";
+import {
+  CATEGORIE_TYPES,
+  GROUPE_JURIDICTIONS,
+  GROUPE_STATUTS,
+  type GroupeJuridiction,
+  type GroupeStatut,
+  type GroupeType,
+} from "@/lib/groupe-types";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
 
 export type GradeInput = { id: string | null; nom: string; color: string | null };
@@ -15,6 +24,9 @@ export type GroupeInput = {
   description: string | null;
   imageUrl: string | null;
   type: GroupeType;
+  statut: GroupeStatut | null; // type GROUPE uniquement
+  juridiction: GroupeJuridiction | null; // type ENTREPRISE uniquement
+  dissous: boolean;
   matriculeLabel: string | null; // services publics ; vide = valeur seule
   categorieId: string | null; // ignoré pour le type GROUPE
   grades: GradeInput[]; // du plus haut au plus bas
@@ -23,7 +35,7 @@ export type GroupeInput = {
 
 export async function saveGroupe(id: string | null, input: GroupeInput): Promise<ActionResult<{ id: string; slug: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("groupes");
     const nom = input.nom.trim();
     const slug = slugify(input.slug || nom);
     if (!nom || !slug) return { ok: false, error: "Le nom et le slug sont requis." };
@@ -31,21 +43,30 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
     if (gradeNames.some((n) => !n)) return { ok: false, error: "Chaque grade doit avoir un nom." };
     if (new Set(gradeNames).size !== gradeNames.length) return { ok: false, error: "Deux grades portent le même nom." };
 
-    if (input.categorieId && input.type !== "GROUPE") {
+    if (input.statut && !GROUPE_STATUTS.includes(input.statut)) return { ok: false, error: "Statut inconnu." };
+    if (input.juridiction && !GROUPE_JURIDICTIONS.includes(input.juridiction)) return { ok: false, error: "Juridiction inconnue." };
+    if (input.categorieId && CATEGORIE_TYPES.includes(input.type)) {
       const cat = await prisma.groupeCategorie.findUnique({ where: { id: input.categorieId } });
       if (!cat || cat.type !== input.type) return { ok: false, error: "Catégorie incompatible avec le type." };
     }
 
     const data = {
       type: input.type,
+      statut: input.type === "GROUPE" ? input.statut : null,
+      juridiction: input.type === "ENTREPRISE" ? input.juridiction : null,
+      dissous: input.dissous,
       matriculeLabel: clean(input.matriculeLabel),
-      categorieId: input.type === "GROUPE" ? null : input.categorieId,
+      categorieId: CATEGORIE_TYPES.includes(input.type) ? input.categorieId : null,
       nom,
       slug,
       color: clean(input.color),
       description: clean(input.description),
       imageUrl: clean(input.imageUrl),
     };
+
+    const previousImage = id
+      ? (await prisma.groupe.findUnique({ where: { id }, select: { imageUrl: true } }))?.imageUrl
+      : null;
 
     const saved = await prisma.$transaction(async (tx) => {
       const g = id ? await tx.groupe.update({ where: { id }, data }) : await tx.groupe.create({ data });
@@ -64,6 +85,8 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
       return g;
     }, { timeout: 20000 });
 
+    await cleanupReplacedImage(previousImage, data.imageUrl);
+    await logChange(id ? "edit_groupe" : "add_groupe", saved.nom);
     await refreshAll();
     return { ok: true, data: { id: saved.id, slug: saved.slug } };
   } catch (e) {
@@ -73,8 +96,9 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
 
 export async function deleteGroupe(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
-    await prisma.groupe.delete({ where: { id } });
+    await requireAdmin("groupes");
+    const g = await prisma.groupe.delete({ where: { id }, select: { imageUrl: true } });
+    await cleanupReplacedImage(g.imageUrl, null);
     await refreshAll();
     return { ok: true };
   } catch (e) {
@@ -88,7 +112,7 @@ export async function deleteGroupe(id: string): Promise<ActionResult> {
  */
 export async function mergeGroupe(sourceId: string, targetId: string): Promise<ActionResult<{ moved: number }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("groupes");
     if (sourceId === targetId) return { ok: false, error: "Choisis un autre groupe." };
 
     const moved = await prisma.$transaction(async (tx) => {
@@ -146,8 +170,8 @@ export type CategorieInput = { id: string | null; nom: string };
 /** Remplace la liste des catégories d'un type, dans l'ordre donné. Retirer une catégorie met ses groupes sans catégorie. */
 export async function saveCategories(type: GroupeType, list: CategorieInput[]): Promise<ActionResult> {
   try {
-    await requireAdmin();
-    if (type === "GROUPE") return { ok: false, error: "Ce type n'a pas de catégories." };
+    await requireAdmin("categories");
+    if (!CATEGORIE_TYPES.includes(type)) return { ok: false, error: "Ce type n'a pas de catégories." };
     const names = list.map((c) => c.nom.trim().toLowerCase());
     if (names.some((n) => !n)) return { ok: false, error: "Chaque catégorie doit avoir un nom." };
     if (new Set(names).size !== names.length) return { ok: false, error: "Deux catégories portent le même nom." };

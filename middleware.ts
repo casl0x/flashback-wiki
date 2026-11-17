@@ -4,6 +4,7 @@ import {
   createRouteMatcher,
 } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { canAccess, levelFromRole, sectionFromPath } from "@/lib/admin/permissions";
 
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 const isOnboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
@@ -38,11 +39,16 @@ export default clerkMiddleware(async (auth, req) => {
     const memberships = await client.users.getOrganizationMembershipList({
       userId,
     });
-    const isAdmin = memberships.data.some(
+    const membership = memberships.data.find(
       (m) => m.organization.id === process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID,
     );
-    if (!isAdmin) {
+    if (!membership) {
       return NextResponse.redirect(new URL("/", req.url));
+    }
+    // Les éditeurs (rôle autre que org:admin) n'ont accès qu'à certaines sections.
+    const section = sectionFromPath(req.nextUrl.pathname);
+    if (!section || !canAccess(levelFromRole(membership.role), section)) {
+      return NextResponse.redirect(new URL("/admin", req.url));
     }
   }
 });

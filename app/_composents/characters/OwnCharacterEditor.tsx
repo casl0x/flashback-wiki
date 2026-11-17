@@ -4,6 +4,7 @@ import ImageUpload from "@/app/_composents/admin/ImageUpload";
 import { MentionTextarea } from "@/app/_composents/MentionTextarea";
 import { useToast } from "@/app/_composents/toast/ToastProvider";
 import { updateOwnCharacterPresentation } from "@/app/profil/actions";
+import { splitDescription, updateDescription } from "@/lib/utils";
 import { detectSoundPlatform, PLATFORM_STYLE } from "@/lib/media-embed";
 import { ArrowDown, ArrowUp, Check, Pencil, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -142,11 +143,48 @@ export default function OwnCharacterEditor({
       <label className="flex flex-col gap-1">
         <span className="text-[12px] font-semibold text-[#C4C7CF]">Histoire</span>
         <MentionTextarea
-          value={f.description}
-          onChange={(v) => setF({ ...f, description: v })}
+          value={splitDescription(f.description).histoire}
+          onChange={(v) =>
+            setF({
+              ...f,
+              description: updateDescription(f.description, { histoire: v }),
+            })
+          }
           characters={[]}
-          placeholder="Parcours, anecdotes, circonstances de la mort…"
+          placeholder="Parcours, anecdotes…"
           className="min-h-32 w-full rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-[12px] font-semibold text-[#8AB4FF]">Motif de l’incarcération (si le personnage est en prison)</span>
+        <MentionTextarea
+          value={splitDescription(f.description).prison}
+          onChange={(v) =>
+            setF({
+              ...f,
+              description: updateDescription(f.description, { prison: v }),
+            })
+          }
+          characters={[]}
+          placeholder="Affiché à la fin de l'Histoire"
+          className="min-h-20 w-full rounded-lg border border-[#2A3A5E] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-[12px] font-semibold text-[#FF8A8E]">Cause de la mort (si le personnage est mort)</span>
+        <MentionTextarea
+          value={splitDescription(f.description).mort}
+          onChange={(v) =>
+            setF({
+              ...f,
+              description: updateDescription(f.description, { mort: v }),
+            })
+          }
+          characters={[]}
+          placeholder="Affichée à la fin de l'Histoire"
+          className="min-h-20 w-full rounded-lg border border-[#5A2A2D] bg-[#0B0C0F] px-3 py-2.5 text-[14px] leading-relaxed text-[#ECECEE]"
         />
       </label>
 

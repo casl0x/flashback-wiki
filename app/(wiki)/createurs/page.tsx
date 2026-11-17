@@ -17,7 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type CreatorPost = {
   id: string;
-  type: "ARTISTE" | "EDITEUR";
+  type: "ARTISTE" | "EDITEUR" | "BESTOF";
   imageUrl: string | null;
   linkUrl: string | null;
   platform: string | null;
@@ -46,12 +46,13 @@ const PLATFORM_LABELS: Record<string, string> = {
 const TYPE_STYLE = {
   ARTISTE: { label: "Fan art", color: "#E5A3F0" },
   EDITEUR: { label: "Edit", color: "#8AB4FF" },
+  BESTOF: { label: "Best-of", color: "#FF6B6B" },
 } as const;
 
 const TABS = [
-  { key: "all" as const, label: "Tous" },
   { key: "ARTISTE" as const, label: "Fan arts" },
   { key: "EDITEUR" as const, label: "Edits" },
+  { key: "BESTOF" as const, label: "Best-of" },
 ];
 
 type Tab = (typeof TABS)[number]["key"];
@@ -64,7 +65,7 @@ export default function CreateursPage() {
   const pathname = usePathname();
   const [data, setData] = useState<CreatorPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("all");
+  const [tab, setTab] = useState<Tab>("ARTISTE");
   const [viewer, setViewer] = useState<CreatorPost | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -98,7 +99,7 @@ export default function CreateursPage() {
   }, [load]);
 
   const filtered = data.filter((p) => {
-    const matchTab = tab === "all" || p.type === tab;
+    const matchTab = p.type === tab;
     const matchSearch =
       matchesSearch(p.creator.pseudo, query) ||
       matchesSearch(p.caption, query) ||
@@ -174,10 +175,7 @@ export default function CreateursPage() {
           className="flex flex-wrap gap-2"
         >
           {TABS.map((t) => {
-            const count =
-              t.key === "all"
-                ? data.length
-                : data.filter((p) => p.type === t.key).length;
+            const count = data.filter((p) => p.type === t.key).length;
             const on = tab === t.key;
             return (
               <button
@@ -186,12 +184,17 @@ export default function CreateursPage() {
                 aria-selected={on}
                 onClick={() => setTab(t.key)}
                 className={cn(
-                  "inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3.5 text-[14px] font-semibold transition-colors",
+                  "inline-flex min-h-11 items-center gap-2 rounded-lg border px-3.5 text-[14px] font-semibold transition-colors",
                   on
                     ? "border-[#ECECEE] bg-[#ECECEE] text-[#0E0F12]"
                     : "border-[#3A3E47] text-[#C4C7CF] hover:border-[#6E7380]",
                 )}
               >
+                <span
+                  aria-hidden
+                  className="h-2 w-2 flex-none rounded-full"
+                  style={{ background: TYPE_STYLE[t.key].color }}
+                />
                 {t.label}
                 <span
                   className={cn(
@@ -360,7 +363,7 @@ function PostCard({
   onToggleLike: (postId: string) => void;
 }) {
   const style = TYPE_STYLE[post.type];
-  const thumb = post.type === "EDITEUR" ? youtubeThumbnail(post.linkUrl) : null;
+  const thumb = post.type !== "ARTISTE" ? youtubeThumbnail(post.linkUrl) : null;
   const alt = post.caption ?? `Création de ${post.creator.pseudo}`;
 
   return (

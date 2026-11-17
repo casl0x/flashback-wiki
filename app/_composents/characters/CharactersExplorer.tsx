@@ -3,8 +3,26 @@
 import CharactersGrid from "@/app/_composents/characters/CharactersGrid";
 import Pagination from "@/app/_composents/ui/Pagination";
 import EmptyState from "@/app/_composents/EmptyState";
-import { Character } from "@/lib/db";
-import { matchesSearch } from "@/lib/utils";
+import GroupeCard from "@/app/_composents/groupes/GroupeCard";
+import GroupeFilterBar, {
+  NO_CATEGORIE,
+  type CategorieOption,
+  type GroupeEtatFilter,
+  type GroupeJuridictionFilter,
+  type GroupeStatutFilter,
+  type GroupeTypeFilter,
+} from "@/app/_composents/groupes/GroupeFilterBar";
+import { Character, Groupe, Version } from "@/lib/db";
+import {
+  GROUPE_JURIDICTIONS,
+  GROUPE_JURIDICTION_LABEL,
+  GROUPE_STATUTS,
+  GROUPE_TYPES,
+  groupeHref,
+  type GroupeType,
+} from "@/lib/groupe-types";
+import { cn, matchesSearch } from "@/lib/utils";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterFilterBar, {
   RoleFilter,
@@ -20,11 +38,31 @@ const getPerPage = () => {
 
 const STORAGE_KEY = "characters-explorer-state";
 
+type Vue = "personnages" | "groupes";
+
 type Props = {
   characters: Character[];
+  groupes: Groupe[];
+  categories: CategorieOption[];
+  versions: Version[];
 };
 
-export default function CharactersExplorer({ characters }: Props) {
+export default function CharactersExplorer({
+  characters,
+  groupes,
+  categories,
+  versions: allVersions,
+}: Props) {
+  const [vue, setVue] = useState<Vue>("personnages");
+  const [typeFilter, setTypeFilter] = useState<GroupeTypeFilter>("all");
+  const [groupeVersion, setGroupeVersion] = useState("all");
+  const [catFilter, setCatFilter] = useState("all");
+  const [statutFilter, setStatutFilter] = useState<GroupeStatutFilter>("all");
+  const [juridictionFilter, setJuridictionFilter] =
+    useState<GroupeJuridictionFilter>("all");
+  const [etatGroupe, setEtatGroupe] = useState<GroupeEtatFilter>("all");
+  const [groupeSort, setGroupeSort] = useState<SortOrder>("a→z");
+  const [showGroupePanel, setShowGroupePanel] = useState(false);
   const [query, setQuery] = useState("");
   const [versionFilter, setVersionFilter] = useState("all");
   const [etatFilter, setEtatFilter] = useState("all");
@@ -44,15 +82,124 @@ export default function CharactersExplorer({ characters }: Props) {
       if (raw) {
         const s = JSON.parse(raw);
         if (typeof s.query === "string") setQuery(s.query);
-        if (typeof s.versionFilter === "string") setVersionFilter(s.versionFilter);
+        if (typeof s.versionFilter === "string")
+          setVersionFilter(s.versionFilter);
         if (typeof s.etatFilter === "string") setEtatFilter(s.etatFilter);
         if (typeof s.roleFilter === "string") setRoleFilter(s.roleFilter);
         if (typeof s.sort === "string") setSort(s.sort);
         if (typeof s.page === "number" && s.page >= 1) setPage(s.page);
       }
     } catch {}
+    // La vue (et le filtre de type) vivent dans l'adresse : partageable, et reprise au retour d'un groupe.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("vue") === "groupes") setVue("groupes");
+      const t = params.get("type");
+      if (t && (GROUPE_TYPES as string[]).includes(t)) {
+        setTypeFilter(t as GroupeType);
+      }
+      const gv = params.get("version");
+      if (gv) setGroupeVersion(gv);
+      const cat = params.get("cat");
+      if (cat) setCatFilter(cat);
+      const statut = params.get("statut");
+      if (statut && (GROUPE_STATUTS as string[]).includes(statut)) {
+        setStatutFilter(statut as GroupeStatutFilter);
+      }
+      const juridiction = params.get("juridiction");
+      if (
+        juridiction &&
+        (GROUPE_JURIDICTIONS as string[]).includes(juridiction)
+      ) {
+        setJuridictionFilter(juridiction as GroupeJuridictionFilter);
+      }
+      const etat = params.get("etat");
+      if (etat === "actif" || etat === "dissous") setEtatGroupe(etat);
+    } catch {}
     setRestored(true);
   }, []);
+
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      const url = new URL(window.location.href);
+      const onGroupes = vue === "groupes";
+      const set = (key: string, value: string | null) => {
+        if (value) url.searchParams.set(key, value);
+        else url.searchParams.delete(key);
+      };
+      set("vue", onGroupes ? "groupes" : null);
+      set("type", onGroupes && typeFilter !== "all" ? typeFilter : null);
+      set(
+        "version",
+        onGroupes && groupeVersion !== "all" ? groupeVersion : null,
+      );
+      set("cat", onGroupes && catFilter !== "all" ? catFilter : null);
+      set("statut", onGroupes && statutFilter !== "all" ? statutFilter : null);
+      set(
+        "juridiction",
+        onGroupes && juridictionFilter !== "all" ? juridictionFilter : null,
+      );
+      set("etat", onGroupes && etatGroupe !== "all" ? etatGroupe : null);
+      window.history.replaceState(null, "", url);
+    } catch {}
+  }, [
+    restored,
+    vue,
+    typeFilter,
+    groupeVersion,
+    catFilter,
+    statutFilter,
+    juridictionFilter,
+    etatGroupe,
+  ]);
+
+  // Position de défilement : sauvegardée en continu, rétablie une fois la
+  // liste (filtres + page) restaurée et rendue.
+  useEffect(() => {
+    if (!restored) return;
+    const key = `${STORAGE_KEY}-scroll`;
+    let y = 0;
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.search === window.location.search && typeof s.y === "number") {
+          y = s.y;
+        }
+      }
+    } catch {}
+
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (y > 0) window.scrollTo(0, y);
+      });
+    });
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        try {
+          sessionStorage.setItem(
+            key,
+            JSON.stringify({
+              search: window.location.search,
+              y: window.scrollY,
+            }),
+          );
+        } catch {}
+      }, 100);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [restored]);
 
   useEffect(() => {
     if (!restored) return;
@@ -106,6 +253,7 @@ export default function CharactersExplorer({ characters }: Props) {
       const matchSearch =
         matchesSearch(c.nom, query) ||
         matchesSearch(c.player?.pseudo, query) ||
+        (c.acteurs?.some((p) => matchesSearch(p, query)) ?? false) ||
         c.groupes.some((g) => matchesSearch(g.nom, query));
 
       return (
@@ -116,12 +264,81 @@ export default function CharactersExplorer({ characters }: Props) {
       );
     });
 
-    result.sort((a, b) =>
+    // Une seule fiche par personnage multi-acteurs : la principale, ou à
+    // défaut celle qui correspond aux filtres.
+    const ids = new Set(result.map((c) => c.id));
+    const unique = result.filter(
+      (c) =>
+        !c.acteurPrincipalId ||
+        c.acteurPrincipalId === c.id ||
+        !ids.has(c.acteurPrincipalId),
+    );
+
+    unique.sort((a, b) =>
       sort === "a→z" ? a.nom.localeCompare(b.nom) : b.nom.localeCompare(a.nom),
     );
 
-    return result;
+    return unique;
   }, [characters, query, versionFilter, etatFilter, roleFilter, sort]);
+
+  // Groupes dont le nom correspond à la recherche (encart sur la vue Personnages).
+  const matchingGroupes = useMemo(
+    () =>
+      query.trim() ? groupes.filter((g) => matchesSearch(g.nom, query)) : [],
+    [groupes, query],
+  );
+
+  // Versions où au moins un groupe a eu des membres, dans l'ordre des versions.
+  const groupeVersions = useMemo(() => {
+    const used = new Set(groupes.flatMap((g) => g.versionIds ?? []));
+    return allVersions
+      .filter((v) => used.has(v.id))
+      .sort((a, b) => a.ordre - b.ordre)
+      .map((v) => ({ ...v, ordre: String(v.ordre) }));
+  }, [groupes, allVersions]);
+
+  const categorieNom = useMemo(
+    () => new Map(categories.map((c) => [c.id, c.nom])),
+    [categories],
+  );
+
+  const groupesFiltered = useMemo(
+    () =>
+      groupes
+        .filter(
+          (g) =>
+            (groupeVersion === "all" ||
+              !!g.versionIds?.includes(groupeVersion)) &&
+            (typeFilter === "all" || g.type === typeFilter) &&
+            (statutFilter === "all" || g.statut === statutFilter) &&
+            (juridictionFilter === "all" ||
+              g.juridiction === juridictionFilter) &&
+            (catFilter === "all" ||
+              (catFilter === NO_CATEGORIE
+                ? !g.categorieId || !categorieNom.has(g.categorieId)
+                : g.categorieId === catFilter)) &&
+            (etatGroupe === "all" ||
+              g.dissous === (etatGroupe === "dissous")) &&
+            matchesSearch(g.nom, query),
+        )
+        .sort((a, b) =>
+          groupeSort === "a→z"
+            ? a.nom.localeCompare(b.nom, "fr")
+            : b.nom.localeCompare(a.nom, "fr"),
+        ),
+    [
+      groupes,
+      groupeVersion,
+      typeFilter,
+      statutFilter,
+      juridictionFilter,
+      catFilter,
+      etatGroupe,
+      groupeSort,
+      categorieNom,
+      query,
+    ],
+  );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const currentPage = Math.min(page, totalPages);
@@ -134,8 +351,117 @@ export default function CharactersExplorer({ characters }: Props) {
 
   const resetPage = () => setPage(1);
 
+  const vueSwitch = (
+    <div
+      role="tablist"
+      aria-label="Vue"
+      className="inline-flex self-start rounded-lg border border-border bg-background p-0.5"
+    >
+      {(["personnages", "groupes"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          role="tab"
+          aria-selected={vue === v}
+          onClick={() => setVue(v)}
+          className={cn(
+            "rounded-md px-4 py-1.5 text-sm font-semibold transition-colors",
+            vue === v
+              ? "bg-accent text-accent-foreground"
+              : "text-text-secondary hover:text-text-primary",
+          )}
+        >
+          {v === "personnages" ? "Personnages" : "Groupes"}
+        </button>
+      ))}
+    </div>
+  );
+
+  const groupesGrid = (items: Groupe[]) => (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+      {items.map((g) => (
+        <GroupeCard
+          key={g.id}
+          groupe={g}
+          categorie={g.categorieId ? categorieNom.get(g.categorieId) : null}
+        />
+      ))}
+    </div>
+  );
+
+  if (vue === "groupes") {
+    return (
+      <section className="flex flex-col gap-4">
+        {vueSwitch}
+        <GroupeFilterBar
+          query={query}
+          onQueryChange={setQuery}
+          versions={groupeVersions}
+          versionFilter={groupeVersion}
+          onVersionChange={setGroupeVersion}
+          typeFilter={typeFilter}
+          onTypeChange={(v) => {
+            setTypeFilter(v);
+            // Les sous-filtres dépendent du type : on les remet à zéro.
+            setCatFilter("all");
+            setStatutFilter("all");
+            setJuridictionFilter("all");
+          }}
+          categories={categories}
+          catFilter={catFilter}
+          onCatChange={setCatFilter}
+          statutFilter={statutFilter}
+          onStatutChange={setStatutFilter}
+          juridictionFilter={juridictionFilter}
+          onJuridictionChange={setJuridictionFilter}
+          etatFilter={etatGroupe}
+          onEtatChange={setEtatGroupe}
+          sort={groupeSort}
+          onSortChange={setGroupeSort}
+          showPanel={showGroupePanel}
+          onTogglePanel={() => setShowGroupePanel((v) => !v)}
+          resultCount={groupesFiltered.length}
+        />
+        {groupesFiltered.length === 0 ? (
+          <EmptyState />
+        ) : typeFilter === "ENTREPRISE" ? (
+          // Seules les entreprises sont affichées : on les sépare par juridiction.
+          <div className="flex flex-col gap-6">
+            {[
+              ...GROUPE_JURIDICTIONS.map((j) => ({
+                key: j,
+                label: GROUPE_JURIDICTION_LABEL[j],
+                items: groupesFiltered.filter((g) => g.juridiction === j),
+              })),
+              {
+                key: "none",
+                label: "Sans juridiction",
+                items: groupesFiltered.filter((g) => !g.juridiction),
+              },
+            ]
+              .filter((section) => section.items.length > 0)
+              .map((section) => (
+                <div key={section.key} className="flex flex-col gap-3">
+                  <h2 className="m-0 flex items-baseline gap-2 text-sm font-semibold uppercase tracking-wide text-text-faint">
+                    {section.label}
+                    <span className="text-xs font-medium normal-case">
+                      {section.items.length}
+                    </span>
+                  </h2>
+                  {groupesGrid(section.items)}
+                </div>
+              ))}
+          </div>
+        ) : (
+          groupesGrid(groupesFiltered)
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-4">
+      {vueSwitch}
       <CharacterFilterBar
         query={query}
         onQueryChange={(v) => {
@@ -164,6 +490,33 @@ export default function CharactersExplorer({ characters }: Props) {
         onTogglePanel={() => setShowPanel((v) => !v)}
         resultCount={paginated.length}
       />
+
+      {matchingGroupes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-text-secondary">
+            {matchingGroupes.length} groupe
+            {matchingGroupes.length > 1 ? "s correspondent" : " correspond"} :
+          </span>
+          {matchingGroupes.slice(0, 4).map((g) => (
+            <Link
+              key={g.id}
+              href={groupeHref(g)}
+              className="rounded-full border border-border px-3 py-1 font-medium hover:bg-muted"
+            >
+              {g.nom}
+            </Link>
+          ))}
+          {matchingGroupes.length > 4 && (
+            <button
+              type="button"
+              onClick={() => setVue("groupes")}
+              className="font-medium text-accent hover:underline"
+            >
+              Voir tous les groupes
+            </button>
+          )}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyState />

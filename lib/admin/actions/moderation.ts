@@ -2,6 +2,7 @@
 
 import { requireAdmin } from "@/lib/admin/auth";
 import { applyAcceptedSuggestion } from "@/lib/admin/suggestions";
+import { deleteCloudinaryImage } from "@/lib/cloudinary-server";
 import { prisma } from "@/lib/db";
 import { notifyUser } from "@/lib/notifications";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
@@ -14,7 +15,7 @@ export async function acceptSuggestion(
   message?: string,
 ): Promise<ActionResult<{ characterId: string | null }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("moderation");
     const s = await prisma.suggestion.update({
       where: { id, status: "pending" },
       data: {
@@ -45,7 +46,7 @@ export async function rejectSuggestion(
   message: string,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("moderation");
     const s = await prisma.suggestion.update({
       where: { id, status: "pending" },
       data: {
@@ -56,6 +57,11 @@ export async function rejectSuggestion(
       },
       include: { character: { select: { nom: true } } },
     });
+    // Proposition refusée : l'image envoyée n'a plus d'utilité.
+    if (s.imageUrl) {
+      await deleteCloudinaryImage(s.imageUrl);
+      await prisma.suggestion.update({ where: { id }, data: { imageUrl: null } });
+    }
     if (s.clerkUserId) {
       await notifyUser(
         s.clerkUserId,
@@ -76,7 +82,7 @@ export async function askSuggestionDetails(
   message: string,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("moderation");
     const text = clean(message);
     if (!text)
       return {
@@ -106,7 +112,7 @@ export async function reviewCreation(
   message?: string,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("moderation_other");
     const post = await prisma.creatorPost.findUniqueOrThrow({
       where: { id },
       include: {
@@ -141,7 +147,7 @@ export async function reviewReport(
   decision: "remove" | "ignore",
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("moderation_other");
     const report = await prisma.report.findUniqueOrThrow({ where: { id } });
     if (decision === "remove") {
       if (report.targetType === "POST") {
@@ -171,7 +177,7 @@ export async function reviewLinkRequest(
   message?: string,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("moderation_other");
     const req = await prisma.playerLinkRequest.findUniqueOrThrow({
       where: { id },
       include: { userProfile: true, player: { select: { pseudo: true } } },
@@ -224,7 +230,7 @@ export async function addSiteUpdate(
   detail: string,
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("users");
     const l = clean(label);
     if (!l) return { ok: false, error: "Le titre est requis." };
     await prisma.changelogEntry.create({

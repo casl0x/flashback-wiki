@@ -1,7 +1,10 @@
 "use server";
 
+import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
+import { getKickAvatar } from "@/lib/kick";
 import { getTwitchAvatar } from "@/lib/twitch";
 import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
@@ -16,7 +19,7 @@ export type PlayerInput = {
 
 export async function savePlayer(id: string | null, input: PlayerInput): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("players");
     const pseudo = input.pseudo.trim();
     if (!pseudo) return { ok: false, error: "Le pseudo est requis." };
     const reseaux = Object.fromEntries(
@@ -35,9 +38,14 @@ export async function savePlayer(id: string | null, input: PlayerInput): Promise
       // Ancien champ : gardé synchronisé avec le badge « streamer ».
       stream: badges.includes("streamer"),
     };
+    const previousImage = id
+      ? (await prisma.player.findUnique({ where: { id }, select: { imageUrl: true } }))?.imageUrl
+      : null;
     const p = id
       ? await prisma.player.update({ where: { id }, data })
       : await prisma.player.create({ data });
+    await cleanupReplacedImage(previousImage, data.imageUrl);
+    await logChange(id ? "edit_player" : "add_player", p.pseudo);
     await refreshAll();
     return { ok: true, data: { id: p.id } };
   } catch (e) {
@@ -48,7 +56,7 @@ export async function savePlayer(id: string | null, input: PlayerInput): Promise
 /** Avatar Twitch d'un lien de chaîne, pour le bouton « Utiliser cette pp » de l'admin. */
 export async function fetchTwitchAvatar(channelUrl: string): Promise<ActionResult<{ avatarUrl: string }>> {
   try {
-    await requireAdmin();
+    await requireAdmin("players");
     if (detectStreamPlatform(channelUrl) !== "twitch") {
       return { ok: false, error: "Ce n'est pas un lien Twitch." };
     }
@@ -62,11 +70,29 @@ export async function fetchTwitchAvatar(channelUrl: string): Promise<ActionResul
   }
 }
 
-export async function deletePlayer(id: string): Promise<ActionResult> {
+/** Avatar Kick d'un lien de chaîne, pour le bouton « Utiliser cette pp » de l'admin. */
+export async function fetchKickAvatar(channelUrl: string): Promise<ActionResult<{ avatarUrl: string }>> {
   try {
     await requireAdmin();
+    if (detectStreamPlatform(channelUrl) !== "kick") {
+      return { ok: false, error: "Ce n'est pas un lien Kick." };
+    }
+    const slug = extractStreamUsername(channelUrl);
+    if (!slug) return { ok: false, error: "Pseudo Kick introuvable dans le lien." };
+    const avatarUrl = await getKickAvatar(slug);
+    if (!avatarUrl) return { ok: false, error: "Avatar introuvable sur Kick." };
+    return { ok: true, data: { avatarUrl } };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+export async function deletePlayer(id: string): Promise<ActionResult> {
+  try {
+    await requireAdmin("players");
     // Les persos du joueur restent, sans joueur (onDelete: SetNull).
-    await prisma.player.delete({ where: { id } });
+    const p = await prisma.player.delete({ where: { id }, select: { imageUrl: true } });
+    await cleanupReplacedImage(p.imageUrl, null);
     await refreshAll();
     return { ok: true };
   } catch (e) {
@@ -76,7 +102,7 @@ export async function deletePlayer(id: string): Promise<ActionResult> {
 
 export async function unlinkPlayerAccount(playerId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdmin("players");
     await prisma.userProfile.updateMany({ where: { playerId }, data: { playerId: null } });
     await refreshAll();
     return { ok: true };
