@@ -1,6 +1,6 @@
 import { visibleCharacter } from "@/lib/hidden-characters";
 import type { EtatVie, VersionTag } from "@/lib/character-page";
-import { prisma } from "@/lib/db";
+import { prisma, withDbRetry } from "@/lib/db";
 import { toTracks, type MusicTrack } from "@/lib/music";
 import { toPlayerChannel, type PlayerChannel } from "@/lib/utils";
 import { versionRank } from "@/lib/version-rank";
@@ -22,24 +22,22 @@ export type PlayerListItem = {
 };
 
 async function loadPlayersList(): Promise<PlayerListItem[]> {
-  try {
-    const players = await prisma.player.findMany({
+  // Une erreur de base remonte (au lieu d'une liste vide mise en cache 5 min).
+  const players = await withDbRetry("Failed to load players list", () =>
+    prisma.player.findMany({
       orderBy: { pseudo: "asc" },
       include: { _count: { select: { characters: true } } },
-    });
+    }),
+  );
 
-    return players.map((p) => ({
-      id: p.id,
-      pseudo: p.pseudo.trim() || "Joueur",
-      chaines: p.chaines.map(toPlayerChannel),
-      badges: p.badges,
-      imageUrl: p.imageUrl,
-      characterCount: p._count.characters,
-    }));
-  } catch (error) {
-    console.error("Failed to load players list", error);
-    return [];
-  }
+  return players.map((p) => ({
+    id: p.id,
+    pseudo: p.pseudo.trim() || "Joueur",
+    chaines: p.chaines.map(toPlayerChannel),
+    badges: p.badges,
+    imageUrl: p.imageUrl,
+    characterCount: p._count.characters,
+  }));
 }
 
 export const getPlayersList = unstable_cache(loadPlayersList, ["players-list"], {
@@ -102,17 +100,15 @@ const normalizeReseaux = (value: unknown): Record<string, string> => {
 };
 
 async function loadPlayerPage(id: string): Promise<PlayerPageData | null> {
-  try {
-    return await loadPlayerPageUnsafe(id);
-  } catch (error) {
-    console.error("Failed to load player page", error);
-    return null;
-  }
+  // `null` = joueur réellement introuvable (404) ; une erreur de base remonte.
+  return withDbRetry("Failed to load player page", () => loadPlayerPageUnsafe(id));
 }
 
 async function loadPlayerPageUnsafe(id: string): Promise<PlayerPageData | null> {
   const p = await prisma.player.findUnique({
     where: { id },
+    // Une seule requête SQL (jointures) : moins de connexions du pool utilisées.
+    relationLoadStrategy: "join",
     include: {
       characters: {
         where: visibleCharacter,

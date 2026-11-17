@@ -6,6 +6,25 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
+/**
+ * Exécute une lecture en la retentant (pool saturé, Neon qui se réveille après
+ * une veille…) : 2 retries espacés de 400 ms puis 1,2 s. Si ça échoue encore,
+ * l'erreur remonte : un problème de base ne doit pas devenir un faux
+ * « introuvable » (404) mis en cache par unstable_cache.
+ */
+export async function withDbRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const delays = [400, 1200];
+  for (const delay of delays) {
+    try {
+      return await fn();
+    } catch (error) {
+      console.error(`${label} (retry dans ${delay} ms)`, error);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  return await fn();
+}
+
 // ─── Player ──────────────────────────────────────────────────────────────────
 export type Player = {
   id: string;
