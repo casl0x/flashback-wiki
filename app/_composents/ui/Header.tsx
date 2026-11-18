@@ -1,5 +1,6 @@
 "use client";
 
+import { FULL_ADMIN_ROLE } from "@/lib/admin/permissions";
 import { cn } from "@/lib/utils";
 import {
   SignInButton,
@@ -16,7 +17,7 @@ import FeedbackButton from "@/app/_composents/feedback/FeedbackButton";
 import NewsButton from "@/app/_composents/feedback/NewsButton";
 import NotificationBell from "./Notificationbell";
 
-const LINKS = [
+const LINKS: { href: string; label: string; also?: string[] }[] = [
   { href: "/personnages", label: "Explorer" },
   { href: "/joueurs", label: "Joueurs" },
   { href: "/musiques", label: "Musiques" },
@@ -119,9 +120,28 @@ export default function Header() {
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { userMemberships } = useOrganizationList({ userMemberships: true });
 
-  const linkCls = (href: string) => {
-    const active = pathname === href || pathname.startsWith(`${href}/`);
+  // Avant-première : l'Explorer (écran Lore / Personnages) n'est visible que
+  // des admins complets ; les autres gardent le lien vers /personnages.
+  const isFullAdmin = !!userMemberships?.data?.some(
+    (m) =>
+      m.organization.id === process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID &&
+      m.role === FULL_ADMIN_ROLE,
+  );
+  const links = LINKS.map((l) =>
+    l.label === "Explorer" && isFullAdmin
+      ? { href: "/explorer", label: l.label, also: ["/personnages"] }
+      : l,
+  );
+
+  const isActive = (l: { href: string; also?: string[] }) =>
+    [l.href, ...(l.also ?? [])].some(
+      (h) => pathname === h || pathname.startsWith(`${h}/`),
+    );
+
+  const linkCls = (l: { href: string; also?: string[] }) => {
+    const active = isActive(l);
     return cn(
       "text-sm font-medium transition-colors",
       active ? "text-text-primary" : "text-text-muted hover:text-text-primary",
@@ -160,12 +180,12 @@ export default function Header() {
           aria-label="Navigation principale"
           className="hidden items-center gap-6 md:flex"
         >
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className={linkCls(l.href)}
-              aria-current={pathname.startsWith(l.href) ? "page" : undefined}
+              className={linkCls(l)}
+              aria-current={isActive(l) ? "page" : undefined}
             >
               {l.label}
             </Link>
@@ -199,12 +219,12 @@ export default function Header() {
           aria-label="Navigation principale"
           className="flex flex-col border-t border-border px-4 py-2 md:hidden"
         >
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               onClick={() => setMenuOpen(false)}
-              className={cn(linkCls(l.href), "flex min-h-11 items-center")}
+              className={cn(linkCls(l), "flex min-h-11 items-center")}
             >
               {l.label}
             </Link>
