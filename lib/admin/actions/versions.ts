@@ -76,6 +76,10 @@ export async function reorderVersions(ids: string[]): Promise<ActionResult> {
 export async function deleteVersion(id: string): Promise<ActionResult> {
   try {
     await requireAdmin("versions");
+    const lore = await prisma.loreEvent.count({ where: { versionId: id } });
+    if (lore > 0) {
+      return { ok: false, error: `Impossible : cette version a encore ${lore} événement(s) de lore. Supprime-les ou déplace-les d’abord.` };
+    }
     const v = await prisma.version.delete({ where: { id }, select: { imageUrl: true } });
     await cleanupReplacedImage(v.imageUrl, null);
     await refreshAll();
