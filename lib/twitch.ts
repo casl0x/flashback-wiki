@@ -84,3 +84,22 @@ export async function getTwitchAvatar(login: string): Promise<string | null> {
   const { data } = await twitchHelixGet<TwitchUser>("users", [login]);
   return data?.[0]?.profile_image_url || null;
 }
+
+/** Appel Helix générique (token App Access, retry sur 401). */
+export async function twitchHelix<T>(
+  path: string,
+  params: URLSearchParams,
+  retry = true,
+): Promise<{ data?: T[]; pagination?: { cursor?: string } }> {
+  const token = await getAppAccessToken();
+  const res = await fetch(`https://api.twitch.tv/helix/${path}?${params.toString()}`, {
+    headers: { "Client-Id": process.env.TWITCH_CLIENT_ID!, Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (res.status === 401 && retry) {
+    cachedToken = null;
+    return twitchHelix<T>(path, params, false);
+  }
+  if (!res.ok) throw new Error(`Twitch ${path} error (${res.status})`);
+  return res.json();
+}
