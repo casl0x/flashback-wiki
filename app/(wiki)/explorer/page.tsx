@@ -20,7 +20,7 @@ const SIDES = [
     kicker: "Univers",
     title: "Personnages",
     hint: "Personnages et groupes",
-    color: "#FFA800",
+    color: "#9D93F5",
   },
 ] as const;
 
@@ -39,7 +39,7 @@ export default function ExplorerPage() {
             key={s.href}
             href={s.href}
             className={cn(
-              "group flex flex-col items-center justify-center gap-3 px-6 text-center transition-opacity duration-300",
+              "group flex flex-col items-center justify-center gap-3 px-4 text-center transition-opacity duration-300",
               i === 0
                 ? "border-b border-white/5 md:border-b-0 md:border-r"
                 : "",
@@ -52,12 +52,12 @@ export default function ExplorerPage() {
             <span
               className={cn(
                 anton.className,
-                "text-[clamp(64px,13vw,150px)] uppercase leading-none transition-transform duration-300 group-hover:scale-105",
+                "text-[clamp(40px,8vw,120px)] uppercase leading-none transition-transform duration-300 group-hover:scale-105",
               )}
             >
               {s.title}
             </span>
-            <span className="text-[clamp(11px,1.6vw,16px)] font-bold uppercase tracking-[0.55em] opacity-75">
+            <span className="text-[clamp(10px,1.3vw,14px)] font-bold uppercase tracking-[0.4em] opacity-75">
               {s.hint}
             </span>
           </Link>

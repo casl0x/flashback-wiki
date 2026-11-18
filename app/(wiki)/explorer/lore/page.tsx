@@ -16,7 +16,7 @@ export default function LorePage() {
       <h1
         className={cn(
           anton.className,
-          "m-0 text-[clamp(64px,13vw,150px)] uppercase leading-none",
+          "m-0 text-[clamp(40px,8vw,120px)] uppercase leading-none",
         )}
       >
         Lore
