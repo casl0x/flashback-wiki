@@ -1,6 +1,5 @@
 "use client";
 
-import { FULL_ADMIN_ROLE } from "@/lib/admin/permissions";
 import { cn } from "@/lib/utils";
 import {
   SignInButton,
@@ -18,7 +17,7 @@ import NewsButton from "@/app/_composents/feedback/NewsButton";
 import NotificationBell from "./Notificationbell";
 
 const LINKS: { href: string; label: string; also?: string[] }[] = [
-  { href: "/personnages", label: "Explorer" },
+  { href: "/explorer", label: "Explorer", also: ["/personnages"] },
   { href: "/joueurs", label: "Joueurs" },
   { href: "/musiques", label: "Musiques" },
   { href: "/createurs", label: "Créateurs" },
@@ -120,21 +119,6 @@ export default function Header() {
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { userMemberships } = useOrganizationList({ userMemberships: true });
-
-  // Avant-première : l'Explorer (écran Lore / Personnages) n'est visible que
-  // des admins complets ; les autres gardent le lien vers /personnages.
-  const isFullAdmin = !!userMemberships?.data?.some(
-    (m) =>
-      m.organization.id === process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID &&
-      m.role === FULL_ADMIN_ROLE,
-  );
-  const links = LINKS.map((l) =>
-    l.label === "Explorer" && isFullAdmin
-      ? { href: "/explorer", label: l.label, also: ["/personnages"] }
-      : l,
-  );
-
   const isActive = (l: { href: string; also?: string[] }) =>
     [l.href, ...(l.also ?? [])].some(
       (h) => pathname === h || pathname.startsWith(`${h}/`),
@@ -180,7 +164,7 @@ export default function Header() {
           aria-label="Navigation principale"
           className="hidden items-center gap-6 md:flex"
         >
-          {links.map((l) => (
+          {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
@@ -219,7 +203,7 @@ export default function Header() {
           aria-label="Navigation principale"
           className="flex flex-col border-t border-border px-4 py-2 md:hidden"
         >
-          {links.map((l) => (
+          {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}

@@ -1,5 +1,7 @@
+import { getAdminLevel } from "@/lib/admin/auth";
 import { anton } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -25,7 +27,10 @@ const ENTRIES = [
   },
 ] as const;
 
-export default function ExplorerPage() {
+export default async function ExplorerPage() {
+  // Lore en avant-première : « Bientôt » pour tout le monde sauf les admins complets.
+  const { userId } = await auth();
+  const isAdmin = (await getAdminLevel(userId)) === "admin";
   return (
     <div className="bg-[#080808] text-[#ECECEE]">
       <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-295 flex-col justify-center py-4">
@@ -58,6 +63,11 @@ export default function ExplorerPage() {
                 {e.description}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
+                {e.href === "/explorer/lore" && !isAdmin && (
+                  <span className="rounded-full border border-(--c) px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-(--c)">
+                    Bientôt
+                  </span>
+                )}
                 {e.tags.map((t) => (
                   <span
                     key={t}
