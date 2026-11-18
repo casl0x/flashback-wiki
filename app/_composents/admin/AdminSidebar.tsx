@@ -38,6 +38,7 @@ export default function AdminSidebar({
         { href: "/admin/grade-modeles", label: "Modèles de grades" },
         { href: "/admin/versions", label: "Versions" },
         { href: "/admin/lore", label: "Lore" },
+        { href: "/admin/clips", label: "Clips Twitch" },
       ],
     },
     {

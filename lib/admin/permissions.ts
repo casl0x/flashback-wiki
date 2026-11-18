@@ -20,6 +20,7 @@ export type AdminSection =
   | "categories"
   | "grade-modeles"
   | "versions"
+  | "clips" // recherche de clips Twitch, admins complets uniquement
   | "lore" // admins complets uniquement (pas dans EDITOR_SECTIONS)
   | "creators"
   | "announcements"
@@ -64,7 +65,7 @@ export function sectionFromPath(pathname: string): AdminSection | null {
   if (!seg) return "dashboard";
   const known: AdminSection[] = [
     "moderation", "characters", "players", "groupes", "categories", "grade-modeles",
-    "versions", "lore", "creators", "announcements", "polls", "suggestions", "users",
+    "versions", "lore", "clips", "creators", "announcements", "polls", "suggestions", "users",
   ];
   return (known as string[]).includes(seg) ? (seg as AdminSection) : null;
 }
