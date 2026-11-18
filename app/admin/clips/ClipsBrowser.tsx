@@ -39,6 +39,17 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
   const [toDay, setToDay] = useState("");
   const [sort, setSort] = useState<"views" | "recent" | "old" | "dur">("views");
   const [playing, setPlaying] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function copyLink(c: AdminClip) {
+    try {
+      await navigator.clipboard.writeText(c.url);
+      setCopied(c.id);
+      setTimeout(() => setCopied((x) => (x === c.id ? null : x)), 1800);
+    } catch {
+      window.prompt("Copie le lien :", c.url);
+    }
+  }
 
   const shownChannels = useMemo(() => {
     const n = chanQ.trim().toLowerCase();
@@ -254,7 +265,7 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
           {results.length === 0 ? (
             <Empty>Aucun clip ne correspond.</Empty>
           ) : (
-            <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-0">
+            <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,28rem),1fr))] gap-5 p-0">
               {results.slice(0, 120).map((c) => (
                 <li key={c.id} className="flex flex-col overflow-hidden rounded-[10px] border border-[#23262D] bg-[#0F1013]">
                   {playing === c.id ? (
@@ -284,6 +295,19 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
                       {new Date(c.created_at).toLocaleDateString("fr-FR")} · par {c.creator_name}
                       {c.game && ` · ${c.game}`}
                     </span>
+                    <div className="mt-2 flex gap-2">
+                      <Button type="button" onClick={() => copyLink(c)} className="min-h-9">
+                        {copied === c.id ? "Lien copié ✓" : "Copier le lien"}
+                      </Button>
+                      <a
+                        href={c.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-9 items-center rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#C4C7CF] hover:text-white"
+                      >
+                        Ouvrir
+                      </a>
+                    </div>
                   </div>
                 </li>
               ))}
