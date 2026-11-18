@@ -42,7 +42,7 @@ function ClipCard({ clip, index }: { clip: LoreClip; index: number }) {
         : null;
 
   return (
-    <div className="w-52 flex-none snap-start overflow-hidden rounded-[9px] border border-[#2a2d35] bg-black transition-colors hover:border-(--c) sm:w-56">
+    <div className="w-[min(85vw,28rem)] flex-none snap-start overflow-hidden rounded-[10px] border border-[#2a2d35] bg-black transition-colors hover:border-(--c)">
       <div className="relative aspect-video">
         {playing && src ? (
           <iframe
@@ -65,15 +65,15 @@ function ClipCard({ clip, index }: { clip: LoreClip; index: number }) {
             )}
             <span
               className={cn(
-                "relative flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-black transition-transform group-hover:scale-110",
+                "relative flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-black transition-transform group-hover:scale-110",
               )}
             >
-              {canEmbed ? <Play className="h-4 w-4 translate-x-px fill-current" /> : <ExternalLink className="h-4 w-4" />}
+              {canEmbed ? <Play className="h-6 w-6 translate-x-0.5 fill-current" /> : <ExternalLink className="h-6 w-6" />}
             </span>
           </button>
         )}
       </div>
-      <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[12px] text-[#8D93A0]">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 text-[13px] text-[#8D93A0]">
         <b className="min-w-0 truncate font-semibold text-white">{label}</b>
         <a
           href={clip.url}
