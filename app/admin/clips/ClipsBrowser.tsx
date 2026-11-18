@@ -20,7 +20,9 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)
 export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [chanQ, setChanQ] = useState("");
-  const [days, setDays] = useState<number>(30);
+  const [days, setDays] = useState<number>(30); // -1 = dates personnalisées
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,8 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
   const [maxDur, setMaxDur] = useState("");
   const [game, setGame] = useState("");
   const [creator, setCreator] = useState("");
+  const [fromDay, setFromDay] = useState("");
+  const [toDay, setToDay] = useState("");
   const [sort, setSort] = useState<"views" | "recent" | "old" | "dur">("views");
   const [playing, setPlaying] = useState<string | null>(null);
 
@@ -51,6 +55,11 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
     try {
       const p = new URLSearchParams({ logins: selected.join(","), pages: String(pages) });
       if (days > 0) p.set("from", new Date(Date.now() - days * 864e5).toISOString());
+      if (days === -1) {
+        // Bornes en heure locale ; "au" inclut toute la journée choisie.
+        if (dateFrom) p.set("from", new Date(`${dateFrom}T00:00:00`).toISOString());
+        if (dateTo) p.set("to", new Date(`${dateTo}T23:59:59.999`).toISOString());
+      }
       const res = await fetch(`/api/admin/clips?${p}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `Erreur ${res.status}`);
@@ -74,11 +83,15 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
     const cr = creator.trim().toLowerCase();
     const mv = Number(minViews) || 0;
     const md = Number(maxDur) || 0;
+    const fromMs = fromDay ? new Date(`${fromDay}T00:00:00`).getTime() : -Infinity;
+    const toMs = toDay ? new Date(`${toDay}T23:59:59.999`).getTime() : Infinity;
     const list = (clips ?? []).filter(
       (c) =>
         (!n || c.title.toLowerCase().includes(n)) &&
         (!cr || c.creator_name.toLowerCase().includes(cr)) &&
         c.view_count >= mv &&
+        new Date(c.created_at).getTime() >= fromMs &&
+        new Date(c.created_at).getTime() <= toMs &&
         (!md || c.duration <= md) &&
         (!game || c.game === game),
     );
@@ -89,7 +102,7 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
       dur: (a: AdminClip, b: AdminClip) => b.duration - a.duration,
     }[sort];
     return list.sort(by);
-  }, [clips, q, creator, minViews, maxDur, game, sort]);
+  }, [clips, q, creator, minViews, maxDur, game, sort, fromDay, toDay]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -152,6 +165,29 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
               {p.label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setDays(-1)}
+            aria-pressed={days === -1}
+            className={cn(
+              "rounded-lg border px-3 py-1.5 text-[13px] font-semibold",
+              days === -1 ? "border-[#2F6FEB] bg-[#1F2A44] text-white" : "border-[#3A3E47] text-[#C4C7CF]",
+            )}
+          >
+            Dates précises
+          </button>
+          {days === -1 && (
+            <>
+              <label className="flex items-center gap-1.5 text-[13px] text-[#A3A8B3]">
+                Du
+                <TextInput type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} className="w-auto" />
+              </label>
+              <label className="flex items-center gap-1.5 text-[13px] text-[#A3A8B3]">
+                au
+                <TextInput type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} className="w-auto" />
+              </label>
+            </>
+          )}
           <label className="ml-2 flex items-center gap-2 text-[13px] text-[#A3A8B3]">
             Profondeur
             <Select value={pages} onChange={(e) => setPages(Number(e.target.value))} className="w-auto">
@@ -193,6 +229,14 @@ export default function ClipsBrowser({ channels }: { channels: Channel[] }) {
               value={maxDur}
               onChange={(e) => setMaxDur(e.target.value)}
             />
+            <label className="flex items-center gap-1.5 text-[13px] text-[#A3A8B3]">
+              Du
+              <TextInput type="date" value={fromDay} onChange={(e) => setFromDay(e.target.value)} />
+            </label>
+            <label className="flex items-center gap-1.5 text-[13px] text-[#A3A8B3]">
+              au
+              <TextInput type="date" value={toDay} onChange={(e) => setToDay(e.target.value)} />
+            </label>
             <Select value={game} onChange={(e) => setGame(e.target.value)}>
               <option value="">Tous les jeux</option>
               {games.map((g) => (
