@@ -1,0 +1,157 @@
+import { prisma, withDbRetry } from "@/lib/db";
+import { groupeHref } from "@/lib/groupe-types";
+import { visibleCharacter } from "@/lib/hidden-characters";
+import { youtubeThumbnail, youtubeVideoId } from "@/lib/media-embed";
+import { versionRank } from "@/lib/version-rank";
+
+// ─── Lore : événements marquants par version (Explorer > Lore) ───────────────
+
+export type ClipPlatform = "youtube" | "twitch" | "kick" | "other";
+
+/** Clip tel que stocké en base : titre libre optionnel. */
+export type LoreClipInput = { url: string; titre: string | null };
+
+export type LoreClip = LoreClipInput & {
+  platform: ClipPlatform;
+  /** Miniature quand la plateforme en donne une sans API (YouTube). */
+  thumbnail: string | null;
+  /** Identifiant d'intégration : id vidéo YouTube ou slug de clip Twitch. */
+  embedId: string | null;
+};
+
+const safeUrl = (url: string): URL | null => {
+  try {
+    return new URL(url);
+  } catch {
+    return null;
+  }
+};
+
+/** Slug d'un clip Twitch (clips.twitch.tv/<slug> ou twitch.tv/<chaîne>/clip/<slug>). */
+export function twitchClipSlug(url: string): string | null {
+  const u = safeUrl(url);
+  if (!u) return null;
+  if (u.hostname === "clips.twitch.tv") return u.pathname.split("/").filter(Boolean)[0] ?? null;
+  if (u.hostname.endsWith("twitch.tv")) {
+    const m = u.pathname.match(/\/clip\/([\w-]+)/);
+    return m?.[1] ?? null;
+  }
+  return null;
+}
+
+export function clipPlatform(url: string): ClipPlatform {
+  const host = safeUrl(url)?.hostname ?? "";
+  if (host.includes("youtube.com") || host === "youtu.be") return "youtube";
+  if (host.endsWith("twitch.tv")) return "twitch";
+  if (host.endsWith("kick.com")) return "kick";
+  return "other";
+}
+
+export const CLIP_PLATFORM_LABEL: Record<ClipPlatform, string> = {
+  youtube: "YouTube",
+  twitch: "Twitch",
+  kick: "Kick",
+  other: "Lien",
+};
+
+/** Lit la colonne Json `clips` en ignorant toute entrée mal formée. */
+export function parseClipInputs(value: unknown): LoreClipInput[] {
+  if (!Array.isArray(value)) return [];
+  const out: LoreClipInput[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const { url, titre } = item as { url?: unknown; titre?: unknown };
+    if (typeof url !== "string" || !url.trim()) continue;
+    out.push({
+      url: url.trim(),
+      titre: typeof titre === "string" && titre.trim() ? titre.trim() : null,
+    });
+  }
+  return out;
+}
+
+export function toClip(c: LoreClipInput): LoreClip {
+  const platform = clipPlatform(c.url);
+  return {
+    ...c,
+    platform,
+    thumbnail: platform === "youtube" ? youtubeThumbnail(c.url) : null,
+    embedId:
+      platform === "youtube"
+        ? youtubeVideoId(c.url)
+        : platform === "twitch"
+          ? twitchClipSlug(c.url)
+          : null,
+  };
+}
+
+export type LoreEventView = {
+  id: string;
+  titre: string;
+  resume: string;
+  major: boolean;
+  clips: LoreClip[];
+  characters: { id: string; nom: string; href: string }[];
+  groupes: { id: string; nom: string; href: string }[];
+};
+
+export type LoreVersionView = {
+  id: string;
+  label: string;
+  color: string;
+  events: LoreEventView[];
+};
+
+/** Lore public : versions qui ont au moins un événement, la plus récente d'abord. */
+export async function getLoreByVersion(): Promise<LoreVersionView[]> {
+  const versions = await withDbRetry("getLoreByVersion", () =>
+    prisma.version.findMany({
+      where: { loreEvents: { some: {} } },
+      select: {
+        id: true,
+        label: true,
+        color: true,
+        loreEvents: {
+          orderBy: [{ ordre: "asc" }, { createdAt: "asc" }],
+          select: {
+            id: true,
+            titre: true,
+            resume: true,
+            major: true,
+            clips: true,
+            characters: {
+              where: { character: { ...visibleCharacter } },
+              select: { character: { select: { id: true, nom: true } } },
+            },
+            groupes: {
+              select: { groupe: { select: { id: true, nom: true, slug: true, type: true } } },
+            },
+          },
+        },
+      },
+    }),
+  );
+
+  return versions
+    .sort((a, b) => versionRank(b.id) - versionRank(a.id))
+    .map((v) => ({
+      id: v.id,
+      label: v.label,
+      color: v.color,
+      events: v.loreEvents.map((e) => ({
+        id: e.id,
+        titre: e.titre,
+        resume: e.resume,
+        major: e.major,
+        clips: parseClipInputs(e.clips).map(toClip),
+        characters: e.characters
+          .map((c) => c.character)
+          .sort((a, b) => a.nom.localeCompare(b.nom, "fr"))
+          .map((c) => ({ id: c.id, nom: c.nom, href: `/personnages/${c.id}` })),
+        groupes: e.groupes
+          .map((g) => g.groupe)
+          .sort((a, b) => a.nom.localeCompare(b.nom, "fr"))
+          .map((g) => ({ id: g.id, nom: g.nom, href: groupeHref(g) })),
+      })),
+    }));
+}

@@ -37,6 +37,7 @@ export default function AdminSidebar({
         { href: "/admin/categories", label: "Catégories" },
         { href: "/admin/grade-modeles", label: "Modèles de grades" },
         { href: "/admin/versions", label: "Versions" },
+        { href: "/admin/lore", label: "Lore" },
       ],
     },
     {

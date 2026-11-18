@@ -252,6 +252,7 @@ model Version {
   characters       Character[]       @relation("CharacterVersions")
   characterGroupes CharacterGroupe[]
   suggestions      Suggestion[]
+  loreEvents       LoreEvent[]
 
   @@map("versions")
 }
@@ -314,6 +315,7 @@ model Character {
   suggestions  Suggestion[]
   creatorPosts CreatorPostCharacter[]
   pointEntries PointEntry[]
+  loreEvents   LoreEventCharacter[]
 
   @@map("characters")
 }
@@ -362,8 +364,9 @@ model Groupe {
   categorieId String?          @map("categorie_id")
   categorie   GroupeCategorie? @relation(fields: [categorieId], references: [id], onDelete: SetNull)
 
-  members CharacterGroupe[]
-  grades  GroupeGrade[]
+  members    CharacterGroupe[]
+  grades     GroupeGrade[]
+  loreEvents LoreEventGroupe[]
 
   @@index([type])
   @@map("groupes")
@@ -533,4 +536,51 @@ model GradeModeleItem {
 
   @@index([modeleId])
   @@map("grade_modele_items")
+}
+
+// Lore : événements marquants du serveur, rangés par version (page Explorer > Lore).
+model LoreEvent {
+  id      String  @id @default(cuid())
+  titre   String
+  resume  String
+  // Événement majeur : mis en avant sur la page publique.
+  major   Boolean @default(false)
+  // Position dans sa version (du plus ancien au plus récent).
+  ordre   Int     @default(0)
+  // Clips à revoir, dans l'ordre d'affichage : [{ url, titre }] (titre optionnel).
+  clips   Json    @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Restrict : on ne supprime pas une version qui a encore du lore.
+  versionId String  @map("version_id")
+  version   Version @relation(fields: [versionId], references: [id], onDelete: Restrict)
+
+  characters LoreEventCharacter[]
+  groupes    LoreEventGroupe[]
+
+  @@index([versionId, ordre])
+  @@map("lore_events")
+}
+
+model LoreEventCharacter {
+  loreEventId String    @map("lore_event_id")
+  loreEvent   LoreEvent @relation(fields: [loreEventId], references: [id], onDelete: Cascade)
+  characterId String    @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@id([loreEventId, characterId])
+  @@index([characterId])
+  @@map("lore_event_characters")
+}
+
+model LoreEventGroupe {
+  loreEventId String    @map("lore_event_id")
+  loreEvent   LoreEvent @relation(fields: [loreEventId], references: [id], onDelete: Cascade)
+  groupeId    String    @map("groupe_id")
+  groupe      Groupe    @relation(fields: [groupeId], references: [id], onDelete: Cascade)
+
+  @@id([loreEventId, groupeId])
+  @@index([groupeId])
+  @@map("lore_event_groupes")
 }
