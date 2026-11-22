@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/admin/auth";
+import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { parseClipInputs, type LoreClipInput } from "@/lib/lore";
 import { revalidatePath } from "next/cache";
@@ -109,6 +110,7 @@ export async function saveLoreEvent(
       return originalId;
     });
 
+    await logChange(originalId ? "edit_lore" : "add_lore", base.titre);
     await after();
     return { ok: true, data: { id } };
   } catch (e) {

@@ -30,5 +30,7 @@ export const CHANGELOG_STYLE: Record<string, { label: string; color: string }> =
   edit_player: { label: "joueur modifié", color: "#9146FF" },
   add_groupe: { label: "groupe ajouté", color: "#E4B44A" },
   edit_groupe: { label: "groupe modifié", color: "#E4B44A" },
+  add_lore: { label: "lore ajouté", color: "#5FD3C8" },
+  edit_lore: { label: "lore modifié", color: "#5FD3C8" },
   site: { label: "mise à jour du site", color: "#C4C7CF" },
 };
