@@ -85,10 +85,15 @@ export function toClip(c: LoreClipInput): LoreClip {
   };
 }
 
+export type LoreKind = "EVENT" | "TEXT";
+
 export type LoreEventView = {
   id: string;
+  /** EVENT : carte de la frise. TEXT : bloc de texte mis en forme (lore hors gameplay). */
+  kind: LoreKind;
   titre: string;
   resume: string;
+  contenu: string | null;
   major: boolean;
   clips: LoreClip[];
   characters: { id: string; nom: string; href: string }[];
@@ -115,8 +120,10 @@ export async function getLoreByVersion(): Promise<LoreVersionView[]> {
           orderBy: [{ ordre: "asc" }, { createdAt: "asc" }],
           select: {
             id: true,
+            kind: true,
             titre: true,
             resume: true,
+            contenu: true,
             major: true,
             clips: true,
             characters: {
@@ -140,8 +147,10 @@ export async function getLoreByVersion(): Promise<LoreVersionView[]> {
       color: v.color,
       events: v.loreEvents.map((e) => ({
         id: e.id,
+        kind: e.kind,
         titre: e.titre,
         resume: e.resume,
+        contenu: e.contenu,
         major: e.major,
         clips: parseClipInputs(e.clips).map(toClip),
         characters: e.characters

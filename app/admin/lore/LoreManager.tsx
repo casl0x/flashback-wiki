@@ -1,5 +1,7 @@
 "use client";
 
+import LorePreview from "@/app/_composents/lore/LorePreview";
+import { MentionTextarea } from "@/app/_composents/MentionTextarea";
 import SearchSelect, { type Option } from "@/app/_composents/admin/SearchSelect";
 import {
   Button,
@@ -9,7 +11,6 @@ import {
   PageHeader,
   Panel,
   Select,
-  TextArea,
   TextInput,
 } from "@/app/_composents/admin/ui";
 import {
@@ -27,8 +28,10 @@ import { useState, useTransition } from "react";
 type VersionItem = { id: string; label: string; color: string; count: number };
 type EventItem = {
   id: string;
+  kind: "EVENT" | "TEXT";
   titre: string;
   resume: string;
+  contenu: string;
   major: boolean;
   versionId: string;
   clips: LoreClipInput[];
@@ -54,11 +57,13 @@ export default function LoreManager({
   groupes: Option[];
 }) {
   const router = useRouter();
-  const isNew = selected === "new";
+  const isNew = selected === "new" || selected === "new-text";
   const current = events.find((e) => e.id === selected);
   const initial: Form = current ?? {
+    kind: selected === "new-text" ? "TEXT" : "EVENT",
     titre: "",
     resume: "",
+    contenu: "",
     major: false,
     versionId,
     clips: [],
@@ -72,8 +77,12 @@ export default function LoreManager({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const byId = new Map(events.map((e) => [e.id, e]));
   const charName = new Map(characters.map((c) => [c.value, c.label]));
+  const mentionable = characters.map((c) => ({ id: c.value, nom: c.label }));
+  const isText = f.kind === "TEXT";
   const groupeName = new Map(groupes.map((g) => [g.value, g.label]));
   const color = versions.find((v) => v.id === versionId)?.color ?? "#8AB4FF";
+  // L'aperçu prend la couleur de la version choisie dans le formulaire.
+  const formColor = versions.find((v) => v.id === f.versionId)?.color ?? color;
   const href = (v: string, id?: string) =>
     `/admin/lore?v=${encodeURIComponent(v)}${id ? `&id=${id}` : ""}`;
 
@@ -94,8 +103,10 @@ export default function LoreManager({
     start(async () => {
       setMsg(null);
       const r = await saveLoreEvent(isNew ? null : selected, {
+        kind: f.kind,
         titre: f.titre,
         resume: f.resume,
+        contenu: f.contenu,
         versionId: f.versionId,
         major: f.major,
         clips: f.clips.filter((c) => c.url.trim()),
@@ -131,11 +142,14 @@ export default function LoreManager({
     <>
       <PageHeader
         title="Lore"
-        meta="Événements marquants par version. L’ordre de la liste est celui de la frise, du plus ancien au plus récent."
+        meta="Événements et textes par version. L’ordre de la liste est celui de la frise, du plus ancien au plus récent."
         actions={
-          <ButtonLink href={href(versionId, "new")} variant="primary">
-            + Nouvel événement
-          </ButtonLink>
+          <>
+            <ButtonLink href={href(versionId, "new-text")}>+ Nouveau texte</ButtonLink>
+            <ButtonLink href={href(versionId, "new")} variant="primary">
+              + Nouvel événement
+            </ButtonLink>
+          </>
         }
       />
       {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
@@ -206,6 +220,11 @@ export default function LoreManager({
                 >
                   <span className="w-5 flex-none text-center text-[12px] text-[#6E7380]">{i + 1}</span>
                   <span className="min-w-0 flex-1 truncate font-semibold">{e.titre}</span>
+                  {e.kind === "TEXT" && (
+                    <span className="flex-none rounded-full border border-[#3A3E47] px-2 py-px text-[11px] font-bold text-[#C4C7CF]">
+                      Texte
+                    </span>
+                  )}
                   {e.major && (
                     <span
                       className="flex-none rounded-full px-2 py-px text-[11px] font-bold text-[#0B0C0F]"
@@ -220,7 +239,7 @@ export default function LoreManager({
           })}
           {isNew && (
             <div className="border-t border-[#23262D] bg-[#1A2233] px-3 py-3 font-semibold">
-              Nouvel événement…
+              {selected === "new-text" ? "Nouveau texte…" : "Nouvel événement…"}
             </div>
           )}
         </nav>
@@ -232,7 +251,7 @@ export default function LoreManager({
             save();
           }}
         >
-          <Panel legend={isNew ? "Nouvel événement" : "Événement"}>
+          <Panel legend={isText ? (isNew ? "Nouveau texte" : "Texte") : isNew ? "Nouvel événement" : "Événement"}>
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
               <Field label="Titre" className="sm:col-span-2">
                 <TextInput
@@ -241,14 +260,33 @@ export default function LoreManager({
                   required
                 />
               </Field>
-              <Field label="Résumé court" className="sm:col-span-2" hint="Deux ou trois phrases.">
-                <TextArea
-                  rows={4}
-                  value={f.resume}
-                  onChange={(e) => setF({ ...f, resume: e.target.value })}
-                  required
-                />
-              </Field>
+              {isText ? (
+                <div className="flex flex-col gap-1 text-[13px] font-semibold text-[#C4C7CF] sm:col-span-2">
+                  Texte
+                  <MentionTextarea
+                    value={f.contenu}
+                    onChange={(v) => setF({ ...f, contenu: v })}
+                    characters={mentionable}
+                    blockTools
+                    placeholder="Écris le lore ici en Markdown. Ligne vide = nouveau paragraphe. Tape @ pour mentionner un personnage."
+                    className="min-h-64 w-full resize-y rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] font-normal leading-relaxed text-[#ECECEE] placeholder:text-[#6E7380] focus:border-[#2F6FEB] focus:outline-none"
+                  />
+                  <LorePreview text={f.contenu} color={formColor} />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1 text-[13px] font-semibold text-[#C4C7CF] sm:col-span-2">
+                  Résumé court
+                  <MentionTextarea
+                    value={f.resume}
+                    onChange={(v) => setF({ ...f, resume: v })}
+                    characters={mentionable}
+                    blockTools
+                    placeholder="Deux ou trois phrases. Le Markdown est accepté ; tape @ pour mentionner un personnage."
+                    className="min-h-28 w-full resize-y rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] font-normal leading-relaxed text-[#ECECEE] placeholder:text-[#6E7380] focus:border-[#2F6FEB] focus:outline-none"
+                  />
+                  <LorePreview text={f.resume} color={formColor} />
+                </div>
+              )}
               <Field
                 label="Version"
                 hint={!isNew && f.versionId !== initial.versionId ? "Il passera en fin de la nouvelle version." : undefined}
@@ -261,6 +299,7 @@ export default function LoreManager({
                   ))}
                 </Select>
               </Field>
+              {!isText && (
               <label className="flex min-h-10 items-center justify-between gap-3 self-end rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 text-[13px] font-semibold text-[#C4C7CF]">
                 Événement majeur
                 <input
@@ -270,9 +309,11 @@ export default function LoreManager({
                   className="h-5 w-5 accent-[#2F6FEB]"
                 />
               </label>
+              )}
             </div>
           </Panel>
 
+          {!isText && (<>
           <Panel legend="Clips">
             <div className="flex flex-col gap-3">
               {f.clips.length === 0 && (
@@ -355,10 +396,11 @@ export default function LoreManager({
               onRemove={(id) => setF({ ...f, groupeIds: f.groupeIds.filter((x) => x !== id) })}
             />
           </Panel>
+          </>)}
 
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" variant="primary" disabled={pending}>
-              {pending ? "…" : isNew ? "Créer l’événement" : "Enregistrer"}
+              {pending ? "…" : isNew ? (isText ? "Créer le texte" : "Créer l’événement") : "Enregistrer"}
             </Button>
             {!isNew && (
               <Button variant="danger" onClick={remove} disabled={pending}>

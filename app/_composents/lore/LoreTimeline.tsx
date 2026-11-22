@@ -3,6 +3,7 @@ import type { LoreEventView, LoreVersionView } from "@/lib/lore";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import ClipRow from "./ClipRow";
+import LoreText from "./LoreText";
 
 const mix = (c: string, pct: number) =>
   `color-mix(in srgb, ${c} ${pct}%, transparent)`;
@@ -38,17 +39,52 @@ export default function LoreTimeline({ versions }: { versions: LoreVersionView[]
               {v.id}
             </h2>
             <span className="text-[13px] uppercase tracking-[0.2em] text-[#8D93A0]">
-              {v.events.length} événement{v.events.length > 1 ? "s" : ""}
+              {countLabel(v.events)}
             </span>
           </div>
           <ol className="m-0 mt-6 ml-2.5 list-none border-l-2 border-(--c) p-0 pl-5 sm:pl-7">
-            {v.events.map((e) => (
-              <EventCard key={e.id} event={e} color={v.color} />
-            ))}
+            {v.events.map((e) =>
+              e.kind === "TEXT" ? (
+                <TextBlock key={e.id} event={e} />
+              ) : (
+                <EventCard key={e.id} event={e} color={v.color} />
+              ),
+            )}
           </ol>
         </section>
       ))}
     </>
+  );
+}
+
+function countLabel(entries: LoreEventView[]) {
+  const texts = entries.filter((e) => e.kind === "TEXT").length;
+  const events = entries.length - texts;
+  const parts: string[] = [];
+  if (events > 0) parts.push(`${events} événement${events > 1 ? "s" : ""}`);
+  if (texts > 0) parts.push(`${texts} texte${texts > 1 ? "s" : ""}`);
+  return parts.join(" · ");
+}
+
+/** Lore hors gameplay : texte mis en forme, sans point de frise, clips ni étiquettes. */
+function TextBlock({ event: e }: { event: LoreEventView }) {
+  return (
+    <li className="relative mb-5">
+      <article className="rounded-xl border border-dashed border-[#2a2d35] p-4 sm:px-5 sm:py-5">
+        <span className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-(--c)">
+          Lore
+        </span>
+        <h3
+          className={cn(
+            anton.className,
+            "m-0 mt-1.5 mb-3 text-[clamp(22px,3.4vw,30px)] font-normal uppercase leading-tight text-[#ECECEE]",
+          )}
+        >
+          {e.titre}
+        </h3>
+        {e.contenu && <LoreText text={e.contenu} />}
+      </article>
+    </li>
   );
 }
 
@@ -91,7 +127,9 @@ function EventCard({ event: e, color }: { event: LoreEventView; color: string })
         >
           {e.titre}
         </h3>
-        <p className="mt-1.5 whitespace-pre-line text-[14.5px] leading-relaxed text-[#B7BBC6]">{e.resume}</p>
+        <div className="mt-2">
+          <LoreText text={e.resume} />
+        </div>
 
         {(e.characters.length > 0 || e.groupes.length > 0) && (
           <div className="mt-3 flex flex-wrap gap-1.5">

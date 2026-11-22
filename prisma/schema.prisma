@@ -538,11 +538,21 @@ model GradeModeleItem {
   @@map("grade_modele_items")
 }
 
+enum LoreKind {
+  EVENT
+  TEXT
+}
+
 // Lore : événements marquants du serveur, rangés par version (page Explorer > Lore).
 model LoreEvent {
-  id      String  @id @default(cuid())
+  id      String   @id @default(cuid())
+  // EVENT : événement de la frise (résumé, clips, liens). TEXT : bloc de texte mis en forme
+  // (lore hors gameplay), affiché dans la version sans point de frise ni clips.
+  kind    LoreKind @default(EVENT)
   titre   String
-  resume  String
+  resume  String   @default("")
+  // Texte des blocs TEXT : Markdown léger (voir LoreText).
+  contenu String?
   // Événement majeur : mis en avant sur la page publique.
   major   Boolean @default(false)
   // Position dans sa version (du plus ancien au plus récent).

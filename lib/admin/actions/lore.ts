@@ -7,7 +7,10 @@ import { revalidatePath } from "next/cache";
 import { failure, refreshAll, type ActionResult } from "./shared";
 
 export type LoreEventInput = {
+  kind: "EVENT" | "TEXT";
   titre: string;
+  /** Bloc TEXT : Markdown léger. */
+  contenu: string;
   resume: string;
   versionId: string;
   major: boolean;
@@ -20,7 +23,11 @@ const uniq = (ids: string[]) => [...new Set(ids.filter(Boolean))];
 
 function validate(input: LoreEventInput): string | null {
   if (!input.titre.trim()) return "Le titre est requis.";
-  if (!input.resume.trim()) return "Le résumé est requis.";
+  if (input.kind === "TEXT") {
+    if (!input.contenu.trim()) return "Le texte est requis.";
+  } else if (!input.resume.trim()) {
+    return "Le résumé est requis.";
+  }
   if (!input.versionId) return "Choisis une version.";
   for (const c of input.clips) {
     try {
@@ -48,13 +55,17 @@ export async function saveLoreEvent(
     const error = validate(input);
     if (error) return { ok: false, error };
 
-    const clips = parseClipInputs(input.clips);
-    const characterIds = uniq(input.characterIds);
-    const groupeIds = uniq(input.groupeIds);
+    // Un bloc de texte n'a ni résumé, ni clips, ni liens : seul son texte compte.
+    const isText = input.kind === "TEXT";
+    const clips = isText ? [] : parseClipInputs(input.clips);
+    const characterIds = isText ? [] : uniq(input.characterIds);
+    const groupeIds = isText ? [] : uniq(input.groupeIds);
     const base = {
+      kind: input.kind,
       titre: input.titre.trim(),
-      resume: input.resume.trim(),
-      major: input.major,
+      resume: isText ? "" : input.resume.trim(),
+      contenu: isText ? input.contenu.trim() : null,
+      major: isText ? false : input.major,
       clips,
       versionId: input.versionId,
     };
