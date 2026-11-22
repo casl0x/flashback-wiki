@@ -3,12 +3,19 @@
 import { useMemo, useRef, useState } from "react";
 import { Character } from "@/lib/db";
 
+// Le minimum utile pour proposer une mention : un Character complet convient.
+export type MentionCharacter = Pick<Character, "id" | "nom"> & {
+  player?: { pseudo: string } | null;
+};
+
 type Props = {
   value: string;
   onChange: (value: string) => void;
-  characters: Character[];
+  characters: MentionCharacter[];
   placeholder?: string;
   className?: string;
+  /** Ajoute « Sous-titre » et « Liste » (texte long : page Lore). */
+  blockTools?: boolean;
 };
 
 type Trigger = { start: number; query: string };
@@ -30,6 +37,7 @@ export function MentionTextarea({
   characters,
   placeholder,
   className,
+  blockTools = false,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [trigger, setTrigger] = useState<Trigger | null>(null);
@@ -55,7 +63,7 @@ export function MentionTextarea({
     setActive(0);
   }
 
-  function pick(c: Character) {
+  function pick(c: MentionCharacter) {
     const el = ref.current;
     if (!trigger || !el) return;
     const caret = el.selectionStart;
@@ -85,6 +93,24 @@ export function MentionTextarea({
     });
   }
 
+  // Préfixe la ligne du curseur (sous-titre, liste) ; un second clic le retire.
+  function prefixLine(prefix: string) {
+    const el = ref.current;
+    if (!el) return;
+    const caret = el.selectionStart;
+    const start = value.lastIndexOf("\n", caret - 1) + 1;
+    const hasPrefix = value.startsWith(prefix, start);
+    const next = hasPrefix
+      ? value.slice(0, start) + value.slice(start + prefix.length)
+      : value.slice(0, start) + prefix + value.slice(start);
+    onChange(next);
+    const pos = caret + (hasPrefix ? -prefix.length : prefix.length);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    });
+  }
+
   const tools: { label: React.ReactNode; title: string; marker: string }[] = [
     { label: <b>G</b>, title: "Gras (Ctrl+B)", marker: "**" },
     { label: <i>I</i>, title: "Italique (Ctrl+I)", marker: "*" },
@@ -108,8 +134,33 @@ export function MentionTextarea({
             {t.label}
           </button>
         ))}
+        {blockTools && (
+          <>
+            <button
+              type="button"
+              title="Sous-titre (ligne commençant par ##)"
+              aria-label="Sous-titre"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => prefixLine("## ")}
+              className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] font-bold text-[#ECECEE] hover:bg-[#23262D]"
+            >
+              H
+            </button>
+            <button
+              type="button"
+              title="Liste à puces (ligne commençant par -)"
+              aria-label="Liste à puces"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => prefixLine("- ")}
+              className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] text-[#ECECEE] hover:bg-[#23262D]"
+            >
+              •
+            </button>
+          </>
+        )}
         <span className="ml-1 text-[11px] text-[#7C8190]">
           **gras** · *italique* · __souligné__ · ~~barré~~
+          {blockTools && " · ## sous-titre · - liste"}
         </span>
       </div>
       <textarea

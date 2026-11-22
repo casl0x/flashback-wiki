@@ -29,7 +29,7 @@ export default async function AdminLore({
   const versionId = sorted.find((x) => x.id === v)?.id ?? sorted[0]?.id ?? "";
   const inVersion = events.filter((e) => e.versionId === versionId);
   const selected =
-    id === "new" ? "new" : (inVersion.find((e) => e.id === id)?.id ?? inVersion[0]?.id ?? "new");
+    id === "new" || id === "new-text" ? id : (inVersion.find((e) => e.id === id)?.id ?? inVersion[0]?.id ?? "new");
 
   return (
     <LoreManager
@@ -42,8 +42,10 @@ export default async function AdminLore({
       }))}
       events={inVersion.map((e) => ({
         id: e.id,
+        kind: e.kind,
         titre: e.titre,
         resume: e.resume,
+        contenu: e.contenu ?? "",
         major: e.major,
         versionId: e.versionId,
         clips: parseClipInputs(e.clips),
