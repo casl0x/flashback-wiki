@@ -15,9 +15,10 @@ export const metadata: Metadata = {
 
 export default async function LorePage() {
   const { userId } = await auth();
-  const isAdmin = (await getAdminLevel(userId)) === "admin";
+  // Admins et éditeurs (membres de l'organisation) voient la vraie page Lore.
+  const isAdmin = (await getAdminLevel(userId)) !== null;
 
-  // Tant que le Lore n'est pas public, seuls les admins complets voient la vraie page.
+  // Tant que le Lore n'est pas public, seuls les admins et éditeurs voient la vraie page.
   if (!isAdmin) return <ComingSoon />;
 
   const versions = await getLoreByVersion();

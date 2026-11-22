@@ -21,7 +21,7 @@ export type AdminSection =
   | "grade-modeles"
   | "versions"
   | "clips" // recherche de clips Twitch, admins complets uniquement
-  | "lore" // admins complets uniquement (pas dans EDITOR_SECTIONS)
+  | "lore" // admins et éditeurs
   | "creators"
   | "announcements"
   | "polls"
@@ -42,6 +42,7 @@ export const EDITOR_SECTIONS: readonly AdminSection[] = [
   "groupes",
   "categories",
   "grade-modeles",
+  "lore",
   "suggestions",
 ];
 

@@ -28,9 +28,10 @@ const ENTRIES = [
 ] as const;
 
 export default async function ExplorerPage() {
-  // Lore en avant-première : « Bientôt » pour tout le monde sauf les admins complets.
+  // Lore en avant-première : « Bientôt » pour tout le monde sauf les admins et éditeurs.
   const { userId } = await auth();
-  const isAdmin = (await getAdminLevel(userId)) === "admin";
+  // Admins et éditeurs (membres de l'organisation) voient la vraie page Lore.
+  const isAdmin = (await getAdminLevel(userId)) !== null;
   return (
     <div className="bg-[#080808] text-[#ECECEE]">
       <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-295 flex-col justify-center py-4">
