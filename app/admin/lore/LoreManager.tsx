@@ -1,5 +1,6 @@
 "use client";
 
+import LorePreview from "@/app/_composents/lore/LorePreview";
 import { MentionTextarea } from "@/app/_composents/MentionTextarea";
 import SearchSelect, { type Option } from "@/app/_composents/admin/SearchSelect";
 import {
@@ -80,6 +81,8 @@ export default function LoreManager({
   const isText = f.kind === "TEXT";
   const groupeName = new Map(groupes.map((g) => [g.value, g.label]));
   const color = versions.find((v) => v.id === versionId)?.color ?? "#8AB4FF";
+  // L'aperçu prend la couleur de la version choisie dans le formulaire.
+  const formColor = versions.find((v) => v.id === f.versionId)?.color ?? color;
   const href = (v: string, id?: string) =>
     `/admin/lore?v=${encodeURIComponent(v)}${id ? `&id=${id}` : ""}`;
 
@@ -268,6 +271,7 @@ export default function LoreManager({
                     placeholder="Écris le lore ici en Markdown. Ligne vide = nouveau paragraphe. Tape @ pour mentionner un personnage."
                     className="min-h-64 w-full resize-y rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] font-normal leading-relaxed text-[#ECECEE] placeholder:text-[#6E7380] focus:border-[#2F6FEB] focus:outline-none"
                   />
+                  <LorePreview text={f.contenu} color={formColor} />
                 </div>
               ) : (
                 <div className="flex flex-col gap-1 text-[13px] font-semibold text-[#C4C7CF] sm:col-span-2">
@@ -280,6 +284,7 @@ export default function LoreManager({
                     placeholder="Deux ou trois phrases. Le Markdown est accepté ; tape @ pour mentionner un personnage."
                     className="min-h-28 w-full resize-y rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] font-normal leading-relaxed text-[#ECECEE] placeholder:text-[#6E7380] focus:border-[#2F6FEB] focus:outline-none"
                   />
+                  <LorePreview text={f.resume} color={formColor} />
                 </div>
               )}
               <Field

@@ -29,6 +29,32 @@ function findTrigger(text: string, caret: number): Trigger | null {
   return { start: caret - m[1].length - 1, query: m[1] };
 }
 
+const HEADING = /^#{1,3} /;
+const LIST = /^(?:[-*•]|\d+[.)]) /;
+const QUOTE = /^> /;
+
+type BlockTool =
+  | { kind: "line"; label: React.ReactNode; title: string; prefix: string; family: RegExp }
+  | { kind: "link" | "rule"; label: React.ReactNode; title: string };
+
+// Boutons de mise en page du texte long (page Lore), par groupes.
+const BLOCK_TOOLS: BlockTool[][] = [
+  [
+    { kind: "line", label: "H1", title: "Grand titre (#)", prefix: "# ", family: HEADING },
+    { kind: "line", label: "H2", title: "Sous-titre (##)", prefix: "## ", family: HEADING },
+    { kind: "line", label: "H3", title: "Petit titre (###)", prefix: "### ", family: HEADING },
+  ],
+  [
+    { kind: "line", label: "•", title: "Liste à puces (-)", prefix: "- ", family: LIST },
+    { kind: "line", label: "1.", title: "Liste numérotée (1.)", prefix: "1. ", family: LIST },
+    { kind: "line", label: "”", title: "Citation (>)", prefix: "> ", family: QUOTE },
+  ],
+  [
+    { kind: "link", label: "🔗", title: "Lien : [texte](https://…)" },
+    { kind: "rule", label: "―", title: "Séparateur (---)" },
+  ],
+];
+
 // Textarea qui propose, dès qu'on tape « @ », la liste des personnages et
 // insère la mention au format @[Nom](id) à la sélection.
 export function MentionTextarea({
@@ -93,18 +119,35 @@ export function MentionTextarea({
     });
   }
 
-  // Préfixe la ligne du curseur (sous-titre, liste) ; un second clic le retire.
-  function prefixLine(prefix: string) {
+  // Préfixe la ligne du curseur (titre, liste, citation). Si la ligne a déjà un préfixe de
+  // la même famille, un autre bouton le remplace et le même bouton le retire.
+  function toggleLine(prefix: string, family: RegExp) {
     const el = ref.current;
     if (!el) return;
     const caret = el.selectionStart;
-    const start = value.lastIndexOf("\n", caret - 1) + 1;
-    const hasPrefix = value.startsWith(prefix, start);
-    const next = hasPrefix
-      ? value.slice(0, start) + value.slice(start + prefix.length)
-      : value.slice(0, start) + prefix + value.slice(start);
-    onChange(next);
-    const pos = caret + (hasPrefix ? -prefix.length : prefix.length);
+    const start = caret === 0 ? 0 : value.lastIndexOf("\n", caret - 1) + 1;
+    const end = value.indexOf("\n", start);
+    const line = value.slice(start, end === -1 ? value.length : end);
+    const existing = family.exec(line)?.[0] ?? "";
+    const replacement = existing === prefix ? "" : prefix;
+    onChange(value.slice(0, start) + replacement + value.slice(start + existing.length));
+    const pos = Math.max(start, caret + replacement.length - existing.length);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    });
+  }
+
+  // Séparateur horizontal sur sa propre ligne, après la ligne du curseur.
+  function insertRule() {
+    const el = ref.current;
+    if (!el) return;
+    const caret = el.selectionStart;
+    const lineEnd = value.indexOf("\n", caret);
+    const at = lineEnd === -1 ? value.length : lineEnd;
+    const insert = "\n\n---\n\n";
+    onChange(value.slice(0, at) + insert + value.slice(at));
+    const pos = at + insert.length;
     requestAnimationFrame(() => {
       el.focus();
       el.setSelectionRange(pos, pos);
@@ -151,52 +194,36 @@ export function MentionTextarea({
         ))}
         {blockTools && (
           <>
-            <button
-              type="button"
-              title="Sous-titre (ligne commençant par ##)"
-              aria-label="Sous-titre"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => prefixLine("## ")}
-              className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] font-bold text-[#ECECEE] hover:bg-[#23262D]"
-            >
-              H
-            </button>
-            <button
-              type="button"
-              title="Liste à puces (ligne commençant par -)"
-              aria-label="Liste à puces"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => prefixLine("- ")}
-              className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] text-[#ECECEE] hover:bg-[#23262D]"
-            >
-              •
-            </button>
-            <button
-              type="button"
-              title="Citation (ligne commençant par >)"
-              aria-label="Citation"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => prefixLine("> ")}
-              className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] text-[#ECECEE] hover:bg-[#23262D]"
-            >
-              ”
-            </button>
-            <button
-              type="button"
-              title="Lien : [texte](https://…)"
-              aria-label="Lien"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={insertLink}
-              className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] text-[#ECECEE] hover:bg-[#23262D]"
-            >
-              🔗
-            </button>
+            {BLOCK_TOOLS.map((group, gi) => (
+              <span key={gi} className="ml-1 flex items-center gap-1 border-l border-[#2A2D35] pl-2">
+                {group.map((t) => (
+                  <button
+                    key={t.title}
+                    type="button"
+                    title={t.title}
+                    aria-label={t.title}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() =>
+                      t.kind === "line"
+                        ? toggleLine(t.prefix, t.family)
+                        : t.kind === "link"
+                          ? insertLink()
+                          : insertRule()
+                    }
+                    className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[12px] font-bold text-[#ECECEE] hover:bg-[#23262D]"
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </span>
+            ))}
           </>
         )}
-        <span className="ml-1 text-[11px] text-[#7C8190]">
-          **gras** · *italique* · __souligné__ · ~~barré~~
-          {blockTools && " · ## titre · - liste · 1. liste · > citation · [texte](https://…) · --- ligne"}
-        </span>
+        {!blockTools && (
+          <span className="ml-1 text-[11px] text-[#7C8190]">
+            **gras** · *italique* · __souligné__ · ~~barré~~
+          </span>
+        )}
       </div>
       <textarea
         ref={ref}
