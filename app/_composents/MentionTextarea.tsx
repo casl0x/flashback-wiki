@@ -111,6 +111,21 @@ export function MentionTextarea({
     });
   }
 
+  // Insère [texte](https://) autour de la sélection et sélectionne l'adresse à coller.
+  function insertLink() {
+    const el = ref.current;
+    if (!el) return;
+    const { selectionStart: a, selectionEnd: b } = el;
+    const label = value.slice(a, b) || "texte";
+    const insert = `[${label}](https://)`;
+    onChange(value.slice(0, a) + insert + value.slice(b));
+    const urlStart = a + label.length + 3;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(urlStart, urlStart + "https://".length);
+    });
+  }
+
   const tools: { label: React.ReactNode; title: string; marker: string }[] = [
     { label: <b>G</b>, title: "Gras (Ctrl+B)", marker: "**" },
     { label: <i>I</i>, title: "Italique (Ctrl+I)", marker: "*" },
@@ -156,11 +171,31 @@ export function MentionTextarea({
             >
               •
             </button>
+            <button
+              type="button"
+              title="Citation (ligne commençant par >)"
+              aria-label="Citation"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => prefixLine("> ")}
+              className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] text-[#ECECEE] hover:bg-[#23262D]"
+            >
+              ”
+            </button>
+            <button
+              type="button"
+              title="Lien : [texte](https://…)"
+              aria-label="Lien"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={insertLink}
+              className="h-7 min-w-7 cursor-pointer rounded-md border border-[#3A3E47] bg-[#15171B] px-2 text-[13px] text-[#ECECEE] hover:bg-[#23262D]"
+            >
+              🔗
+            </button>
           </>
         )}
         <span className="ml-1 text-[11px] text-[#7C8190]">
           **gras** · *italique* · __souligné__ · ~~barré~~
-          {blockTools && " · ## sous-titre · - liste"}
+          {blockTools && " · ## titre · - liste · 1. liste · > citation · [texte](https://…) · --- ligne"}
         </span>
       </div>
       <textarea

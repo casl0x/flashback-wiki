@@ -127,7 +127,9 @@ function EventCard({ event: e, color }: { event: LoreEventView; color: string })
         >
           {e.titre}
         </h3>
-        <p className="mt-1.5 whitespace-pre-line text-[14.5px] leading-relaxed text-[#B7BBC6]">{e.resume}</p>
+        <div className="mt-2">
+          <LoreText text={e.resume} />
+        </div>
 
         {(e.characters.length > 0 || e.groupes.length > 0) && (
           <div className="mt-3 flex flex-wrap gap-1.5">

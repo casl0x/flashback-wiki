@@ -10,7 +10,6 @@ import {
   PageHeader,
   Panel,
   Select,
-  TextArea,
   TextInput,
 } from "@/app/_composents/admin/ui";
 import {
@@ -266,19 +265,22 @@ export default function LoreManager({
                     onChange={(v) => setF({ ...f, contenu: v })}
                     characters={mentionable}
                     blockTools
-                    placeholder="Écris le lore ici. Ligne vide = nouveau paragraphe. Tape @ pour mentionner un personnage."
+                    placeholder="Écris le lore ici en Markdown. Ligne vide = nouveau paragraphe. Tape @ pour mentionner un personnage."
                     className="min-h-64 w-full resize-y rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] font-normal leading-relaxed text-[#ECECEE] placeholder:text-[#6E7380] focus:border-[#2F6FEB] focus:outline-none"
                   />
                 </div>
               ) : (
-                <Field label="Résumé court" className="sm:col-span-2" hint="Deux ou trois phrases.">
-                  <TextArea
-                    rows={4}
+                <div className="flex flex-col gap-1 text-[13px] font-semibold text-[#C4C7CF] sm:col-span-2">
+                  Résumé court
+                  <MentionTextarea
                     value={f.resume}
-                    onChange={(e) => setF({ ...f, resume: e.target.value })}
-                    required
+                    onChange={(v) => setF({ ...f, resume: v })}
+                    characters={mentionable}
+                    blockTools
+                    placeholder="Deux ou trois phrases. Le Markdown est accepté ; tape @ pour mentionner un personnage."
+                    className="min-h-28 w-full resize-y rounded-lg border border-[#3A3E47] bg-[#0B0C0F] px-3 py-2.5 text-[14px] font-normal leading-relaxed text-[#ECECEE] placeholder:text-[#6E7380] focus:border-[#2F6FEB] focus:outline-none"
                   />
-                </Field>
+                </div>
               )}
               <Field
                 label="Version"
