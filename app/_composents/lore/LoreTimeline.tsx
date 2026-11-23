@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import ClipRow from "./ClipRow";
 import LoreSlider from "./LoreSlider";
+import ExpandableText from "./ExpandableText";
 import LoreText from "./LoreText";
 
 const mix = (c: string, pct: number) =>
@@ -81,7 +82,11 @@ function TextBlock({ event: e }: { event: LoreEventView }) {
         >
           {e.titre}
         </h3>
-        {e.contenu && <LoreText text={e.contenu} />}
+        {e.contenu && (
+          <ExpandableText maxHeight={230}>
+            <LoreText text={e.contenu} />
+          </ExpandableText>
+        )}
       </article>
     </li>
   );
@@ -127,7 +132,9 @@ function EventCard({ event: e, color }: { event: LoreEventView; color: string })
           {e.titre}
         </h3>
         <div className="mt-2">
-          <LoreText text={e.resume} />
+          <ExpandableText maxHeight={150}>
+            <LoreText text={e.resume} />
+          </ExpandableText>
         </div>
 
         {(e.characters.length > 0 || e.groupes.length > 0) && (
