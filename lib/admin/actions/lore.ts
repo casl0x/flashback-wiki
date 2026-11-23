@@ -125,6 +125,8 @@ export async function reorderLoreEvents(versionId: string, ids: string[]): Promi
     await prisma.$transaction(
       ids.map((id, i) => prisma.loreEvent.updateMany({ where: { id, versionId }, data: { ordre: i } })),
     );
+    const v = await prisma.version.findUnique({ where: { id: versionId }, select: { label: true } });
+    await logChange("edit_lore", v?.label ?? versionId, "Ordre modifié");
     await after();
     return { ok: true };
   } catch (e) {
@@ -135,7 +137,8 @@ export async function reorderLoreEvents(versionId: string, ids: string[]): Promi
 export async function deleteLoreEvent(id: string): Promise<ActionResult> {
   try {
     await requireAdmin("lore");
-    await prisma.loreEvent.delete({ where: { id } });
+    const e = await prisma.loreEvent.delete({ where: { id }, select: { titre: true } });
+    await logChange("delete_lore", e.titre);
     await after();
     return { ok: true };
   } catch (e) {
