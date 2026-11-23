@@ -11,6 +11,7 @@ export default function ClipRow({ clips, color }: { clips: LoreClip[]; color: st
   return (
     <div className="mt-4">
       <div
+        data-no-swipe
         className="-mx-1 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-2"
         style={{ "--c": color } as React.CSSProperties}
       >

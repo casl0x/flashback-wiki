@@ -13,7 +13,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function LorePage() {
+export default async function LorePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ v?: string }>;
+}) {
+  const { v } = await searchParams;
   const { userId } = await auth();
   // Admins et éditeurs (membres de l'organisation) voient la vraie page Lore.
   const isAdmin = (await getAdminLevel(userId)) !== null;
@@ -58,7 +63,7 @@ export default async function LorePage() {
             .
           </p>
         ) : (
-          <LoreTimeline versions={versions} />
+          <LoreTimeline versions={versions} initialId={v} />
         )}
       </div>
     </div>
