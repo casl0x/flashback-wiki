@@ -99,3 +99,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Page Lore : le contenu d'une version glisse dans le sens du changement. */
+@keyframes lore-slide-next {
+  from { opacity: 0; transform: translateX(34px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes lore-slide-prev {
+  from { opacity: 0; transform: translateX(-34px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lore-slide-next { animation: lore-slide-next 0.35s ease both; }
+  .lore-slide-prev { animation: lore-slide-prev 0.35s ease both; }
+}

@@ -2,58 +2,58 @@ import { anton } from "@/lib/fonts";
 import type { LoreEventView, LoreVersionView } from "@/lib/lore";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { cloudinaryUrl } from "@/lib/cloudinary";
 import ClipRow from "./ClipRow";
+import LoreSlider from "./LoreSlider";
+import ExpandableText from "./ExpandableText";
 import LoreText from "./LoreText";
 
 const mix = (c: string, pct: number) =>
   `color-mix(in srgb, ${c} ${pct}%, transparent)`;
 
-/** Page Lore : une section par version, frise verticale d'événements. */
-export default function LoreTimeline({ versions }: { versions: LoreVersionView[] }) {
+/** Page Lore : slider de versions ; le contenu de la version choisie est une frise verticale. */
+export default function LoreTimeline({
+  versions,
+  initialId,
+}: {
+  versions: LoreVersionView[];
+  initialId?: string;
+}) {
   return (
-    <>
-      <nav aria-label="Versions" className="sticky top-16 z-10 -mx-5 flex flex-wrap gap-2 bg-linear-to-b from-[#080808] from-80% to-transparent px-5 py-3.5">
-        {versions.map((v) => (
-          <a
-            key={v.id}
-            href={`#${v.id}`}
-            className="rounded-full border border-[#2a2d35] px-3.5 py-1.5 text-[13px] font-semibold text-[#8D93A0] transition-colors hover:text-(--c)"
-            style={{ "--c": v.color } as React.CSSProperties}
-          >
-            {v.id}
-          </a>
-        ))}
-      </nav>
-
-      {versions.map((v) => (
-        <section
-          key={v.id}
-          id={v.id}
-          className="mt-11 scroll-mt-32"
-          style={{ "--c": v.color } as React.CSSProperties}
-        >
-          <div className="flex items-baseline gap-4 border-b border-[#1c1e24] pb-3">
-            <h2
-              className={cn(anton.className, "m-0 text-[clamp(44px,7vw,72px)] font-normal uppercase leading-none text-(--c)")}
-            >
-              {v.id}
-            </h2>
-            <span className="text-[13px] uppercase tracking-[0.2em] text-[#8D93A0]">
-              {countLabel(v.events)}
-            </span>
-          </div>
-          <ol className="m-0 mt-6 ml-2.5 list-none border-l-2 border-(--c) p-0 pl-5 sm:pl-7">
-            {v.events.map((e) =>
-              e.kind === "TEXT" ? (
-                <TextBlock key={e.id} event={e} />
-              ) : (
-                <EventCard key={e.id} event={e} color={v.color} />
-              ),
-            )}
-          </ol>
-        </section>
-      ))}
-    </>
+    <LoreSlider
+      initialId={initialId}
+      versions={versions.map((v) => ({
+        id: v.id,
+        label: v.label,
+        color: v.color,
+        imageUrl: v.imageUrl ? cloudinaryUrl(v.imageUrl, "w_700,h_380,c_fill") : null,
+        enCours: v.enCours,
+        count: countLabel(v.events),
+        pane: (
+          <section>
+            <div className="flex items-baseline gap-4 border-b border-[#1c1e24] pb-3">
+              <h2
+                className={cn(anton.className, "m-0 text-[clamp(40px,7vw,64px)] font-normal uppercase leading-none text-(--c)")}
+              >
+                {v.id}
+              </h2>
+              <span className="text-[13px] uppercase tracking-[0.2em] text-[#8D93A0]">
+                {countLabel(v.events)}
+              </span>
+            </div>
+            <ol className="m-0 mt-6 ml-2.5 list-none border-l-2 border-(--c) p-0 pl-5 sm:pl-7">
+              {v.events.map((e) =>
+                e.kind === "TEXT" ? (
+                  <TextBlock key={e.id} event={e} />
+                ) : (
+                  <EventCard key={e.id} event={e} color={v.color} />
+                ),
+              )}
+            </ol>
+          </section>
+        ),
+      }))}
+    />
   );
 }
 
@@ -82,7 +82,11 @@ function TextBlock({ event: e }: { event: LoreEventView }) {
         >
           {e.titre}
         </h3>
-        {e.contenu && <LoreText text={e.contenu} />}
+        {e.contenu && (
+          <ExpandableText maxHeight={230}>
+            <LoreText text={e.contenu} />
+          </ExpandableText>
+        )}
       </article>
     </li>
   );
@@ -128,7 +132,9 @@ function EventCard({ event: e, color }: { event: LoreEventView; color: string })
           {e.titre}
         </h3>
         <div className="mt-2">
-          <LoreText text={e.resume} />
+          <ExpandableText maxHeight={150}>
+            <LoreText text={e.resume} />
+          </ExpandableText>
         </div>
 
         {(e.characters.length > 0 || e.groupes.length > 0) && (

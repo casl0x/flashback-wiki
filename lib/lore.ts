@@ -2,7 +2,6 @@ import { prisma, withDbRetry } from "@/lib/db";
 import { groupeHref } from "@/lib/groupe-types";
 import { visibleCharacter } from "@/lib/hidden-characters";
 import { youtubeThumbnail, youtubeVideoId } from "@/lib/media-embed";
-import { versionRank } from "@/lib/version-rank";
 
 // ─── Lore : événements marquants par version (Explorer > Lore) ───────────────
 
@@ -104,10 +103,13 @@ export type LoreVersionView = {
   id: string;
   label: string;
   color: string;
+  /** Image d'ambiance de la version (carte du slider). */
+  imageUrl: string | null;
+  enCours: boolean;
   events: LoreEventView[];
 };
 
-/** Lore public : versions qui ont au moins un événement, la plus récente d'abord. */
+/** Lore public : versions qui ont au moins une entrée, dans l'ordre défini en admin. */
 export async function getLoreByVersion(): Promise<LoreVersionView[]> {
   const versions = await withDbRetry("getLoreByVersion", () =>
     prisma.version.findMany({
@@ -116,6 +118,9 @@ export async function getLoreByVersion(): Promise<LoreVersionView[]> {
         id: true,
         label: true,
         color: true,
+        ordre: true,
+        imageUrl: true,
+        enCours: true,
         loreEvents: {
           orderBy: [{ ordre: "asc" }, { createdAt: "asc" }],
           select: {
@@ -139,12 +144,15 @@ export async function getLoreByVersion(): Promise<LoreVersionView[]> {
     }),
   );
 
+  // Même ordre que dans l'admin (Versions) et les bandes de l'accueil.
   return versions
-    .sort((a, b) => versionRank(b.id) - versionRank(a.id))
+    .sort((a, b) => a.ordre - b.ordre || a.id.localeCompare(b.id))
     .map((v) => ({
       id: v.id,
       label: v.label,
       color: v.color,
+      imageUrl: v.imageUrl,
+      enCours: v.enCours,
       events: v.loreEvents.map((e) => ({
         id: e.id,
         kind: e.kind,

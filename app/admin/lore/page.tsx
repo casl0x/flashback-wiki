@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
 import { parseClipInputs } from "@/lib/lore";
-import { versionRank } from "@/lib/version-rank";
 import LoreManager from "./LoreManager";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +11,10 @@ export default async function AdminLore({
 }) {
   const { v, id } = await searchParams;
   const [versions, events, characters, groupes] = await Promise.all([
-    prisma.version.findMany({ select: { id: true, label: true, color: true } }),
+    prisma.version.findMany({
+      select: { id: true, label: true, color: true },
+      orderBy: [{ ordre: "asc" }, { id: "asc" }],
+    }),
     prisma.loreEvent.findMany({
       orderBy: [{ ordre: "asc" }, { createdAt: "asc" }],
       include: {
@@ -24,8 +26,8 @@ export default async function AdminLore({
     prisma.groupe.findMany({ select: { id: true, nom: true, type: true }, orderBy: { nom: "asc" } }),
   ]);
 
-  // Version la plus récente d'abord, comme sur la page publique.
-  const sorted = [...versions].sort((a, b) => versionRank(b.id) - versionRank(a.id));
+  // Même ordre que dans Admin > Versions et sur la page publique.
+  const sorted = versions;
   const versionId = sorted.find((x) => x.id === v)?.id ?? sorted[0]?.id ?? "";
   const inVersion = events.filter((e) => e.versionId === versionId);
   const selected =
