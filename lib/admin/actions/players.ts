@@ -91,8 +91,9 @@ export async function deletePlayer(id: string): Promise<ActionResult> {
   try {
     await requireAdmin("players");
     // Les persos du joueur restent, sans joueur (onDelete: SetNull).
-    const p = await prisma.player.delete({ where: { id }, select: { imageUrl: true } });
+    const p = await prisma.player.delete({ where: { id }, select: { imageUrl: true, pseudo: true } });
     await cleanupReplacedImage(p.imageUrl, null);
+    await logChange("delete_player", p.pseudo);
     await refreshAll();
     return { ok: true };
   } catch (e) {

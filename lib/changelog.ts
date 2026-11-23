@@ -12,6 +12,11 @@ type ChangelogType =
   | "edit_player"
   | "add_groupe"
   | "edit_groupe"
+  | "add_lore"
+  | "edit_lore"
+  | "delete_player"
+  | "delete_groupe"
+  | "delete_lore"
   | "site";
 
 export async function logChange(

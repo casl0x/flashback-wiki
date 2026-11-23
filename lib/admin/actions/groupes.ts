@@ -97,8 +97,9 @@ export async function saveGroupe(id: string | null, input: GroupeInput): Promise
 export async function deleteGroupe(id: string): Promise<ActionResult> {
   try {
     await requireAdmin("groupes");
-    const g = await prisma.groupe.delete({ where: { id }, select: { imageUrl: true } });
+    const g = await prisma.groupe.delete({ where: { id }, select: { imageUrl: true, nom: true } });
     await cleanupReplacedImage(g.imageUrl, null);
+    await logChange("delete_groupe", g.nom);
     await refreshAll();
     return { ok: true };
   } catch (e) {
