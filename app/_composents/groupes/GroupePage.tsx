@@ -6,6 +6,7 @@ import {
   GROUPE_STATUT_LABEL,
   GROUPE_TYPE_META,
   MATRICULE_TYPES,
+  PARCOURS_TYPES,
   groupeHref,
   type GroupeType,
 } from "@/lib/groupe-types";
@@ -48,13 +49,21 @@ export const loadGroupe = unstable_cache(
                 imageUrl: true,
                 etatVie: true,
                 player: { select: { pseudo: true } },
+                // Pour savoir si le groupe est toujours le « actuel » du perso.
+                groupes: {
+                  select: {
+                    groupeId: true,
+                    ordre: true,
+                    groupe: { select: { type: true } },
+                  },
+                },
               },
             },
           },
         },
       },
     }),
-  ["groupe-page"],
+  ["groupe-page-v2"],
   { revalidate: 300, tags: ["wiki-data"] },
 );
 
@@ -120,6 +129,16 @@ export default async function GroupePage({
       versionRank(a.id === NONE ? null : a.id),
   );
   const current = tabs.find((t) => t.id === v) ?? tabs[0];
+  // Côté « parcours » (entreprises, services publics) ou côté « groupes » : chaque côté a son actuel,
+  // le dernier passage dans l'ordre du perso. Qui a un autre actuel du même côté est parti.
+  const isParcours = PARCOURS_TYPES.includes(g.type);
+  const hasLeft = (m: (typeof g.members)[number]) => {
+    const last = (m.character.groupes ?? [])
+      .filter((x) => PARCOURS_TYPES.includes(x.groupe.type) === isParcours)
+      .sort((a, b) => a.ordre - b.ordre)
+      .at(-1);
+    return !!last && last.groupeId !== g.id;
+  };
   const totalMembers = new Set(g.members.map((m) => m.characterId)).size;
 
   // Hiérarchie de la période : une rangée par grade (ordre défini dans l'admin), puis « Sans grade ».
@@ -326,6 +345,8 @@ export default async function GroupePage({
                   <div className="grid min-w-0 flex-[999_1_400px] grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2.5">
                     {r.people.map((m) => {
                       const dead = m.character.etatVie === "MORT";
+                      // Grisé comme un mort (sans la croix) : il n'est plus dans le groupe.
+                      const faded = dead || hasLeft(m);
                       const matricule = matriculeOf(m.matricule);
                       // Court : dans le rond ; long : sous le nom (le rond garde la photo).
                       const shortMatricule = matricule.length > 0 && matricule.length <= 4;
@@ -335,7 +356,7 @@ export default async function GroupePage({
                           href={`/personnages/${m.character.id}`}
                           className={cn(
                             "flex min-h-16 items-center gap-3 rounded-[10px] border border-l-[3px] border-[#23262D] px-3 py-2.5 hover:bg-[#1A1D23]",
-                            dead ? "bg-[#131316]" : "bg-[#15171B]",
+                            faded ? "bg-[#131316]" : "bg-[#15171B]",
                           )}
                           style={{ borderLeftColor: r.color }}
                         >
@@ -360,7 +381,7 @@ export default async function GroupePage({
                                 sizes="40px"
                                 className={cn(
                                   "object-cover",
-                                  dead && "grayscale",
+                                  faded && "grayscale",
                                 )}
                               />
                             ) : (
