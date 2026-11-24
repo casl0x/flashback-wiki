@@ -356,7 +356,7 @@ export default async function GroupePage({
                           href={`/personnages/${m.character.id}`}
                           className={cn(
                             "flex min-h-16 items-center gap-3 rounded-[10px] border border-l-[3px] border-[#23262D] px-3 py-2.5 hover:bg-[#1A1D23]",
-                            faded ? "bg-[#131316]" : "bg-[#15171B]",
+                            faded ? "bg-[#131316] opacity-50 hover:opacity-80" : "bg-[#15171B]",
                           )}
                           style={{ borderLeftColor: r.color }}
                         >
