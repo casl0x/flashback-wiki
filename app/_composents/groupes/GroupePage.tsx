@@ -345,8 +345,9 @@ export default async function GroupePage({
                   <div className="grid min-w-0 flex-[999_1_400px] grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2.5">
                     {r.people.map((m) => {
                       const dead = m.character.etatVie === "MORT";
-                      // Grisé comme un mort (sans la croix) : il n'est plus dans le groupe.
-                      const faded = dead || hasLeft(m);
+                      // Grisé s'il n'est pas en vie (mort, parti, disparu, prison) ou a quitté le groupe ;
+                      // seule la croix reste réservée aux morts.
+                      const faded = m.character.etatVie !== "EN_VIE" || hasLeft(m);
                       const matricule = matriculeOf(m.matricule);
                       // Court : dans le rond ; long : sous le nom (le rond garde la photo).
                       const shortMatricule = matricule.length > 0 && matricule.length <= 4;
