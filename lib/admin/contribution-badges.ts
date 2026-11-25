@@ -1,6 +1,7 @@
 import "server-only";
 
 import { computeBadges } from "@/lib/badge-thresholds";
+import { syncDiscordRoles } from "@/lib/bot-sync";
 import { prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
 
@@ -27,5 +28,6 @@ export async function syncContributionBadges(userProfileId: string): Promise<str
     data: { badges: [...new Set([...profile.badges, ...computed])] },
   });
   await notifyBadgesEarned(profile.clerkUserId, earned);
+  await syncDiscordRoles(profile.clerkUserId);
   return earned;
 }
