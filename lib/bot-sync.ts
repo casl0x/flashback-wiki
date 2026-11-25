@@ -64,7 +64,9 @@ export async function syncDiscordRoles(
       accessToken = tokens.data[0]?.token;
     }
 
-    const res = await fetch(`${botUrl.replace(/\/$/, "")}/sync-user`, {
+    // Tolère une URL saisie sans schéma (« monbot.up.railway.app ») ou avec « / » final.
+    const base = /^https?:\/\//.test(botUrl) ? botUrl : `https://${botUrl}`;
+    const res = await fetch(`${base.replace(/\/$/, "")}/sync-user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
