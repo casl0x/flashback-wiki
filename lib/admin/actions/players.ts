@@ -2,6 +2,7 @@
 
 import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
+import { syncDiscordRoles } from "@/lib/bot-sync";
 import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
 import { getKickAvatar } from "@/lib/kick";
@@ -90,10 +91,13 @@ export async function fetchKickAvatar(channelUrl: string): Promise<ActionResult<
 export async function deletePlayer(id: string): Promise<ActionResult> {
   try {
     await requireAdmin("players");
+    // Comptes liés à cette fiche : à resynchroniser une fois le lien perdu.
+    const linked = await prisma.userProfile.findMany({ where: { playerId: id }, select: { clerkUserId: true } });
     // Les persos du joueur restent, sans joueur (onDelete: SetNull).
     const p = await prisma.player.delete({ where: { id }, select: { imageUrl: true, pseudo: true } });
     await cleanupReplacedImage(p.imageUrl, null);
     await logChange("delete_player", p.pseudo);
+    for (const u of linked) await syncDiscordRoles(u.clerkUserId);
     await refreshAll();
     return { ok: true };
   } catch (e) {
@@ -104,7 +108,9 @@ export async function deletePlayer(id: string): Promise<ActionResult> {
 export async function unlinkPlayerAccount(playerId: string): Promise<ActionResult> {
   try {
     await requireAdmin("players");
+    const linked = await prisma.userProfile.findMany({ where: { playerId }, select: { clerkUserId: true } });
     await prisma.userProfile.updateMany({ where: { playerId }, data: { playerId: null } });
+    for (const u of linked) await syncDiscordRoles(u.clerkUserId);
     await refreshAll();
     return { ok: true };
   } catch (e) {

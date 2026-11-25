@@ -3,6 +3,7 @@ import "server-only";
 
 import { invalidateWikiCache } from "@/lib/actions";
 import { computeBadges } from "@/lib/badge-thresholds";
+import { syncDiscordRoles } from "@/lib/bot-sync";
 import { logChange } from "@/lib/changelog";
 import { parseRediffusions, prisma } from "@/lib/db";
 import { notifyBadgesEarned } from "@/lib/notifications";
@@ -115,7 +116,10 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
     const merged = [...new Set([...existing, ...computed])];
     await prisma.userProfile.update({ where: { clerkUserId: s.clerkUserId }, data: { badges: merged } });
     const earned = computed.filter((b) => !existing.includes(b));
-    if (earned.length) await notifyBadgesEarned(s.clerkUserId, earned);
+    if (earned.length) {
+      await notifyBadgesEarned(s.clerkUserId, earned);
+      await syncDiscordRoles(s.clerkUserId);
+    }
   }
 
   if (characterId) await invalidateWikiCache();

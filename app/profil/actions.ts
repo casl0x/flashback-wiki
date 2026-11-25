@@ -1,5 +1,6 @@
 "use server";
 
+import { syncDiscordRoles } from "@/lib/bot-sync";
 import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
@@ -128,11 +129,20 @@ export async function requestPlayerLink(playerId: string, message?: string) {
     throw new Error("Une demande de lien est déjà en attente.");
   }
 
-  await prisma.playerLinkRequest.create({
-    data: {
+  // Une demande (refusée ou ancienne) peut déjà exister pour ce couple compte/joueur :
+  // la contrainte d'unicité interdit d'en créer une seconde, on la repasse en attente.
+  await prisma.playerLinkRequest.upsert({
+    where: { userProfileId_playerId: { userProfileId: profile.id, playerId } },
+    create: {
       userProfileId: profile.id,
       playerId,
       message: message?.trim() || null,
+    },
+    update: {
+      status: "pending",
+      message: message?.trim() || null,
+      reviewedAt: null,
+      createdAt: new Date(),
     },
   });
 }
@@ -411,4 +421,14 @@ export async function updateBannerColor(color: string | null) {
     update: { bannerColor: color },
   });
   await invalidateProfilesCache();
+}
+
+/**
+ * Appelée au retour de la liaison d'un compte Discord : envoie l'état du membre au bot
+ * (attribution des rôles, ajout au serveur Discord grâce au jeton fraîchement obtenu).
+ */
+export async function syncMyDiscordRoles() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  await syncDiscordRoles(userId, { joinGuild: true });
 }

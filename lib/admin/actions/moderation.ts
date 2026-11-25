@@ -3,6 +3,7 @@
 import { requireAdmin } from "@/lib/admin/auth";
 import { applyAcceptedSuggestion } from "@/lib/admin/suggestions";
 import { deleteCloudinaryImage } from "@/lib/cloudinary-server";
+import { syncDiscordRoles } from "@/lib/bot-sync";
 import { prisma } from "@/lib/db";
 import { notifyUser } from "@/lib/notifications";
 import { clean, failure, refreshAll, type ActionResult } from "./shared";
@@ -183,6 +184,15 @@ export async function reviewLinkRequest(
       include: { userProfile: true, player: { select: { pseudo: true } } },
     });
 
+    // Comptes qui perdent le lien (fiche déjà liée à un autre compte) : à resynchroniser.
+    const previousHolders =
+      decision === "accepted"
+        ? await prisma.userProfile.findMany({
+            where: { playerId: req.playerId, NOT: { id: req.userProfileId } },
+            select: { clerkUserId: true },
+          })
+        : [];
+
     if (decision === "accepted") {
       await prisma.$transaction([
         // Une fiche joueur ne peut être liée qu'à un seul compte.
@@ -208,6 +218,11 @@ export async function reviewLinkRequest(
         where: { id },
         data: { status: "rejected", reviewedAt: new Date() },
       });
+    }
+
+    if (decision === "accepted") {
+      for (const holder of previousHolders) await syncDiscordRoles(holder.clerkUserId);
+      await syncDiscordRoles(req.userProfile.clerkUserId);
     }
 
     await notifyUser(
