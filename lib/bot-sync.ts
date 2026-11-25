@@ -4,6 +4,13 @@ import { prisma } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs/server";
 
 /**
+ * Badge virtuel envoyé au bot quand le compte est lié à une fiche joueur
+ * (lien validé par un admin). Utilisable dans les règles : condition « Badge »
+ * = joueur-lie. Il n'est pas stocké dans UserProfile.badges.
+ */
+export const LINKED_PLAYER_BADGE = "joueur-lie";
+
+/**
  * Synchronise les rôles Discord d'un membre avec le bot (byCasloxGuard).
  *
  * Envoie l'état COMPLET du membre (rôle dans l'organisation admin + badges) ;
@@ -44,7 +51,7 @@ export async function syncDiscordRoles(
 
     const profile = await prisma.userProfile.findUnique({
       where: { clerkUserId },
-      select: { badges: true },
+      select: { badges: true, playerId: true },
     });
 
     // Le jeton Discord ne sert qu'à ajouter le membre au serveur (inscription).
@@ -67,7 +74,10 @@ export async function syncDiscordRoles(
         siteUserId: clerkUserId,
         discordUserId: discord.providerUserId,
         role,
-        badges: profile?.badges ?? [],
+        badges: [
+          ...(profile?.badges ?? []),
+          ...(profile?.playerId ? [LINKED_PLAYER_BADGE] : []),
+        ],
         ...(accessToken ? { accessToken } : {}),
       }),
       signal: AbortSignal.timeout(10_000),
