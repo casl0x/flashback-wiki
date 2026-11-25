@@ -2,6 +2,7 @@
 
 import { useToast } from "@/app/_composents/toast/ToastProvider";
 import { BadgePill } from "@/app/_composents/user/badges";
+import { DiscordLink } from "@/app/_composents/user/DiscordLink";
 import { NotificationsSection } from "@/app/_composents/user/NotificationsSection";
 import {
   ProfileCharacters,
@@ -43,6 +44,7 @@ import {
   fetchMyKickAvatar,
   fetchMyTwitchAvatar,
   requestPlayerLink,
+  syncMyDiscordRoles,
   updateBannerColor,
   updateLinkedPlayerProfile,
   updatePublicProfile,
@@ -82,6 +84,7 @@ type MeData = {
   showStats: boolean;
   avatarUrl: string | null;
   provider: string | null;
+  discordLinked: boolean;
   points: number;
   badges: string[];
   stats: { pending: number; accepted: number; rejected: number };
@@ -162,7 +165,8 @@ export default function ProfilePage() {
 }
 
 function ProfilePageContent() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const discordReturnHandled = useRef(false);
   const [data, setData] = useState<MeData | null>(null);
   const [fetched, setFetched] = useState(false);
   const [roles, setRoles] = useState<CreatorRole[]>([]);
@@ -200,6 +204,35 @@ function ProfilePageContent() {
     if (!isLoaded || !isSignedIn) return;
     loadMe();
   }, [isLoaded, isSignedIn, loadMe]);
+
+  // Retour de la liaison Discord (/profil?discord=linked) : synchronise les rôles du membre.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user) return;
+    if (searchParams.get("discord") !== "linked" || discordReturnHandled.current) return;
+    discordReturnHandled.current = true;
+    (async () => {
+      await user.reload();
+      const linked = user.externalAccounts.some((a) => a.provider === "discord");
+      if (!linked) {
+        toast({
+          tone: "error",
+          title: "Liaison Discord non aboutie",
+          text: "Ton compte Discord n'a pas pu être relié. Réessaie.",
+        });
+      } else {
+        await syncMyDiscordRoles();
+        toast({
+          tone: "success",
+          title: "Discord relié",
+          text: "Tes rôles sur le serveur seront mis à jour dans quelques instants.",
+        });
+        loadMe();
+      }
+      router.replace(`${pathname}?tab=${tab}`, { scroll: false });
+    })().catch(() => {
+      toast({ tone: "error", title: "Synchronisation Discord impossible" });
+    });
+  }, [isLoaded, isSignedIn, user, searchParams, toast, loadMe, router, pathname, tab]);
 
   const loading = isLoaded && isSignedIn && !fetched;
 
@@ -1494,6 +1527,7 @@ function AvatarSettings({
           Connecté avec{" "}
           {(data.provider && PROVIDER_LABELS[data.provider]) || "e-mail"}
         </span>
+        <DiscordLink linked={data.discordLinked} />
       </div>
       <div className="flex flex-wrap gap-2">
         <button

@@ -1,5 +1,6 @@
 "use server";
 
+import { syncDiscordRoles } from "@/lib/bot-sync";
 import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
@@ -420,4 +421,14 @@ export async function updateBannerColor(color: string | null) {
     update: { bannerColor: color },
   });
   await invalidateProfilesCache();
+}
+
+/**
+ * Appelée au retour de la liaison d'un compte Discord : envoie l'état du membre au bot
+ * (attribution des rôles, ajout au serveur Discord grâce au jeton fraîchement obtenu).
+ */
+export async function syncMyDiscordRoles() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  await syncDiscordRoles(userId, { joinGuild: true });
 }
