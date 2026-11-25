@@ -128,11 +128,20 @@ export async function requestPlayerLink(playerId: string, message?: string) {
     throw new Error("Une demande de lien est déjà en attente.");
   }
 
-  await prisma.playerLinkRequest.create({
-    data: {
+  // Une demande (refusée ou ancienne) peut déjà exister pour ce couple compte/joueur :
+  // la contrainte d'unicité interdit d'en créer une seconde, on la repasse en attente.
+  await prisma.playerLinkRequest.upsert({
+    where: { userProfileId_playerId: { userProfileId: profile.id, playerId } },
+    create: {
       userProfileId: profile.id,
       playerId,
       message: message?.trim() || null,
+    },
+    update: {
+      status: "pending",
+      message: message?.trim() || null,
+      reviewedAt: null,
+      createdAt: new Date(),
     },
   });
 }
