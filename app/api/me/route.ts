@@ -103,6 +103,9 @@ export async function GET() {
     showStats: profile?.showStats ?? true,
     avatarUrl: user.imageUrl,
     provider: user.externalAccounts[0]?.provider ?? null,
+    discordLinked: user.externalAccounts.some(
+      (a) => a.provider === "discord" || a.provider === "oauth_discord",
+    ),
     points: profile?.totalPoints ?? 0,
     badges: profile?.badges ?? [],
     stats,
