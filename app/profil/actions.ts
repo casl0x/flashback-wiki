@@ -10,7 +10,7 @@ import { notifyBadgesEarned } from "@/lib/notifications";
 import { HEX_COLOR_RE } from "@/lib/profile-banner";
 import { getTwitchAvatar } from "@/lib/twitch";
 import { detectStreamPlatform, extractStreamUsername } from "@/lib/utils";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { CreatorType, Prisma, SocialPlatform } from "@prisma/client";
 
 export async function createCreatorPost(data: {
@@ -431,4 +431,57 @@ export async function syncMyDiscordRoles() {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
   await syncDiscordRoles(userId, { joinGuild: true });
+}
+
+/**
+ * Supprime définitivement le compte de l'utilisateur connecté et tout ce qui
+ * lui est lié : profil (et ses cascades : notifications, réseaux, rôles et
+ * publications créateur, points, demandes de lien), propositions, votes,
+ * options de sondage proposées, likes, signalements, images Cloudinary,
+ * après avoir supprimé l'utilisateur Clerk (premier, pour pouvoir réessayer en cas d'échec). La fiche joueur / les personnages du wiki restent.
+ */
+export async function deleteMyAccount() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+
+  const profile = await prisma.userProfile.findUnique({
+    where: { clerkUserId: userId },
+    include: {
+      creatorRoles: { include: { posts: { select: { id: true, imageUrl: true } } } },
+    },
+  });
+  const posts = profile?.creatorRoles.flatMap((r) => r.posts) ?? [];
+  const suggestions = await prisma.suggestion.findMany({
+    where: { clerkUserId: userId },
+    select: { imageUrl: true },
+  });
+  const targetIds = [
+    userId,
+    ...posts.map((p) => p.id),
+    ...(profile ? [profile.id] : []),
+    ...(profile?.pseudo ? [profile.pseudo] : []),
+  ];
+
+  // Clerk d'abord : s'il échoue, rien n'est encore supprimé en base et l'utilisateur peut réessayer.
+  const client = await clerkClient();
+  await client.users.deleteUser(userId);
+
+  await prisma.$transaction([
+    prisma.suggestion.deleteMany({ where: { clerkUserId: userId } }),
+    prisma.pollVote.deleteMany({ where: { userId } }),
+    prisma.pollOption.deleteMany({ where: { proposedBy: userId } }),
+    prisma.creatorPostLike.deleteMany({ where: { clerkUserId: userId } }),
+    prisma.report.deleteMany({
+      where: { OR: [{ reporterClerkUserId: userId }, { targetId: { in: targetIds } }] },
+    }),
+    prisma.userProfile.deleteMany({ where: { clerkUserId: userId } }),
+  ]);
+
+  // Après la base : les images ne sont plus référencées, on les supprime de Cloudinary.
+  for (const img of [...posts.map((p) => p.imageUrl), ...suggestions.map((s) => s.imageUrl)]) {
+    await cleanupReplacedImage(img, null);
+  }
+
+  await invalidateProfilesCache();
+  await invalidateWikiCache();
 }

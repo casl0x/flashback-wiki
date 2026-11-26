@@ -19,7 +19,7 @@ import { anton } from "@/lib/fonts";
 import { bannerBackground, DEFAULT_BANNER_COLOR } from "@/lib/profile-banner";
 import { RESEAUX_OPTIONS } from "@/lib/reseaux";
 import { cn, detectStreamPlatform, extractStreamUsername, matchesSearch, profileHref } from "@/lib/utils";
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import { SignOutButton, useClerk, useUser } from "@clerk/nextjs";
 import type { SocialPlatform } from "@prisma/client";
 import {
   Camera,
@@ -41,6 +41,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   deleteCreatorPost,
+  deleteMyAccount,
   fetchMyKickAvatar,
   fetchMyTwitchAvatar,
   requestPlayerLink,
@@ -837,7 +838,71 @@ function AccountSection({
           Se déconnecter
         </button>
       </SignOutButton>
+
+      <DeleteAccountCard />
     </section>
+  );
+}
+
+function DeleteAccountCard() {
+  const { signOut } = useClerk();
+  const toast = useToast();
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteMyAccount();
+      await signOut({ redirectUrl: "/" });
+    } catch (err) {
+      setDeleting(false);
+      toast({
+        tone: "error",
+        title: "Suppression impossible",
+        text: err instanceof Error ? err.message : "Une erreur est survenue.",
+      });
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-xl border border-[#4A2327] bg-[#1A1214] p-5">
+      <p className="m-0 text-[14px] font-semibold text-[#FF8A8E]">
+        Supprimer mon compte
+      </p>
+      <p className="m-0 text-[13px] text-[#9AA0AA]">
+        Supprime définitivement ton compte et tout ce qui y est lié : profil,
+        propositions, publications créateur, votes, likes et notifications.
+        Cette action est irréversible.
+      </p>
+      {confirming ? (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex min-h-11 items-center gap-1.5 rounded-md bg-[#E5484D] px-3.5 text-[14px] font-bold text-white hover:bg-[#F0585D] disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {deleting ? "Suppression…" : "Oui, tout supprimer"}
+          </button>
+          <button
+            onClick={() => setConfirming(false)}
+            disabled={deleting}
+            className="min-h-11 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#C4C7CF] hover:border-[#6E7380] disabled:opacity-50"
+          >
+            Annuler
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setConfirming(true)}
+          className="flex min-h-11 w-fit items-center gap-1.5 rounded-md border border-[#4A2327] px-3.5 text-[14px] font-bold text-[#FF8A8E] hover:border-[#E5484D]"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Supprimer mon compte
+        </button>
+      )}
+    </div>
   );
 }
 
