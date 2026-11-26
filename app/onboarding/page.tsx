@@ -3,12 +3,10 @@
 
 import Image from "next/image";
 import { useSession } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { completeOnboarding } from "./action";
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const { session } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,18 +27,12 @@ export default function OnboardingPage() {
         return;
       }
 
-      let attempts = 0;
-      while (attempts < 5) {
-        await session?.reload();
-        const meta = session?.user?.publicMetadata as
-          | { onboardingComplete?: boolean }
-          | undefined;
-        if (meta?.onboardingComplete) break;
-        await new Promise((r) => setTimeout(r, 500));
-        attempts++;
-      }
-
-      router.push("/");
+      // Le middleware lit onboardingComplete dans le jeton de session : on force
+      // son renouvellement, puis navigation complète (pas de cache de routeur).
+      await session?.reload();
+      await session?.getToken({ skipCache: true });
+      await new Promise((r) => setTimeout(r, 1500)); // propagation du jeton
+      window.location.href = "/profil";
     } catch (err) {
       console.error(err);
       setError("Une erreur est survenue, réessaie.");
