@@ -438,7 +438,7 @@ export async function syncMyDiscordRoles() {
  * lui est lié : profil (et ses cascades : notifications, réseaux, rôles et
  * publications créateur, points, demandes de lien), propositions, votes,
  * options de sondage proposées, likes, signalements, images Cloudinary,
- * puis l'utilisateur Clerk. La fiche joueur / les personnages du wiki restent.
+ * après avoir supprimé l'utilisateur Clerk (premier, pour pouvoir réessayer en cas d'échec). La fiche joueur / les personnages du wiki restent.
  */
 export async function deleteMyAccount() {
   const { userId } = await auth();
@@ -462,6 +462,10 @@ export async function deleteMyAccount() {
     ...(profile?.pseudo ? [profile.pseudo] : []),
   ];
 
+  // Clerk d'abord : s'il échoue, rien n'est encore supprimé en base et l'utilisateur peut réessayer.
+  const client = await clerkClient();
+  await client.users.deleteUser(userId);
+
   await prisma.$transaction([
     prisma.suggestion.deleteMany({ where: { clerkUserId: userId } }),
     prisma.pollVote.deleteMany({ where: { userId } }),
@@ -477,9 +481,6 @@ export async function deleteMyAccount() {
   for (const img of [...posts.map((p) => p.imageUrl), ...suggestions.map((s) => s.imageUrl)]) {
     await cleanupReplacedImage(img, null);
   }
-
-  const client = await clerkClient();
-  await client.users.deleteUser(userId);
 
   await invalidateProfilesCache();
   await invalidateWikiCache();
