@@ -3,6 +3,7 @@
 import { requireAdmin } from "@/lib/admin/auth";
 import { syncDiscordRoles } from "@/lib/bot-sync";
 import { prisma } from "@/lib/db";
+import { clerkClient } from "@clerk/nextjs/server";
 import { failure, type ActionResult } from "./shared";
 
 const BATCH_SIZE = 10;
@@ -35,6 +36,38 @@ export async function resyncDiscordBatch(
         done: profiles.length < BATCH_SIZE,
       },
     };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/**
+ * Envoie au bot l'état des membres de l'organisation admin Clerk, qu'ils aient ou non un profil
+ * sur le wiki (le lot précédent ne parcourt que les profils). Relançable sans danger.
+ */
+export async function resyncOrgMembersDiscord(): Promise<ActionResult<{ processed: number }>> {
+  try {
+    await requireAdmin("users");
+    const orgId = process.env.NEXT_PUBLIC_CLERK_ADMIN_ORG_ID;
+    if (!orgId) return { ok: false, error: "NEXT_PUBLIC_CLERK_ADMIN_ORG_ID manquant." };
+
+    const client = await clerkClient();
+    const userIds: string[] = [];
+    for (let offset = 0; ; offset += 100) {
+      const { data } = await client.organizations.getOrganizationMembershipList({
+        organizationId: orgId,
+        limit: 100,
+        offset,
+      });
+      for (const m of data) {
+        const id = m.publicUserData?.userId;
+        if (id) userIds.push(id);
+      }
+      if (data.length < 100) break;
+    }
+
+    for (const id of userIds) await syncDiscordRoles(id);
+    return { ok: true, data: { processed: userIds.length } };
   } catch (err) {
     return failure(err);
   }
