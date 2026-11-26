@@ -2,95 +2,29 @@
 "use client";
 
 import Image from "next/image";
-import { CREATOR_RULES } from "@/lib/creator-rules";
 import { useSession } from "@clerk/nextjs";
-import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { completeOnboarding } from "./action";
 
-type CreatorRoleInput = {
-  type: "ARTISTE" | "EDITEUR" | "BESTOF";
-};
-
-const ROLE_LABELS: Record<
-  "ARTISTE" | "EDITEUR" | "BESTOF",
-  { label: string; sub: string }
-> = {
-  ARTISTE: {
-    label: "Artiste (fan art)",
-    sub: "Tu crées des fan arts des persos ou scènes de Flashback WL",
-  },
-  EDITEUR: {
-    label: "Edit-maker",
-    sub: "Tu montes des edits vidéo avec des clips du serveur",
-  },
-  BESTOF: {
-    label: "Monteur de best-of",
-    sub: "Tu partages le lien de ta chaîne YouTube de best-of",
-  },
-};
-
 export default function OnboardingPage() {
   const router = useRouter();
   const { session } = useSession();
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rulesOpen, setRulesOpen] = useState(false);
-
   const [pseudo, setPseudo] = useState("");
-  const [wantsCreator, setWantsCreator] = useState<boolean | null>(null);
-  const [roles, setRoles] = useState<CreatorRoleInput[]>([]);
-
-  function toggleRole(type: "ARTISTE" | "EDITEUR" | "BESTOF") {
-    setRoles((prev) =>
-      prev.find((r) => r.type === type)
-        ? prev.filter((r) => r.type !== type)
-        : [...prev, { type }],
-    );
-  }
-
-  async function handleSubmitDirect() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await completeOnboarding({
-        pseudo: pseudo.trim(),
-        roles: [],
-      });
-      if (res.error) {
-        setError(res.error);
-        setStep(1);
-        setLoading(false);
-        return;
-      }
-      await session?.reload();
-      await new Promise((r) => setTimeout(r, 2000)); // attendre que le JWT se propage
-      window.location.href = "/";
-    } catch (err) {
-      console.error(err);
-      setError("Une erreur est survenue, réessaie.");
-      setLoading(false);
-    }
-  }
 
   async function handleSubmit() {
     if (!pseudo.trim()) {
       setError("Le pseudo est obligatoire.");
-      setStep(1);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const res = await completeOnboarding({
-        pseudo: pseudo.trim(),
-        roles: wantsCreator ? roles : [],
-      });
+      const res = await completeOnboarding({ pseudo: pseudo.trim() });
       if (res.error) {
         setError(res.error);
-        setStep(1);
         setLoading(false);
         return;
       }
@@ -132,269 +66,47 @@ export default function OnboardingPage() {
           </span>
         </div>
 
-        {/* Indicateur d'étapes */}
-        <div className="flex items-center gap-1.5 mb-4 justify-center">
-          {[1, 2, ...(wantsCreator ? [3] : [])].map((s) => (
-            <div
-              key={s}
-              className={`h-1 rounded-full transition-all ${
-                s === step
-                  ? "w-6 bg-accent"
-                  : s < step
-                    ? "w-3 bg-accent/40"
-                    : "w-3 bg-border"
-              }`}
-            />
-          ))}
-        </div>
-
         <div className="bg-card border border-border rounded-xl p-6">
           <p className="text-[9px] font-medium text-text-muted uppercase tracking-widest mb-1">
-            {step === 1
-              ? "Bienvenue"
-              : step === 2
-                ? "Créateur de contenu"
-                : "Ton profil créateur"}
+            Bienvenue
           </p>
 
-          {/* Étape 1 — pseudo */}
-          {step === 1 && (
-            <div className="space-y-5">
-              <h1 className="text-text-primary font-display font-bold text-lg">
-                Crée ton profil
-              </h1>
+          <form
+            className="space-y-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+          >
+            <h1 className="text-text-primary font-display font-bold text-lg">
+              Crée ton profil
+            </h1>
 
-              <div>
-                <label className="block text-[11px] font-medium text-text-secondary mb-1.5">
-                  Choisis ton pseudo
-                </label>
-                <input
-                  type="text"
-                  value={pseudo}
-                  onChange={(e) => setPseudo(e.target.value)}
-                  placeholder="Ton pseudo"
-                  className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-[13px] text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
-                />
-              </div>
-
-              {error && <p className="text-[12px] text-red-400">{error}</p>}
-
-              <button
-                onClick={() => {
-                  if (!pseudo.trim()) {
-                    setError("Le pseudo est obligatoire.");
-                    return;
-                  }
-                  setError(null);
-                  setStep(2);
-                }}
-                className="w-full rounded-md bg-accent py-2.5 text-[13px] font-medium text-white hover:bg-accent/90 transition-colors"
-              >
-                Suivant
-              </button>
+            <div>
+              <label className="block text-[11px] font-medium text-text-secondary mb-1.5">
+                Choisis ton pseudo
+              </label>
+              <input
+                type="text"
+                value={pseudo}
+                onChange={(e) => setPseudo(e.target.value)}
+                placeholder="Ton pseudo"
+                className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-[13px] text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
+              />
             </div>
-          )}
 
-          {/* Étape 2 — es-tu créateur ? */}
-          {step === 2 && (
-            <div className="space-y-5">
-              <h1 className="text-text-primary font-display font-bold text-lg">
-                Es-tu créateur de contenu ?
-              </h1>
-              <p className="text-[12px] text-text-muted leading-relaxed">
-                Fan art, edits vidéo, montages... Si tu crées du contenu autour
-                de Flashback WL, ajoute tes réseaux et tes créations depuis ton
-                profil, visibles immédiatement.
-              </p>
+            {error && <p className="text-[12px] text-red-400">{error}</p>}
 
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    setWantsCreator(true);
-                    setStep(3);
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-md border px-4 py-3 text-left transition-colors ${
-                    wantsCreator === true
-                      ? "border-accent/40 bg-accent/10 text-accent-light"
-                      : "border-border bg-elevated text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 rounded-full border transition-colors ${wantsCreator === true ? "border-accent bg-accent" : "border-border"}`}
-                  />
-                  <div>
-                    <p className="text-[13px] font-medium">
-                      Oui, je crée du contenu
-                    </p>
-                    <p className="text-[11px] text-text-muted mt-0.5">
-                      Configurer mon profil créateur
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={handleSubmitDirect}
-                  disabled={loading}
-                  className={`flex w-full items-center gap-3 rounded-md border px-4 py-3 text-left transition-colors disabled:opacity-50 ${
-                    wantsCreator === false
-                      ? "border-accent/40 bg-accent/10 text-accent-light"
-                      : "border-border bg-elevated text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 rounded-full border transition-colors ${wantsCreator === false ? "border-accent bg-accent" : "border-border"}`}
-                  />
-                  <div>
-                    <p className="text-[13px] font-medium">
-                      Non, juste spectateur
-                    </p>
-                    <p className="text-[11px] text-text-muted mt-0.5">
-                      Terminer et accéder au wiki
-                    </p>
-                  </div>
-                </button>
-              </div>
-
-              {error && <p className="text-[12px] text-red-400">{error}</p>}
-
-              <button
-                onClick={() => setStep(1)}
-                className="w-full rounded-md border border-border py-2.5 text-[13px] font-medium text-text-secondary hover:bg-elevated transition-colors"
-              >
-                Retour
-              </button>
-            </div>
-          )}
-
-          {/* Étape 3 — profil créateur */}
-          {step === 3 && (
-            <div className="space-y-5">
-              <h1 className="text-text-primary font-display font-bold text-lg">
-                Ton profil créateur
-              </h1>
-
-              {/* Règles */}
-              <button
-                onClick={() => setRulesOpen((o) => !o)}
-                className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted hover:text-text-secondary transition-colors"
-              >
-                Règles
-                <ChevronDown
-                  className={`h-3 w-3 transition-transform ${rulesOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {rulesOpen && (
-                <div className="rounded-lg border border-border bg-elevated p-3 space-y-1.5">
-                  <p className="text-[11px] text-text-muted leading-relaxed mb-2">
-                    Je me permets de mettre quelques règles en place pour que
-                    cet endroit reste une place de bienveillance et de partage :
-                  </p>
-                  {CREATOR_RULES.map((rule, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-2 text-[11px] text-text-muted"
-                    >
-                      <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/50" />
-                      {rule}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Sélection des rôles */}
-              <div>
-                <p className="text-[11px] font-medium text-text-secondary mb-2">
-                  Quel type de contenu tu crées ?
-                </p>
-                <div className="space-y-1.5">
-                  {(["ARTISTE", "EDITEUR", "BESTOF"] as const).map((type) => (
-                    <RoleOption
-                      key={type}
-                      label={ROLE_LABELS[type].label}
-                      sub={ROLE_LABELS[type].sub}
-                      checked={roles.some((r) => r.type === type)}
-                      onClick={() => toggleRole(type)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <p className="text-[11px] text-text-muted">
-                Tu pourras ajouter tes réseaux sociaux et publier tes créations
-                depuis ton profil, juste après.
-              </p>
-
-              {error && <p className="text-[12px] text-red-400">{error}</p>}
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setStep(2)}
-                  className="flex-1 rounded-md border border-border py-2.5 text-[13px] font-medium text-text-secondary hover:bg-elevated transition-colors"
-                >
-                  Retour
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="flex-1 rounded-md bg-accent py-2.5 text-[13px] font-medium text-white hover:bg-accent/90 transition-colors disabled:opacity-50"
-                >
-                  {loading ? "..." : "Terminer"}
-                </button>
-              </div>
-            </div>
-          )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-md bg-accent py-2.5 text-[13px] font-medium text-white hover:bg-accent/90 transition-colors disabled:opacity-50"
+            >
+              {loading ? "..." : "Terminer"}
+            </button>
+          </form>
         </div>
       </div>
     </div>
-  );
-}
-
-function RoleOption({
-  label,
-  sub,
-  checked,
-  onClick,
-}: {
-  label: string;
-  sub?: string;
-  checked: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-md border px-3 py-2.5 text-left transition-colors ${
-        checked
-          ? "border-accent/40 bg-accent/10 text-accent-light"
-          : "border-border bg-elevated text-text-secondary hover:text-text-primary"
-      }`}
-    >
-      <span
-        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-lg border transition-colors ${
-          checked ? "border-accent bg-accent" : "border-border"
-        }`}
-      >
-        {checked && (
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-        )}
-      </span>
-      <div>
-        <p className="text-[13px] font-medium">{label}</p>
-        {sub && <p className="text-[11px] text-text-muted mt-0.5">{sub}</p>}
-      </div>
-    </button>
   );
 }
