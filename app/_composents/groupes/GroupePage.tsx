@@ -1,3 +1,4 @@
+import { MentionText } from "@/app/_composents/MentionText";
 import { visibleCharacter } from "@/lib/hidden-characters";
 import { textOn } from "@/app/_composents/characters/CharacterHero";
 import { cloudinaryUrl } from "@/lib/cloudinary";
@@ -12,7 +13,7 @@ import {
 } from "@/lib/groupe-types";
 import { prisma } from "@/lib/db";
 import { anton } from "@/lib/fonts";
-import { cn } from "@/lib/utils";
+import { cn, splitDescription } from "@/lib/utils";
 import { versionRank } from "@/lib/version-rank";
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
@@ -77,7 +78,7 @@ export async function groupeMetadata(
   }
   const title = `${g.nom} – Flashback Wiki`;
   const description =
-    g.description?.replace(/\s+/g, " ").trim().slice(0, 160) ||
+    splitDescription(g.description).histoire.replace(/\s+/g, " ").trim().slice(0, 160) ||
     `${GROUPE_TYPE_META[type].label} ${g.nom} sur Flashback Wiki : membres, parcours et historique.`;
   return { title, description, openGraph: { title, description } };
 }
@@ -101,6 +102,7 @@ export default async function GroupePage({
   const meta = GROUPE_TYPE_META[g.type];
 
   const accent = g.color ?? "#2F6FEB";
+  const description = splitDescription(g.description);
   // Le matricule n'existe que pour les services publics (les autres types l'ignorent).
   const matriculeOf = (value: string | null) =>
     MATRICULE_TYPES.includes(g.type) ? (value?.trim() ?? "") : "";
@@ -272,10 +274,21 @@ export default async function GroupePage({
           ← Retour aux groupes
         </Link>
 
-        {g.description && (
+        {description.histoire.trim() && (
           <p className="m-0 max-w-3xl whitespace-pre-line text-[16px] leading-relaxed text-[#D5D7DD]">
-            {g.description}
+            {description.histoire}
           </p>
+        )}
+
+        {description.dissolution.trim() && (
+          <aside className="max-w-3xl rounded-lg border border-[#5A2A2D] border-l-4 border-l-[#E5484D] bg-[#1E1214] px-4 py-3">
+            <div className="mb-1 text-[12px] font-bold uppercase tracking-[0.06em] text-[#FF8A8E]">
+              Raison de la dissolution
+            </div>
+            <p className="m-0 whitespace-pre-wrap wrap-break-word text-[15px] leading-relaxed text-[#E8D5D6]">
+              <MentionText text={description.dissolution} />
+            </p>
+          </aside>
         )}
 
         {tabs.length === 0 ? (
