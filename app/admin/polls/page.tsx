@@ -1,4 +1,4 @@
-import { PollAdmin } from "@/app/_composents/admin/PollAdmin";
+import { PollManager } from "@/app/_composents/admin/PollManager";
 import { PageHeader } from "@/app/_composents/admin/ui";
 
 export default function AdminPolls() {
@@ -6,9 +6,9 @@ export default function AdminPolls() {
     <>
       <PageHeader
         title="Sondages"
-        meta="Les sondages actifs s’affichent sur l’accueil du wiki."
+        meta="Le sondage affiché s’affiche sur l’accueil du wiki ; tu peux le masquer à tout moment."
       />
-      <PollAdmin />
+      <PollManager />
     </>
   );
 }

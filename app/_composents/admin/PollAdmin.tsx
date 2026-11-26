@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
-export function PollAdmin() {
+export function PollAdmin({ onCreated }: { onCreated?: () => void }) {
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [endsAt, setEndsAt] = useState("");
@@ -59,6 +59,7 @@ export function PollAdmin() {
       setEndsAt("");
       setIsPublic(false);
       setAllowProposals(false);
+      onCreated?.();
     } else {
       const data = await res.json();
       setMessage({ text: data.error ?? "Erreur inconnue", ok: false });

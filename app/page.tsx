@@ -48,9 +48,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-      <section className="space-y-4 p-4 lg:p-5">
-        <Poll />
-      </section>
+      <Poll />
       <section className="space-y-4 p-4 lg:p-5">
         <TopPages
           title="Personnages les plus consultés"

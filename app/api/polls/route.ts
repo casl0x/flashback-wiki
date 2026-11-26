@@ -4,7 +4,31 @@ import { isAdminUser } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
 // GET /api/polls → sondage actif pour la home
-export async function GET() {
+// GET /api/polls?all=1 → tous les sondages (admin), pour les gérer
+export async function GET(req: Request) {
+  if (new URL(req.url).searchParams.get("all")) {
+    const { userId } = await auth();
+    if (!(await isAdminUser(userId, "polls"))) {
+      return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+    }
+    const polls = await prisma.poll.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { options: { include: { _count: { select: { votes: true } } } } },
+    });
+    return NextResponse.json(
+      polls.map((p) => ({
+        id: p.id,
+        question: p.question,
+        active: p.active,
+        isPublic: p.isPublic,
+        allowProposals: p.allowProposals,
+        endsAt: p.endsAt,
+        createdAt: p.createdAt,
+        totalVotes: p.options.reduce((n, o) => n + o._count.votes, 0),
+      })),
+    );
+  }
+
   const poll = await prisma.poll.findFirst({
     where: { active: true },
     orderBy: { createdAt: "desc" },

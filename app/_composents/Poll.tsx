@@ -88,21 +88,8 @@ export function Poll() {
     setVoting(false);
   }
 
-  if (loading) {
-    return (
-      <div className="rounded-xl border border-border bg-card p-5 lg:p-8 animate-pulse">
-        <div className="h-4 w-20 rounded bg-muted mb-4" />
-        <div className="h-5 w-3/4 rounded bg-muted mb-6" />
-        <div className="space-y-2">
-          <div className="h-10 rounded-lg bg-muted" />
-          <div className="h-10 rounded-lg bg-muted" />
-          <div className="h-10 rounded-lg bg-muted" />
-        </div>
-      </div>
-    );
-  }
+  if (loading || !poll) return null;
 
-  if (!poll) return null;
 
   const canParticipate = !!poll && (poll.isPublic || !!isSignedIn);
   const hasVoted = !!poll.userVotedOptionId;
@@ -110,12 +97,20 @@ export function Poll() {
   const showResults = hasVoted || !poll.active || isExpired;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 lg:p-8 space-y-4">
+    <section
+      aria-labelledby="poll-h"
+      className="flex flex-col gap-4 p-4 lg:p-5"
+    >
+      <h2
+        id="poll-h"
+        className="text-sans text-3xl uppercase tracking-wide md:text-4xl"
+      >
+        Sondage
+      </h2>
+      <div className="flex flex-col gap-4 rounded-md bg-muted p-4 lg:p-6">
       {/* Header */}
+      {(poll.isPublic || poll.endsAt) && (
       <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5 rounded-full border border-border bg-muted text-text-muted">
-          Sondage
-        </span>
         {poll.isPublic && (
           <span className="text-[10px] uppercase tracking-widest text-text-muted">
             Public
@@ -130,9 +125,10 @@ export function Poll() {
           <span className="text-[11px] text-text-faint italic">Terminé</span>
         )}
       </div>
+      )}
 
       {/* Question */}
-      <p className="text-sm font-medium leading-relaxed text-text-primary">
+      <p className="text-base font-medium leading-relaxed text-text-primary">
         {poll.question}
       </p>
 
@@ -157,7 +153,7 @@ export function Poll() {
                     {option.percent}%
                   </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-card overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       isSelected ? "bg-accent-light" : "bg-border-mid"
@@ -174,7 +170,7 @@ export function Poll() {
               key={option.id}
               onClick={() => handleVote(option.id)}
               disabled={voting || !canParticipate}
-              className="w-full text-left cursor-pointer px-4 py-2.5 rounded-lg border border-border bg-muted text-[13px] font-medium text-text-secondary hover:border-border-mid hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-left cursor-pointer px-4 py-2.5 rounded-lg border border-border bg-card text-[13px] font-medium text-text-secondary hover:border-border-mid hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {option.label}
             </button>
@@ -196,12 +192,12 @@ export function Poll() {
             onChange={(e) => setProposal(e.target.value)}
             maxLength={80}
             placeholder="Proposer une option…"
-            className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-border bg-muted text-[13px] text-text-primary placeholder:text-text-faint"
+            className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-border bg-card text-[13px] text-text-primary placeholder:text-text-faint"
           />
           <button
             type="submit"
             disabled={voting || !proposal.trim()}
-            className="px-3 py-2 rounded-lg border border-border bg-muted text-[13px] font-medium text-text-secondary hover:border-border-mid disabled:opacity-50"
+            className="px-3 py-2 rounded-lg border border-border bg-card text-[13px] font-medium text-text-secondary hover:border-border-mid disabled:opacity-50"
           >
             Ajouter
           </button>
@@ -226,6 +222,7 @@ export function Poll() {
           <span className="text-[11px] text-red-400">{error}</span>
         )}
       </div>
-    </div>
+      </div>
+    </section>
   );
 }
