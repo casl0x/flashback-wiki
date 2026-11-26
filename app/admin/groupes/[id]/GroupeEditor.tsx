@@ -36,7 +36,7 @@ import {
 } from "@/lib/groupe-types";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
-import { cn } from "@/lib/utils";
+import { cn, splitDescription, updateDescription } from "@/lib/utils";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -576,10 +576,37 @@ export default function GroupeEditor({
           <Panel legend="Description">
             <TextArea
               rows={5}
-              value={f.description}
-              onChange={(e) => setF({ ...f, description: e.target.value })}
+              value={splitDescription(f.description).histoire}
+              onChange={(e) =>
+                setF({
+                  ...f,
+                  description: updateDescription(f.description, {
+                    histoire: e.target.value,
+                  }),
+                })
+              }
               placeholder="Histoire du groupe, changements entre les versions, QG…"
             />
+            {(f.dissous || splitDescription(f.description).dissolution) && (
+              <div className="mt-3 flex flex-col gap-1">
+                <span className="text-[12px] font-semibold text-[#FF8A8E]">
+                  Raison de la dissolution
+                </span>
+                <TextArea
+                  rows={3}
+                  value={splitDescription(f.description).dissolution}
+                  onChange={(e) =>
+                    setF({
+                      ...f,
+                      description: updateDescription(f.description, {
+                        dissolution: e.target.value,
+                      }),
+                    })
+                  }
+                  placeholder="Pourquoi le groupe a-t-il été dissous ? (affiché sur la page du groupe)"
+                />
+              </div>
+            )}
           </Panel>
 
           <div className="flex flex-wrap items-center gap-2.5">

@@ -121,14 +121,17 @@ export function stripFormatting(text: string): string {
 // Blocs optionnels stockés à la fin de la description, sans colonne dédiée :
 //   [prison]motif de l'incarcération[/prison]
 //   [mort]cause de la mort[/mort]
-// (dans cet ordre quand les deux existent).
+//   [dissolution]raison de la dissolution d'un groupe[/dissolution]
+// (dans cet ordre quand plusieurs existent).
 export type DescriptionParts = {
   histoire: string;
   prison: string;
   mort: string;
+  dissolution: string;
 };
 
-const BLOCK_PATTERN = /(?:\n\n)?\[(mort|prison)\]([\s\S]*?)\[\/\1\]\s*$/;
+const BLOCK_PATTERN =
+  /(?:\n\n)?\[(mort|prison|dissolution)\]([\s\S]*?)\[\/\1\]\s*$/;
 
 // Pas de trim ici : ces fonctions servent aussi de valeur contrôlée des
 // champs de l'éditeur, trimer empêcherait de taper un espace en fin de texte.
@@ -136,10 +139,15 @@ export function splitDescription(
   description: string | null | undefined,
 ): DescriptionParts {
   let text = description ?? "";
-  const parts: DescriptionParts = { histoire: "", prison: "", mort: "" };
+  const parts: DescriptionParts = {
+    histoire: "",
+    prison: "",
+    mort: "",
+    dissolution: "",
+  };
   let m: RegExpExecArray | null;
   while ((m = BLOCK_PATTERN.exec(text)) !== null) {
-    const key = m[1] as "mort" | "prison";
+    const key = m[1] as "mort" | "prison" | "dissolution";
     if (!parts[key]) parts[key] = m[2];
     text = text.slice(0, m.index);
   }
@@ -148,12 +156,16 @@ export function splitDescription(
 }
 
 export function joinDescription(parts: DescriptionParts): string {
-  const clean = (v: string) => v.replace(/\[\/?(?:mort|prison)\]/g, "");
+  const clean = (v: string) =>
+    v.replace(/\[\/?(?:mort|prison|dissolution)\]/g, "");
   let out = parts.histoire;
   const prison = clean(parts.prison);
   const mort = clean(parts.mort);
+  const dissolution = clean(parts.dissolution);
   if (prison.trim()) out += `\n\n[prison]${prison}[/prison]`;
   if (mort.trim()) out += `\n\n[mort]${mort}[/mort]`;
+  if (dissolution.trim())
+    out += `\n\n[dissolution]${dissolution}[/dissolution]`;
   return out;
 }
 
