@@ -844,13 +844,35 @@ function AccountSection({
   );
 }
 
+const DELETE_CONFIRM_WORD = "SUPPRIMER";
+
 function DeleteAccountCard() {
   const { signOut } = useClerk();
   const toast = useToast();
-  const [confirming, setConfirming] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  function close() {
+    if (deleting) return;
+    setOpen(false);
+    setTyped("");
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !deleting) {
+        setOpen(false);
+        setTyped("");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, deleting]);
+
   async function handleDelete() {
+    if (typed.trim() !== DELETE_CONFIRM_WORD) return;
     setDeleting(true);
     try {
       await deleteMyAccount();
@@ -871,36 +893,80 @@ function DeleteAccountCard() {
         Supprimer mon compte
       </p>
       <p className="m-0 text-[13px] text-[#9AA0AA]">
-        Supprime définitivement ton compte et tout ce qui y est lié : profil,
-        propositions, publications créateur, votes, likes et notifications.
-        Cette action est irréversible.
+        Supprime définitivement ton compte et tout ce qui y est lié. Cette
+        action est irréversible.
       </p>
-      {confirming ? (
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="flex min-h-11 items-center gap-1.5 rounded-md bg-[#E5484D] px-3.5 text-[14px] font-bold text-white hover:bg-[#F0585D] disabled:opacity-50"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {deleting ? "Suppression…" : "Oui, tout supprimer"}
-          </button>
-          <button
-            onClick={() => setConfirming(false)}
-            disabled={deleting}
-            className="min-h-11 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#C4C7CF] hover:border-[#6E7380] disabled:opacity-50"
-          >
-            Annuler
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setConfirming(true)}
-          className="flex min-h-11 w-fit items-center gap-1.5 rounded-md border border-[#4A2327] px-3.5 text-[14px] font-bold text-[#FF8A8E] hover:border-[#E5484D]"
+      <button
+        onClick={() => setOpen(true)}
+        className="flex min-h-11 w-fit items-center gap-1.5 rounded-md border border-[#4A2327] px-3.5 text-[14px] font-bold text-[#FF8A8E] hover:border-[#E5484D]"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+        Supprimer mon compte
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4"
+          onClick={close}
         >
-          <Trash2 className="h-3.5 w-3.5" />
-          Supprimer mon compte
-        </button>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-h"
+            onClick={(e) => e.stopPropagation()}
+            className="flex w-full max-w-md flex-col gap-4 rounded-xl border border-[#4A2327] bg-[#15171B] p-5"
+          >
+            <p
+              id="delete-account-h"
+              className="m-0 text-[16px] font-bold text-[#FF8A8E]"
+            >
+              Supprimer définitivement ton compte ?
+            </p>
+            <div className="flex flex-col gap-2 text-[13px] text-[#C4C7CF]">
+              <p className="m-0">Seront supprimés pour toujours :</p>
+              <ul className="m-0 list-disc pl-5 text-[#9AA0AA]">
+                <li>ton profil, ta bio, tes réseaux et tes points</li>
+                <li>tes propositions, publications créateur et leurs images</li>
+                <li>tes votes, likes, notifications et signalements</li>
+                <li>ton compte de connexion</li>
+              </ul>
+              <p className="m-0">
+                Ta fiche joueur et les personnages du wiki sont conservés.
+              </p>
+            </div>
+            <label className="flex flex-col gap-1.5 text-[13px] text-[#C4C7CF]">
+              Tape <strong className="text-[#ECECEE]">{DELETE_CONFIRM_WORD}</strong>{" "}
+              pour confirmer
+              <input
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                autoFocus
+                autoComplete="off"
+                disabled={deleting}
+                className="h-11 rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 text-[14px] text-[#ECECEE] outline-none focus:border-[#E5484D]"
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={close}
+                disabled={deleting}
+                className="min-h-11 rounded-md border border-[#3A3E47] px-3.5 text-[14px] font-bold text-[#C4C7CF] hover:border-[#6E7380] disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || typed.trim() !== DELETE_CONFIRM_WORD}
+                className="flex min-h-11 items-center gap-1.5 rounded-md bg-[#E5484D] px-3.5 text-[14px] font-bold text-white hover:bg-[#F0585D] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {deleting ? "Suppression…" : "Supprimer définitivement"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
