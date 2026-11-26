@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getWikiData } from "@/lib/wiki-data";
 import Link from "next/link";
 import ExploreVersion from "./_composents/homepage/ExploreVersion";
+import { Poll } from "./_composents/Poll";
 
 export default async function HomePage() {
   const { characters, players, versions } = await getWikiData();
@@ -47,9 +48,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-      {/* <section className="space-y-4 p-4 lg:p-5">
+      <section className="space-y-4 p-4 lg:p-5">
         <Poll />
-      </section> */}
+      </section>
       <section className="space-y-4 p-4 lg:p-5">
         <TopPages
           title="Personnages les plus consultés"
