@@ -56,5 +56,10 @@ export async function POST(req: Request) {
     include: { options: true },
   });
 
+  // Notifie tout le monde (cloche + toast, y compris les visiteurs) via une annonce
+  await prisma.announcement
+    .create({ data: { message: `📊 Nouveau sondage : ${question}` } })
+    .catch((e) => console.error("Annonce du sondage non créée", e));
+
   return NextResponse.json(poll, { status: 201 });
 }
