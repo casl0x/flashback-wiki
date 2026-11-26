@@ -839,19 +839,44 @@ function AccountSection({
         </button>
       </SignOutButton>
 
-      <DeleteAccountCard />
+      <DeleteAccountCard data={data} />
     </section>
   );
 }
 
 const DELETE_CONFIRM_WORD = "SUPPRIMER";
 
-function DeleteAccountCard() {
+function DeleteAccountCard({ data }: { data: MeData }) {
   const { signOut } = useClerk();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [deleting, setDeleting] = useState(false);
+
+  // Ne liste que ce que cette personne a réellement (tout le monde n'a pas tout).
+  const posts = data.creatorRoles.reduce((n, r) => n + r.posts.length, 0);
+  const items = [
+    "ton profil et ton pseudo",
+    ...(data.bio || data.socialLinks.length > 0
+      ? ["ta bio et tes réseaux sociaux"]
+      : []),
+    ...(data.points > 0 || data.pointEntries.length > 0
+      ? [`tes points (${data.points})`]
+      : []),
+    ...(data.suggestions.length > 0
+      ? [
+          `tes ${data.suggestions.length} proposition${data.suggestions.length > 1 ? "s" : ""}`,
+        ]
+      : []),
+    ...(posts > 0
+      ? [
+          `tes ${posts} publication${posts > 1 ? "s" : ""} créateur et leurs images`,
+        ]
+      : []),
+    ...(data.pendingLinkRequest ? ["ta demande de lien avec une fiche joueur"] : []),
+    "tes votes, likes, notifications et signalements éventuels",
+    "ton compte de connexion",
+  ];
 
   function close() {
     if (deleting) return;
@@ -925,13 +950,14 @@ function DeleteAccountCard() {
             <div className="flex flex-col gap-2 text-[13px] text-[#C4C7CF]">
               <p className="m-0">Seront supprimés pour toujours :</p>
               <ul className="m-0 list-disc pl-5 text-[#9AA0AA]">
-                <li>ton profil, ta bio, tes réseaux et tes points</li>
-                <li>tes propositions, publications créateur et leurs images</li>
-                <li>tes votes, likes, notifications et signalements</li>
-                <li>ton compte de connexion</li>
+                {items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
               <p className="m-0">
-                Ta fiche joueur et les personnages du wiki sont conservés.
+                {data.player
+                  ? `Ta fiche joueur (${data.player.pseudo}) et les personnages du wiki sont conservés, seul le lien avec ton compte disparaît.`
+                  : "Les personnages et le contenu du wiki sont conservés."}
               </p>
             </div>
             <label className="flex flex-col gap-1.5 text-[13px] text-[#C4C7CF]">
