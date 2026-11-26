@@ -1,4 +1,5 @@
 import { ToastProvider } from "@/app/_composents/toast/ToastProvider";
+import { AnnouncementModal } from "@/app/_composents/user/AnnouncementModal";
 import { NotificationWatcher } from "@/app/_composents/user/NotificationWatcher";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,7 @@ export default async function RootLayout({
             {children}
 
             <NotificationWatcher />
+            <AnnouncementModal />
             <AutoRefresh />
             <Analytics />
           </ToastProvider>
