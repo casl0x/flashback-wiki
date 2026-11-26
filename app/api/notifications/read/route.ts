@@ -4,10 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Marque des notifications comme lues (corps `{ ids?: string[] }`).
- * Sans `ids` : tout marquer comme lu, annonces incluses (via
- * `lastSeenAnnouncementAt = now`). Avec `ids` : seulement ceux-là ; les ids
- * d'annonces sont préfixés `ann-` et font aussi avancer `lastSeenAnnouncementAt`
- * (la lecture des annonces n'est pas trackée par élément).
+ * Sans `ids` : tout marquer comme lu. Les annonces ne sont pas concernées
+ * (voir /api/announcements/seen).
  */
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -24,37 +22,14 @@ export async function POST(req: NextRequest) {
     ? body.ids.filter((id: unknown): id is string => typeof id === "string")
     : undefined;
 
-  if (!ids) {
-    await Promise.all([
-      prisma.notification.updateMany({
-        where: { userProfileId: profile.id, read: false },
-        data: { read: true },
-      }),
-      prisma.userProfile.update({
-        where: { id: profile.id },
-        data: { lastSeenAnnouncementAt: new Date() },
-      }),
-    ]);
-    return NextResponse.json({ ok: true });
-  }
-
-  const notifIds = ids.filter((id) => !id.startsWith("ann-"));
-  const hasAnnouncement = ids.some((id) => id.startsWith("ann-"));
-
-  await Promise.all([
-    notifIds.length
-      ? prisma.notification.updateMany({
-          where: { id: { in: notifIds }, userProfileId: profile.id },
-          data: { read: true },
-        })
-      : Promise.resolve(),
-    hasAnnouncement
-      ? prisma.userProfile.update({
-          where: { id: profile.id },
-          data: { lastSeenAnnouncementAt: new Date() },
-        })
-      : Promise.resolve(),
-  ]);
+  await prisma.notification.updateMany({
+    where: {
+      userProfileId: profile.id,
+      read: false,
+      ...(ids ? { id: { in: ids } } : {}),
+    },
+    data: { read: true },
+  });
 
   return NextResponse.json({ ok: true });
 }
