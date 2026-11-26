@@ -5,15 +5,9 @@ import { invalidateProfilesCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { isPseudoTaken } from "@/lib/public-profile";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { CreatorType } from "@prisma/client";
-
-type CreatorRoleInput = {
-  type: CreatorType;
-};
 
 export async function completeOnboarding(data: {
   pseudo: string;
-  roles: CreatorRoleInput[];
 }): Promise<{ error?: string }> {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
@@ -31,12 +25,6 @@ export async function completeOnboarding(data: {
       clerkUserId: userId,
       pseudo,
       onboardingComplete: true,
-      creatorRoles: {
-        create: data.roles.map((r) => ({
-          type: r.type,
-          status: "approved",
-        })),
-      },
     },
     update: {
       pseudo,
