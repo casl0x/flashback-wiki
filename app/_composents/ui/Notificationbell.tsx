@@ -1,5 +1,6 @@
 "use client";
 
+import { MentionText } from "@/app/_composents/MentionText";
 import { getNotificationKind, toneStyle } from "@/lib/notification-kinds";
 import { cn } from "@/lib/utils";
 import { Bell } from "lucide-react";
@@ -156,7 +157,7 @@ export default function NotificationBell() {
                         aria-hidden
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] leading-snug text-[#ECECEE]">{n.message}</p>
+                        <p className="text-[13px] leading-snug text-[#ECECEE]"><MentionText text={n.message} /></p>
                         <p className="mt-1 text-[11px] text-[#9AA0AA]">{ago(n.createdAt)}</p>
                       </div>
                       {!n.read && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { MentionText } from "@/app/_composents/MentionText";
 import { useUser } from "@clerk/nextjs";
 import { Megaphone } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -107,7 +108,7 @@ export function AnnouncementModal() {
               key={a.id}
               className="m-0 whitespace-pre-wrap rounded-md bg-[#0E0F12] p-3 text-[14px] leading-relaxed text-[#C4C7CF]"
             >
-              {a.message}
+              <MentionText text={a.message} />
             </p>
           ))}
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { MentionText } from "@/app/_composents/MentionText";
 import { anton } from "@/lib/fonts";
 import { getNotificationKind, toneStyle } from "@/lib/notification-kinds";
 import { cn } from "@/lib/utils";
@@ -158,7 +159,7 @@ export function NotificationsSection() {
                 />
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] leading-snug text-[#ECECEE]">
-                    {n.message}
+                    <MentionText text={n.message} />
                   </p>
                   <p className="mt-1 text-[11px] text-[#9AA0AA]">
                     {ago(n.createdAt)}
