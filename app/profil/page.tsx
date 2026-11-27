@@ -85,6 +85,7 @@ type MeData = {
   socialLinks: SocialLink[];
   profilePublic: boolean;
   showStats: boolean;
+  favoritesEnabled: boolean;
   showFavorites: boolean;
   favorites: FavoriteItem[];
   avatarUrl: string | null;
@@ -378,7 +379,9 @@ function ProfilePageContent() {
               aria-label="Sections du profil"
               className="flex gap-2 overflow-x-auto border-b border-[#23262D] pb-3.5"
             >
-              {TABS.map((t) => {
+              {TABS.filter(
+                (t) => t.key !== "favoris" || data.favoritesEnabled,
+              ).map((t) => {
                 const active = tab === t.key;
                 return (
                   <button
@@ -587,7 +590,7 @@ function ProfilePageContent() {
             )}
 
             {/* Favoris */}
-            {tab === "favoris" && (
+            {tab === "favoris" && data.favoritesEnabled && (
               <section
                 id="favoris"
                 aria-labelledby="favoris-h"
@@ -1908,30 +1911,32 @@ function VisibilitySettings({
           </span>
         </span>
       </label>
-      <label
-        className={cn(
-          "flex items-start gap-2.5",
-          profilePublic ? "cursor-pointer" : "opacity-50",
-        )}
-      >
-        <input
-          type="checkbox"
-          checked={showFavorites}
-          disabled={saving || !profilePublic}
-          onChange={() =>
-            save({ profilePublic, showStats, showFavorites: !showFavorites })
-          }
-          className="mt-1 accent-[#2F6FEB]"
-        />
-        <span className="flex flex-col gap-0.5">
-          <span className="text-[14px] text-[#ECECEE]">
-            Afficher mes favoris
+      {data.favoritesEnabled && (
+        <label
+          className={cn(
+            "flex items-start gap-2.5",
+            profilePublic ? "cursor-pointer" : "opacity-50",
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={showFavorites}
+            disabled={saving || !profilePublic}
+            onChange={() =>
+              save({ profilePublic, showStats, showFavorites: !showFavorites })
+            }
+            className="mt-1 accent-[#2F6FEB]"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-[14px] text-[#ECECEE]">
+              Afficher mes favoris
+            </span>
+            <span className="text-[13px] text-[#9AA0AA]">
+              Tes joueurs et personnages favoris, sur ton profil public.
+            </span>
           </span>
-          <span className="text-[13px] text-[#9AA0AA]">
-            Tes joueurs et personnages favoris, sur ton profil public.
-          </span>
-        </span>
-      </label>
+        </label>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { isAdminUser } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { loadFavoriteItems } from "@/lib/favorite-items";
 import { versionRank } from "@/lib/version-rank";
@@ -77,7 +78,9 @@ export async function GET() {
     rejected: suggestionStats.find((s) => s.status === "rejected")?._count ?? 0,
   };
 
-  const favorites = profile ? await loadFavoriteItems(profile.id) : [];
+  // Favoris : fonctionnalité en test, réservée aux admins pour l'instant.
+  const favoritesEnabled = await isAdminUser(userId);
+  const favorites = profile && favoritesEnabled ? await loadFavoriteItems(profile.id) : [];
 
   const playerCharacters = profile?.playerId
     ? await prisma.character.findMany({
@@ -104,6 +107,7 @@ export async function GET() {
       [],
     profilePublic: profile?.profilePublic ?? true,
     showStats: profile?.showStats ?? true,
+    favoritesEnabled,
     showFavorites: profile?.showFavorites ?? false,
     favorites,
     avatarUrl: user.imageUrl,
