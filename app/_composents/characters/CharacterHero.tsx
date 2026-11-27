@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { GROUPE_STATUT_LABEL, groupeHref } from "@/lib/groupe-types";
 import BackLink from "@/app/_composents/ui/BackLink";
+import { FavoriteButton } from "@/app/_composents/user/FavoriteButton";
 import Link from "next/link";
 
 export const ETAT_BADGE: Record<
@@ -59,12 +60,15 @@ export default function CharacterHero({ c }: { c: CharacterPageData }) {
 
       <div className="absolute inset-x-0 bottom-0 ">
         <div className="mx-auto max-w-295 px-4 pb-7 sm:px-5 sm:pb-9">
-          <BackLink
-            href="/personnages"
-            className="mb-4 inline-block text-[13px] text-[#A3A8B3] hover:text-[#ECECEE]"
-          >
-            ← Retour
-          </BackLink>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <BackLink
+              href="/personnages"
+              className="inline-block text-[13px] text-[#A3A8B3] hover:text-[#ECECEE]"
+            >
+              ← Retour
+            </BackLink>
+            <FavoriteButton kind="CHARACTER" targetId={c.id} />
+          </div>
 
           <div className="mb-3.5 flex flex-wrap gap-2">
             {c.versions.map((v) => (

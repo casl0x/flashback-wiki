@@ -1,10 +1,12 @@
 "use server";
 
+import { isAdminUser } from "@/lib/admin/auth";
 import { syncDiscordRoles } from "@/lib/bot-sync";
 import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
 import { prisma } from "@/lib/db";
 import { detectSoundPlatform } from "@/lib/media-embed";
+import { notifyFavoriteUpdated } from "@/lib/favorites";
 import { getKickAvatar } from "@/lib/kick";
 import { notifyBadgesEarned } from "@/lib/notifications";
 import { HEX_COLOR_RE } from "@/lib/profile-banner";
@@ -185,6 +187,7 @@ export async function updateLinkedPlayerProfile(data: {
     data: { pseudo, chaines, reseaux, imageUrl: newImage },
   });
   await cleanupReplacedImage(previous?.imageUrl, newImage);
+  await notifyFavoriteUpdated("PLAYER", playerId, pseudo);
 
   await invalidateWikiCache();
   await invalidateProfilesCache();
@@ -244,7 +247,7 @@ export async function updateOwnCharacterPresentation(
 
   const character = await prisma.character.findUnique({
     where: { id: characterId },
-    select: { playerId: true, imageUrl: true },
+    select: { playerId: true, imageUrl: true, nom: true },
   });
   if (!character || character.playerId !== playerId) {
     throw new Error("Ce personnage ne t'appartient pas.");
@@ -286,6 +289,7 @@ export async function updateOwnCharacterPresentation(
   });
 
   await cleanupReplacedImage(character.imageUrl, data.imageUrl?.trim() || null);
+  await notifyFavoriteUpdated("CHARACTER", characterId, character.nom);
   await invalidateWikiCache();
 }
 
@@ -311,14 +315,17 @@ export async function updatePublicProfile(data: {
   bio: string;
   profilePublic: boolean;
   showStats: boolean;
+  showFavorites?: boolean;
 }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
 
+  const favoritesAllowed = data.showFavorites !== undefined && (await isAdminUser(userId));
   const fields = {
     bio: data.bio.trim().slice(0, 500) || null,
     profilePublic: data.profilePublic,
     showStats: data.showStats,
+    ...(favoritesAllowed ? { showFavorites: data.showFavorites } : {}),
   };
   await prisma.userProfile.upsert({
     where: { clerkUserId: userId },
@@ -484,4 +491,39 @@ export async function deleteMyAccount() {
 
   await invalidateProfilesCache();
   await invalidateWikiCache();
+}
+
+/** Ajoute ou retire un joueur / personnage des favoris du compte. Renvoie le nouvel état. */
+export async function toggleFavorite(
+  kind: "PLAYER" | "CHARACTER",
+  targetId: string,
+): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Connecte-toi pour ajouter des favoris.");
+  // Fonctionnalité en test : réservée aux admins pour l'instant.
+  if (!(await isAdminUser(userId))) throw new Error("Les favoris ne sont pas encore disponibles.");
+  if (kind !== "PLAYER" && kind !== "CHARACTER") throw new Error("Type invalide.");
+
+  const exists =
+    kind === "PLAYER"
+      ? await prisma.player.findUnique({ where: { id: targetId }, select: { id: true } })
+      : await prisma.character.findUnique({ where: { id: targetId }, select: { id: true } });
+  if (!exists) throw new Error("Fiche introuvable.");
+
+  const profile = await prisma.userProfile.upsert({
+    where: { clerkUserId: userId },
+    create: { clerkUserId: userId },
+    update: {},
+    select: { id: true },
+  });
+
+  const key = { userProfileId_kind_targetId: { userProfileId: profile.id, kind, targetId } };
+  const current = await prisma.favorite.findUnique({ where: key, select: { id: true } });
+  if (current) {
+    await prisma.favorite.delete({ where: key });
+  } else {
+    await prisma.favorite.create({ data: { userProfileId: profile.id, kind, targetId } });
+  }
+  await invalidateProfilesCache();
+  return !current;
 }

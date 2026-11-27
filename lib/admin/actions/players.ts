@@ -1,5 +1,6 @@
 "use server";
 
+import { handleFavoriteTargetDeleted, notifyFavoriteUpdated } from "@/lib/favorites";
 import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { syncDiscordRoles } from "@/lib/bot-sync";
@@ -46,6 +47,7 @@ export async function savePlayer(id: string | null, input: PlayerInput): Promise
       ? await prisma.player.update({ where: { id }, data })
       : await prisma.player.create({ data });
     await cleanupReplacedImage(previousImage, data.imageUrl);
+    if (id) await notifyFavoriteUpdated("PLAYER", id, p.pseudo);
     await logChange(id ? "edit_player" : "add_player", p.pseudo);
     await refreshAll();
     return { ok: true, data: { id: p.id } };
@@ -96,6 +98,7 @@ export async function deletePlayer(id: string): Promise<ActionResult> {
     // Les persos du joueur restent, sans joueur (onDelete: SetNull).
     const p = await prisma.player.delete({ where: { id }, select: { imageUrl: true, pseudo: true } });
     await cleanupReplacedImage(p.imageUrl, null);
+    await handleFavoriteTargetDeleted("PLAYER", id, p.pseudo);
     await logChange("delete_player", p.pseudo);
     for (const u of linked) await syncDiscordRoles(u.clerkUserId);
     await refreshAll();

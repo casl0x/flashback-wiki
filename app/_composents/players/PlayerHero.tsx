@@ -2,6 +2,7 @@
 
 import { PlayerBadges } from "@/app/_composents/admin/PlayerBadges";
 import { textOn } from "@/app/_composents/characters/CharacterHero";
+import { FavoriteButton } from "@/app/_composents/user/FavoriteButton";
 import { anton } from "@/lib/fonts";
 import {
   cloudinaryUrl,
@@ -187,6 +188,8 @@ export default function PlayerHero({ p }: { p: PlayerPageData }) {
           >
             {p.pseudo}
           </h1>
+
+          <FavoriteButton kind="PLAYER" targetId={p.id} className="w-fit" />
 
           <div className="flex gap-7">
             <div className="flex flex-col">

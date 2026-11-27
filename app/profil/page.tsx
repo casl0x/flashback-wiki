@@ -13,7 +13,9 @@ import {
 import ImageUpload from "@/app/_composents/admin/ImageUpload";
 import { PublishCreatorPostButton } from "@/app/_composents/user/PublishCreatorPostButton";
 import { SuggestButton } from "@/app/_composents/user/SuggestEditButton";
+import { FavoritesGrid } from "@/app/_composents/user/FavoritesGrid";
 import { invalidateProfilesCache } from "@/lib/actions";
+import type { FavoriteItem } from "@/lib/favorite-items";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { anton } from "@/lib/fonts";
 import { bannerBackground, DEFAULT_BANNER_COLOR } from "@/lib/profile-banner";
@@ -83,6 +85,9 @@ type MeData = {
   socialLinks: SocialLink[];
   profilePublic: boolean;
   showStats: boolean;
+  favoritesEnabled: boolean;
+  showFavorites: boolean;
+  favorites: FavoriteItem[];
   avatarUrl: string | null;
   provider: string | null;
   discordLinked: boolean;
@@ -113,10 +118,16 @@ type LinkedPlayer = {
   imageUrl: string | null;
 };
 
-type TabKey = "public" | "propositions" | "notifications" | "compte";
+type TabKey =
+  | "public"
+  | "favoris"
+  | "propositions"
+  | "notifications"
+  | "compte";
 
 const TABS: { key: TabKey; label: string; locked: boolean }[] = [
   { key: "public", label: "Profil public", locked: false },
+  { key: "favoris", label: "Favoris", locked: false },
   { key: "propositions", label: "Mes propositions", locked: true },
   { key: "notifications", label: "Notifications", locked: true },
   { key: "compte", label: "Compte", locked: true },
@@ -125,6 +136,7 @@ const TABS: { key: TabKey; label: string; locked: boolean }[] = [
 const HASH_TO_TAB: Record<string, TabKey> = {
   propositions: "propositions",
   createur: "public",
+  favoris: "favoris",
   notifications: "notifications",
 };
 
@@ -367,7 +379,9 @@ function ProfilePageContent() {
               aria-label="Sections du profil"
               className="flex gap-2 overflow-x-auto border-b border-[#23262D] pb-3.5"
             >
-              {TABS.map((t) => {
+              {TABS.filter(
+                (t) => t.key !== "favoris" || data.favoritesEnabled,
+              ).map((t) => {
                 const active = tab === t.key;
                 return (
                   <button
@@ -573,6 +587,40 @@ function ProfilePageContent() {
                   )}
                 </section>
               </div>
+            )}
+
+            {/* Favoris */}
+            {tab === "favoris" && data.favoritesEnabled && (
+              <section
+                id="favoris"
+                aria-labelledby="favoris-h"
+                className="flex max-w-190 flex-col gap-4"
+              >
+                <h2
+                  id="favoris-h"
+                  className={cn(
+                    anton.className,
+                    "m-0 text-[28px] uppercase tracking-[0.02em]",
+                  )}
+                >
+                  Mes favoris
+                </h2>
+                <p className="m-0 text-[13px] text-[#9AA0AA]">
+                  {data.showFavorites
+                    ? "Tes favoris sont visibles sur ton profil public."
+                    : "Tes favoris sont privés."}{" "}
+                  Tu peux changer ça dans l&apos;onglet Compte.
+                </p>
+                {data.favorites.length === 0 ? (
+                  <p className="rounded-[10px] border border-dashed border-[#3A3E47] px-5 py-8 text-center text-[13px] text-[#9AA0AA]">
+                    Aucun favori pour l&apos;instant. Utilise le bouton « Ajouter
+                    aux favoris » sur la fiche d&apos;un joueur ou d&apos;un
+                    personnage.
+                  </p>
+                ) : (
+                  <FavoritesGrid items={data.favorites} />
+                )}
+              </section>
             )}
 
             {/* Mes propositions */}
@@ -871,6 +919,11 @@ function DeleteAccountCard({ data }: { data: MeData }) {
     ...(posts > 0
       ? [
           `tes ${posts} publication${posts > 1 ? "s" : ""} créateur et leurs images`,
+        ]
+      : []),
+    ...(data.favorites.length > 0
+      ? [
+          `tes ${data.favorites.length} favori${data.favorites.length > 1 ? "s" : ""}`,
         ]
       : []),
     ...(data.pendingLinkRequest ? ["ta demande de lien avec une fiche joueur"] : []),
@@ -1779,12 +1832,18 @@ function VisibilitySettings({
 }) {
   const [profilePublic, setProfilePublic] = useState(data.profilePublic);
   const [showStats, setShowStats] = useState(data.showStats);
+  const [showFavorites, setShowFavorites] = useState(data.showFavorites);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
-  async function save(next: { profilePublic: boolean; showStats: boolean }) {
+  async function save(next: {
+    profilePublic: boolean;
+    showStats: boolean;
+    showFavorites: boolean;
+  }) {
     setProfilePublic(next.profilePublic);
     setShowStats(next.showStats);
+    setShowFavorites(next.showFavorites);
     setSaving(true);
     try {
       await updatePublicProfile({ bio: data.bio ?? "", ...next });
@@ -1792,6 +1851,7 @@ function VisibilitySettings({
     } catch (err) {
       setProfilePublic(data.profilePublic);
       setShowStats(data.showStats);
+      setShowFavorites(data.showFavorites);
       toast({
         tone: "error",
         title: "Enregistrement impossible",
@@ -1812,7 +1872,9 @@ function VisibilitySettings({
           type="checkbox"
           checked={profilePublic}
           disabled={saving}
-          onChange={() => save({ profilePublic: !profilePublic, showStats })}
+          onChange={() =>
+            save({ profilePublic: !profilePublic, showStats, showFavorites })
+          }
           className="mt-1 accent-[#2F6FEB]"
         />
         <span className="flex flex-col gap-0.5">
@@ -1835,7 +1897,9 @@ function VisibilitySettings({
           type="checkbox"
           checked={showStats}
           disabled={saving || !profilePublic}
-          onChange={() => save({ profilePublic, showStats: !showStats })}
+          onChange={() =>
+            save({ profilePublic, showStats: !showStats, showFavorites })
+          }
           className="mt-1 accent-[#2F6FEB]"
         />
         <span className="flex flex-col gap-0.5">
@@ -1847,6 +1911,32 @@ function VisibilitySettings({
           </span>
         </span>
       </label>
+      {data.favoritesEnabled && (
+        <label
+          className={cn(
+            "flex items-start gap-2.5",
+            profilePublic ? "cursor-pointer" : "opacity-50",
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={showFavorites}
+            disabled={saving || !profilePublic}
+            onChange={() =>
+              save({ profilePublic, showStats, showFavorites: !showFavorites })
+            }
+            className="mt-1 accent-[#2F6FEB]"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-[14px] text-[#ECECEE]">
+              Afficher mes favoris
+            </span>
+            <span className="text-[13px] text-[#9AA0AA]">
+              Tes joueurs et personnages favoris, sur ton profil public.
+            </span>
+          </span>
+        </label>
+      )}
     </div>
   );
 }

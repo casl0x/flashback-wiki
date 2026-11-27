@@ -1,3 +1,4 @@
+import { notifyFavoriteUpdated } from "@/lib/favorites";
 import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import "server-only";
 
@@ -64,6 +65,7 @@ export async function applyAcceptedSuggestion(s: Suggestion): Promise<string | n
       },
     });
     characterId = c.id;
+    await notifyFavoriteUpdated("CHARACTER", c.id, c.nom);
     await cleanupReplacedImage(previousImage, s.imageUrl);
     await logChange("edit_info", c.nom);
   } else if (s.nom) {

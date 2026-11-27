@@ -1,3 +1,4 @@
+import { FavoritesGrid } from "@/app/_composents/user/FavoritesGrid";
 import { BadgePill } from "@/app/_composents/user/badges";
 import { VersionPill } from "@/app/_composents/user/VersionBadges";
 import {
@@ -211,6 +212,13 @@ export default async function PublicProfilePage({ params }: Props) {
 
         {p.player && (
           <ProfileCharacters playerId={p.player.id} characters={p.characters} />
+        )}
+
+        {p.favorites.length > 0 && (
+          <section aria-labelledby="favoris-h" className="flex flex-col gap-4">
+            <ProfileSectionTitle id="favoris-h">Ses favoris</ProfileSectionTitle>
+            <FavoritesGrid items={p.favorites} />
+          </section>
         )}
 
         {isCreator && (
