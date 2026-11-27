@@ -14,6 +14,8 @@ export type LoreClip = LoreClipInput & {
   platform: ClipPlatform;
   /** Miniature quand la plateforme en donne une sans API (YouTube). */
   thumbnail: string | null;
+  /** Titre donné par la plateforme (clips Twitch), utilisé si aucun titre n'est saisi. */
+  autoTitle: string | null;
   /** Identifiant d'intégration : id vidéo YouTube ou slug de clip Twitch. */
   embedId: string | null;
 };
@@ -75,6 +77,7 @@ export function toClip(c: LoreClipInput): LoreClip {
     ...c,
     platform,
     thumbnail: platform === "youtube" ? youtubeThumbnail(c.url) : null,
+    autoTitle: null,
     embedId:
       platform === "youtube"
         ? youtubeVideoId(c.url)

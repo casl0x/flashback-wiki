@@ -2,6 +2,7 @@ import LoreTimeline from "@/app/_composents/lore/LoreTimeline";
 import { getAdminLevel } from "@/lib/admin/auth";
 import { anton } from "@/lib/fonts";
 import { getLoreByVersion } from "@/lib/lore";
+import { withTwitchPreviews } from "@/lib/lore-twitch";
 import { cn } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
@@ -26,7 +27,7 @@ export default async function LorePage({
   // Tant que le Lore n'est pas public, seuls les admins et éditeurs voient la vraie page.
   if (!isAdmin) return <ComingSoon />;
 
-  const versions = await getLoreByVersion();
+  const versions = await withTwitchPreviews(await getLoreByVersion());
 
   return (
     <div className="bg-[#080808] text-[#ECECEE]">
