@@ -1,6 +1,11 @@
 "use client";
 
 import { PageHeader } from "@/app/_composents/admin/ui";
+import { MentionText } from "@/app/_composents/MentionText";
+import {
+  MentionTextarea,
+  type MentionCharacter,
+} from "@/app/_composents/MentionTextarea";
 import { Plus, Trash2, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -30,6 +35,7 @@ export default function AdminAnnouncementsPage() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [mentionable, setMentionable] = useState<MentionCharacter[]>([]);
 
   const [target, setTarget] = useState<Target>("all");
   const [userQuery, setUserQuery] = useState("");
@@ -48,6 +54,10 @@ export default function AdminAnnouncementsPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/admin/mentionable")
+      .then((r) => r.json())
+      .then((d) => setMentionable(Array.isArray(d) ? d : []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -180,16 +190,27 @@ export default function AdminAnnouncementsPage() {
             </div>
           )}
 
-          <textarea
+          <MentionTextarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={setMessage}
+            characters={mentionable}
             placeholder={
               target === "all"
-                ? "Ton annonce (maintenance prévue, nouvelle fonctionnalité...)"
+                ? "Ton annonce (maintenance prévue, nouvelle fonctionnalité...). Tape @ pour mentionner un personnage."
                 : "Ton message privé pour cet utilisateur..."
             }
-            className="h-20 w-full resize-none rounded-md border border-border bg-input px-3 py-2 text-[13px] text-text-primary outline-none focus:border-accent"
+            className="min-h-28 w-full resize-y rounded-md border border-border bg-input px-3 py-2 text-[13px] text-text-primary outline-none focus:border-accent"
           />
+          {message.trim() && (
+            <div className="rounded-md border border-dashed border-border bg-elevated px-3 py-2">
+              <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Aperçu
+              </p>
+              <p className="m-0 whitespace-pre-wrap text-[13px] text-text-secondary">
+                <MentionText text={message} />
+              </p>
+            </div>
+          )}
           <button
             onClick={handleCreate}
             disabled={
@@ -233,7 +254,9 @@ export default function AdminAnnouncementsPage() {
                 className="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] text-text-secondary">{a.message}</p>
+                  <p className="whitespace-pre-wrap text-[13px] text-text-secondary">
+                    <MentionText text={a.message} />
+                  </p>
                   <p className="text-[10px] text-text-muted mt-1.5">
                     {new Date(a.createdAt).toLocaleDateString("fr-FR", {
                       day: "numeric",
