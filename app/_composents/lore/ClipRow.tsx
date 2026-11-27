@@ -30,7 +30,7 @@ export default function ClipRow({ clips, color }: { clips: LoreClip[]; color: st
 
 function ClipCard({ clip, index }: { clip: LoreClip; index: number }) {
   const [playing, setPlaying] = useState(false);
-  const label = clip.titre ?? `Clip ${index + 1}`;
+  const label = clip.titre ?? clip.autoTitle ?? `Clip ${index + 1}`;
   const canEmbed = !!clip.embedId;
 
   const src =
