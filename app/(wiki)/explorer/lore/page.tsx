@@ -8,10 +8,10 @@ import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-// Avant-première : pas indexé tant que la page n'est pas publique.
 export const metadata: Metadata = {
   title: "Lore – Flashback Wiki",
-  robots: { index: false, follow: false },
+  description:
+    "Les événements marquants de Flashback WL, version par version, avec les clips à revoir.",
 };
 
 export default async function LorePage({
@@ -20,12 +20,9 @@ export default async function LorePage({
   searchParams: Promise<{ v?: string }>;
 }) {
   const { v } = await searchParams;
+  // Le lien vers l'admin n'est proposé qu'à l'équipe, quand il n'y a encore rien à afficher.
   const { userId } = await auth();
-  // Admins et éditeurs (membres de l'organisation) voient la vraie page Lore.
-  const isAdmin = (await getAdminLevel(userId)) !== null;
-
-  // Tant que le Lore n'est pas public, seuls les admins et éditeurs voient la vraie page.
-  if (!isAdmin) return <ComingSoon />;
+  const isTeam = (await getAdminLevel(userId)) !== null;
 
   const versions = await withTwitchPreviews(await getLoreByVersion());
 
@@ -57,41 +54,22 @@ export default async function LorePage({
 
         {versions.length === 0 ? (
           <p className="mt-16 text-[#8D93A0]">
-            Aucun événement pour l’instant. Ajoute-en depuis{" "}
-            <Link href="/admin/lore" className="text-[#8AB4FF] hover:underline">
-              Admin → Lore
-            </Link>
-            .
+            Aucun événement pour l’instant.
+            {isTeam && (
+              <>
+                {" "}
+                Ajoute-en depuis{" "}
+                <Link href="/admin/lore" className="text-[#8AB4FF] hover:underline">
+                  Admin → Lore
+                </Link>
+                .
+              </>
+            )}
           </p>
         ) : (
           <LoreTimeline versions={versions} initialId={v} />
         )}
       </div>
-    </div>
-  );
-}
-
-function ComingSoon() {
-  return (
-    <div className="flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center gap-4 bg-[#080808] px-6 text-center text-[#E63946]">
-      <span className="text-[13px] font-medium uppercase tracking-[0.5em] opacity-80">Histoire</span>
-      <h1
-        className={cn(
-          anton.className,
-          "m-0 text-[clamp(40px,8vw,120px)] font-normal uppercase leading-none",
-        )}
-      >
-        Lore
-      </h1>
-      <p className="text-[clamp(10px,1.3vw,14px)] font-bold uppercase tracking-[0.4em] opacity-75">
-        Bientôt
-      </p>
-      <Link
-        href="/explorer"
-        className="mt-6 text-[13px] uppercase tracking-[0.3em] text-[#A3A8B3] hover:text-white"
-      >
-        ← Retour
-      </Link>
     </div>
   );
 }

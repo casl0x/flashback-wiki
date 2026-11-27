@@ -1,6 +1,5 @@
 "use server";
 
-import { isAdminUser } from "@/lib/admin/auth";
 import { syncDiscordRoles } from "@/lib/bot-sync";
 import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { invalidateProfilesCache, invalidateWikiCache } from "@/lib/actions";
@@ -320,12 +319,11 @@ export async function updatePublicProfile(data: {
   const { userId } = await auth();
   if (!userId) throw new Error("Non authentifié");
 
-  const favoritesAllowed = data.showFavorites !== undefined && (await isAdminUser(userId));
   const fields = {
     bio: data.bio.trim().slice(0, 500) || null,
     profilePublic: data.profilePublic,
     showStats: data.showStats,
-    ...(favoritesAllowed ? { showFavorites: data.showFavorites } : {}),
+    ...(data.showFavorites !== undefined ? { showFavorites: data.showFavorites } : {}),
   };
   await prisma.userProfile.upsert({
     where: { clerkUserId: userId },
@@ -500,8 +498,6 @@ export async function toggleFavorite(
 ): Promise<boolean> {
   const { userId } = await auth();
   if (!userId) throw new Error("Connecte-toi pour ajouter des favoris.");
-  // Fonctionnalité en test : réservée aux admins pour l'instant.
-  if (!(await isAdminUser(userId))) throw new Error("Les favoris ne sont pas encore disponibles.");
   if (kind !== "PLAYER" && kind !== "CHARACTER") throw new Error("Type invalide.");
 
   const exists =

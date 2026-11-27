@@ -5,21 +5,18 @@ import { toggleFavorite } from "@/app/profil/actions";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { Heart } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Kind = "PLAYER" | "CHARACTER";
 
 // Un seul fetch par chargement de page, partagé entre tous les boutons cœur.
-type FavoritesPayload = { items: { kind: Kind; targetId: string }[]; enabled: boolean };
-let pending: Promise<FavoritesPayload> | null = null;
+let pending: Promise<{ kind: Kind; targetId: string }[]> | null = null;
 function loadFavorites() {
   pending ??= fetch("/api/favorites", { cache: "no-store" })
     .then((r) => r.json())
-    .then((d): FavoritesPayload => ({
-      items: Array.isArray(d.items) ? d.items : [],
-      enabled: d.enabled === true,
-    }))
-    .catch((): FavoritesPayload => ({ items: [], enabled: false }));
+    .then((d) => (Array.isArray(d.items) ? d.items : []))
+    .catch(() => []);
   return pending;
 }
 
@@ -35,17 +32,16 @@ export function FavoriteButton({
 }) {
   const { isLoaded, isSignedIn } = useUser();
   const toast = useToast();
-  const [enabled, setEnabled] = useState(false);
   const [active, setActive] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     let cancelled = false;
-    loadFavorites().then(({ items, enabled }) => {
-      if (cancelled) return;
-      setEnabled(enabled);
-      setActive(items.some((f) => f.kind === kind && f.targetId === targetId));
+    loadFavorites().then((items) => {
+      if (!cancelled) {
+        setActive(items.some((f) => f.kind === kind && f.targetId === targetId));
+      }
     });
     return () => {
       cancelled = true;
@@ -60,8 +56,14 @@ export function FavoriteButton({
     className,
   );
 
-  // Fonctionnalité en test : invisible sauf pour les admins (et pour les visiteurs).
-  if (!isLoaded || !isSignedIn || !enabled) return null;
+  if (isLoaded && !isSignedIn) {
+    return (
+      <Link href="/sign-in" className={base} title="Connecte-toi pour ajouter des favoris">
+        <Heart className="h-4 w-4" />
+        Favori
+      </Link>
+    );
+  }
 
   async function handleClick() {
     if (busy) return;
@@ -89,7 +91,7 @@ export function FavoriteButton({
     <button
       type="button"
       onClick={handleClick}
-      disabled={busy}
+      disabled={!isLoaded || busy}
       aria-pressed={active}
       className={base}
     >
