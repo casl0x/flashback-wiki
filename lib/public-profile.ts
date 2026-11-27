@@ -1,6 +1,7 @@
 import { visibleCharacter } from "@/lib/hidden-characters";
 import type { EtatVie, VersionTag } from "@/lib/character-page";
 import { prisma } from "@/lib/db";
+import { loadFavoriteItems, type FavoriteItem } from "@/lib/favorite-items";
 import {
   getVersionBadges,
   getVersionBadgesFor,
@@ -36,6 +37,8 @@ export type PublicProfileData = {
     etatVie: EtatVie;
     version: Pick<VersionTag, "id" | "color"> | null;
   }[];
+  /** Vide si l'utilisateur ne montre pas ses favoris. */
+  favorites: FavoriteItem[];
   posts: {
     id: string;
     type: CreatorType;
@@ -116,6 +119,8 @@ async function loadPublicProfile(
       })
     : [];
 
+  const favorites = profile.showFavorites ? await loadFavoriteItems(profile.id) : [];
+
   const posts = profile.creatorRoles
     .flatMap((r) => r.posts)
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -152,6 +157,7 @@ async function loadPublicProfile(
           .sort((a, b) => versionRank(a.id) - versionRank(b.id))
           .at(-1) ?? null,
     })),
+    favorites,
     posts: posts.map((p) => ({
       id: p.id,
       type: p.type,

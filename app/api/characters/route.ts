@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { handleFavoriteTargetDeleted, notifyFavoriteUpdated } from "@/lib/favorites";
 import { invalidateWikiCache } from "@/lib/actions";
 import { logChange } from "@/lib/changelog";
 import { prisma } from "@/lib/db";
@@ -93,6 +94,7 @@ export async function PATCH(request: NextRequest) {
         etatVie: etat_vie ?? null,
       },
     });
+    await notifyFavoriteUpdated("CHARACTER", id, char.nom);
     await logChange("edit_info", char.nom, version_id ?? undefined);
     await invalidateWikiCache();
     return NextResponse.json(char);
@@ -114,6 +116,7 @@ export async function DELETE(request: NextRequest) {
       select: { nom: true },
     });
     await prisma.character.delete({ where: { id } });
+    await handleFavoriteTargetDeleted("CHARACTER", id, existing?.nom ?? "Personnage");
     await logChange("edit_info", existing?.nom ?? id, "Personnage supprimé");
     await invalidateWikiCache();
     return NextResponse.json({ ok: true });

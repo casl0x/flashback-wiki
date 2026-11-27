@@ -55,6 +55,12 @@ enum CreatorType {
   BESTOF
 }
 
+// Nature d'un favori : une seule table `Favorite` pour les deux, ce champ les différencie.
+enum FavoriteKind {
+  PLAYER
+  CHARACTER
+}
+
 enum SocialPlatform {
   TWITTER
   TIKTOK
@@ -79,6 +85,8 @@ model UserProfile {
   showStats              Boolean   @default(true)
   // Couleur (hex) de la bannière du profil, null = dégradé par défaut.
   bannerColor            String?
+  // Favoris visibles sur le profil public (privés par défaut).
+  showFavorites          Boolean   @default(false)
   // Acceptation des règles de publication créateur (pas de validation admin, trace en cas de litige).
   creatorRulesAcceptedAt DateTime?
   createdAt              DateTime  @default(now())
@@ -88,11 +96,28 @@ model UserProfile {
   notifications Notification[]
   socialLinks   SocialLink[]
   pointEntries  PointEntry[]
+  favorites     Favorite[]
 
   // Fiche joueur liée à ce compte (validée par un admin)
   playerId           String?             @unique @map("player_id")
   player             Player?             @relation(fields: [playerId], references: [id], onDelete: SetNull)
   playerLinkRequests PlayerLinkRequest[]
+}
+
+// Joueur ou personnage mis en favori par un compte. `targetId` vise un Player ou un
+// Character selon `kind` : pas de clé étrangère (cible polymorphe), donc le nettoyage
+// à la suppression d'une fiche se fait dans lib/favorites.ts.
+model Favorite {
+  id            String       @id @default(cuid())
+  kind          FavoriteKind
+  targetId      String
+  createdAt     DateTime     @default(now())
+  userProfileId String
+  userProfile   UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, kind, targetId])
+  @@index([kind, targetId])
+  @@map("favorites")
 }
 
 // Historique des points attribués à la main par un admin (ex. contribution

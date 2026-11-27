@@ -2,6 +2,8 @@ import {
   Bell,
   CheckCircle2,
   HelpCircle,
+  Heart,
+  HeartOff,
   Link2,
   Mail,
   Megaphone,
@@ -80,6 +82,18 @@ export const NOTIFICATION_KINDS: Record<string, NotificationKind> = {
     tone: "live",
     label: "Nouveau badge",
     href: "/profil",
+  },
+  favorite_updated: {
+    icon: Heart,
+    tone: "info",
+    label: "Favori mis à jour",
+    href: "/profil#favoris",
+  },
+  favorite_deleted: {
+    icon: HeartOff,
+    tone: "warning",
+    label: "Favori supprimé",
+    href: "/profil#favoris",
   },
   admin_message: {
     icon: Mail,

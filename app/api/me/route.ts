@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { loadFavoriteItems } from "@/lib/favorite-items";
 import { versionRank } from "@/lib/version-rank";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import type { Prisma } from "@prisma/client";
@@ -76,6 +77,8 @@ export async function GET() {
     rejected: suggestionStats.find((s) => s.status === "rejected")?._count ?? 0,
   };
 
+  const favorites = profile ? await loadFavoriteItems(profile.id) : [];
+
   const playerCharacters = profile?.playerId
     ? await prisma.character.findMany({
         where: { playerId: profile.playerId },
@@ -101,6 +104,8 @@ export async function GET() {
       [],
     profilePublic: profile?.profilePublic ?? true,
     showStats: profile?.showStats ?? true,
+    showFavorites: profile?.showFavorites ?? false,
+    favorites,
     avatarUrl: user.imageUrl,
     provider: user.externalAccounts[0]?.provider ?? null,
     discordLinked: user.externalAccounts.some(

@@ -1,5 +1,6 @@
 "use server";
 
+import { handleFavoriteTargetDeleted, notifyFavoriteUpdated } from "@/lib/favorites";
 import { cleanupReplacedImage } from "@/lib/cloudinary-server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { logChange } from "@/lib/changelog";
@@ -143,6 +144,7 @@ export async function saveCharacter(
     }, { timeout: 20000 });
 
     await cleanupReplacedImage(previousImage, base.imageUrl);
+    if (id) await notifyFavoriteUpdated("CHARACTER", id, base.nom);
     await logChange(id ? "edit_info" : "add_global", base.nom, input.versionIds.at(-1));
     await refreshAll();
     return { ok: true, data: { id: savedId } };
@@ -156,6 +158,7 @@ export async function deleteCharacter(id: string): Promise<ActionResult> {
     await requireAdmin("characters");
     const c = await prisma.character.delete({ where: { id }, select: { nom: true, imageUrl: true } });
     await cleanupReplacedImage(c.imageUrl, null);
+    await handleFavoriteTargetDeleted("CHARACTER", id, c.nom);
     await logChange("edit_info", c.nom, "Personnage supprimé");
     await refreshAll();
     return { ok: true };
