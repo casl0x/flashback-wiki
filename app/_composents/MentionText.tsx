@@ -1,9 +1,12 @@
+import { SITE_URL } from "@/lib/site";
 import { MENTION_PATTERN } from "@/lib/utils";
 import Link from "next/link";
 
 type Props = {
   text: string;
   className?: string;
+  /** Rend les URL cliquables (notifications, annonces). Désactivé pour les descriptions. */
+  links?: boolean;
 };
 
 // Mise en forme légère (style Markdown) : **gras**, *italique*,
@@ -19,8 +22,29 @@ const TOKEN = new RegExp(
   "g",
 );
 
-function render(text: string, depth = 0): React.ReactNode[] {
-  const re = new RegExp(TOKEN.source, "g");
+// URL nue (http/https) : la ponctuation finale d'une phrase n'en fait pas partie.
+const URL_SOURCE = String.raw`https?:\/\/[^\s<>()\[\]]+`;
+const TOKEN_WITH_LINKS = new RegExp(`${TOKEN.source}|(${URL_SOURCE})`, "g");
+
+function UrlLink({ url }: { url: string }) {
+  const cls = "text-accent hover:underline font-medium break-all";
+  // Lien vers le wiki lui-même : navigation interne, même onglet.
+  if (url === SITE_URL || url.startsWith(`${SITE_URL}/`)) {
+    return (
+      <Link href={url.slice(SITE_URL.length) || "/"} className={cls}>
+        {url}
+      </Link>
+    );
+  }
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer nofollow" className={cls}>
+      {url}
+    </a>
+  );
+}
+
+function render(text: string, links: boolean, depth = 0): React.ReactNode[] {
+  const re = new RegExp((links ? TOKEN_WITH_LINKS : TOKEN).source, "g");
   const nodes: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -28,7 +52,7 @@ function render(text: string, depth = 0): React.ReactNode[] {
   while ((match = re.exec(text)) !== null) {
     if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
     const key = `${depth}-${match.index}`;
-    const [, nom, id, bold, underline, strike, italic] = match;
+    const [, nom, id, bold, underline, strike, italic, rawUrl] = match;
     if (nom !== undefined) {
       nodes.push(
         <Link
@@ -42,15 +66,22 @@ function render(text: string, depth = 0): React.ReactNode[] {
     } else if (bold !== undefined) {
       nodes.push(
         <strong key={key} className="font-bold text-[#ECECEE]">
-          {render(bold, depth + 1)}
+          {render(bold, links, depth + 1)}
         </strong>,
       );
     } else if (underline !== undefined) {
-      nodes.push(<u key={key}>{render(underline, depth + 1)}</u>);
+      nodes.push(<u key={key}>{render(underline, links, depth + 1)}</u>);
     } else if (strike !== undefined) {
-      nodes.push(<s key={key}>{render(strike, depth + 1)}</s>);
+      nodes.push(<s key={key}>{render(strike, links, depth + 1)}</s>);
     } else if (italic !== undefined) {
-      nodes.push(<em key={key}>{render(italic, depth + 1)}</em>);
+      nodes.push(<em key={key}>{render(italic, links, depth + 1)}</em>);
+    } else if (rawUrl !== undefined) {
+      const url = rawUrl.replace(/[.,;:!?»"'’]+$/, "");
+      nodes.push(<UrlLink key={key} url={url} />);
+      // La ponctuation retirée repart dans le texte qui suit.
+      re.lastIndex = match.index + url.length;
+      lastIndex = re.lastIndex;
+      continue;
     }
     lastIndex = match.index + match[0].length;
   }
@@ -61,6 +92,6 @@ function render(text: string, depth = 0): React.ReactNode[] {
 // Affiche un texte libre en transformant les mentions en liens et en
 // appliquant la mise en forme légère. Les retours à la ligne doivent être
 // gérés par le parent (ex. via la classe whitespace-pre-line / pre-wrap).
-export function MentionText({ text, className }: Props) {
-  return <span className={className}>{render(text)}</span>;
+export function MentionText({ text, className, links = false }: Props) {
+  return <span className={className}>{render(text, links, 0)}</span>;
 }
