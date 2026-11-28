@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { MoreHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 type D<F extends (...a: never[]) => unknown> = NonNullable<
   Awaited<ReturnType<F>>
@@ -54,14 +54,17 @@ function useReview(nextHref: string) {
   const [info, setInfo] = useState<string | null>(null);
   const run = (
     fn: () => Promise<Result>,
-    opts?: { stay?: string; goTo?: (r: Result) => string | null },
+    opts?: { stay?: string; onOk?: () => void; goTo?: (r: Result) => string | null },
   ) =>
     start(async () => {
       setError(null);
       setInfo(null);
       const r = await fn();
       if (!r.ok) return setError(r.error);
-      if (opts?.stay) return setInfo(opts.stay);
+      if (opts?.stay) {
+        opts.onOk?.();
+        return setInfo(opts.stay);
+      }
       router.push(opts?.goTo?.(r) ?? nextHref);
       router.refresh();
     });
@@ -194,8 +197,16 @@ export function SuggestionReview({
 }) {
   const { pending, error, info, run } = useReview(nextHref);
   const [note, setNote] = useState("");
+  const [askHint, setAskHint] = useState(false);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const [refusing, setRefusing] = useState(false);
   const [menu, setMenu] = useState(false);
+
+  // Le retour d'une action (erreur ou confirmation) est en bas de la fiche : on l'amène à l'écran.
+  useEffect(() => {
+    if (error || info) feedbackRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [error, info]);
 
   return (
     <Shell
@@ -305,10 +316,19 @@ export function SuggestionReview({
         Message à l’auteur (optionnel)
         <TextArea
           rows={3}
+          ref={noteRef}
           value={note}
-          onChange={(e) => setNote(e.target.value)}
+          onChange={(e) => {
+            setNote(e.target.value);
+            setAskHint(false);
+          }}
           placeholder="Envoyé avec la notification de validation, ou comme question."
         />
+        {askHint && (
+          <span role="alert" className="text-[12px] font-semibold text-[#FF8A8E]">
+            Écris d’abord ta question dans ce champ, puis clique sur « Demander des précisions ».
+          </span>
+        )}
       </label>
 
       <div className="relative flex flex-wrap items-center gap-2.5">
@@ -375,8 +395,14 @@ export function SuggestionReview({
               className="min-h-10 rounded-md px-2.5 text-left hover:bg-[#22252B]"
               onClick={() => {
                 setMenu(false);
+                if (!note.trim()) {
+                  setAskHint(true);
+                  noteRef.current?.focus();
+                  return;
+                }
                 run(() => askSuggestionDetails(d.id, note), {
-                  stay: "Question envoyée à l’auteur.",
+                  stay: "Question envoyée à l’auteur. Elle apparaît dans ses notifications.",
+                  onOk: () => setNote(""),
                 });
               }}
             >
@@ -395,8 +421,10 @@ export function SuggestionReview({
           }
         />
       )}
-      {error && <Notice tone="error">{error}</Notice>}
-      {info && <Notice tone="ok">{info}</Notice>}
+      <div ref={feedbackRef} className="flex flex-col gap-2">
+        {error && <Notice tone="error">{error}</Notice>}
+        {info && <Notice tone="ok">{info}</Notice>}
+      </div>
     </Shell>
   );
 }
