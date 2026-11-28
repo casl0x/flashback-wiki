@@ -87,8 +87,7 @@ export default function NotificationBell() {
   function handleItemClick(item: Item) {
     if (!item.read) markRead([item.id]);
     setOpen(false);
-    const kind = getNotificationKind(item.type);
-    if (kind.href) router.push(kind.href);
+    router.push("/profil?tab=notifications");
   }
 
   return (
@@ -173,7 +172,7 @@ export default function NotificationBell() {
             </ul>
           )}
           <Link
-            href="/profil#notifications"
+            href="/profil?tab=notifications"
             onClick={() => setOpen(false)}
             className="block border-t border-[#23262D] px-4 py-2.5 text-center text-[12px] font-semibold text-[#8AB4FF] hover:underline"
           >
