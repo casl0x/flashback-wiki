@@ -71,6 +71,8 @@ export type QueueItem = {
   title: string;
   author: string;
   createdAt: string;
+  /** Proposition : l'auteur a répondu à une question, en attente d'une suite côté admin. */
+  replied?: boolean;
 };
 
 const CREATOR_KIND_LABEL: Record<string, string> = {
@@ -93,12 +95,16 @@ export async function loadQueue(tab: ModTab, take = 50): Promise<QueueItem[]> {
       where: { status: "pending" },
       orderBy: { createdAt: "asc" },
       take,
-      include: { character: { select: { nom: true } } },
+      include: {
+        character: { select: { nom: true } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1, select: { fromAdmin: true } },
+      },
     });
     const names = await displayNames(rows.map((r) => r.clerkUserId));
     return rows.map((r) => ({
       id: r.id,
       tab,
+      replied: r.messages[0] ? !r.messages[0].fromAdmin : false,
       kind: r.characterId ? "MODIFICATION" : "NOUVEAU PERSO",
       color: r.characterId ? COLORS.edit : COLORS.add,
       title: r.character?.nom ?? r.nom ?? "Sans nom",
@@ -200,6 +206,7 @@ export async function loadSuggestionDetail(id: string) {
   const s = await prisma.suggestion.findUnique({
     where: { id },
     include: {
+      messages: { orderBy: { createdAt: "asc" } },
       version: { select: { id: true, label: true } },
       character: {
         include: {
@@ -263,6 +270,12 @@ export async function loadSuggestionDetail(id: string) {
     author: author ?? "Utilisateur",
     createdAt: s.createdAt.toISOString(),
     note: s.note,
+    messages: s.messages.map((m) => ({
+      id: m.id,
+      fromAdmin: m.fromAdmin,
+      text: m.text,
+      createdAt: m.createdAt.toISOString(),
+    })),
     imageUrl: s.imageUrl,
     currentImageUrl: c?.imageUrl ?? null,
     rows,

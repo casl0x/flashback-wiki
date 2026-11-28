@@ -493,6 +493,22 @@ model Suggestion {
   rejectReason     String?   @map("reject_reason")
   moderatorMessage String?   @map("moderator_message")
   reviewedAt       DateTime? @map("reviewed_at")
+
+  // Échange admin ↔ auteur tant que la proposition est en attente (effacé à la décision).
+  messages SuggestionMessage[]
+}
+
+// Message d'une conversation sur une proposition : question d'un admin (fromAdmin) ou réponse de l'auteur.
+model SuggestionMessage {
+  id           String     @id @default(cuid())
+  fromAdmin    Boolean
+  text         String
+  createdAt    DateTime   @default(now())
+  suggestionId String
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+
+  @@index([suggestionId, createdAt])
+  @@map("suggestion_messages")
 }
 
 model ChangelogEntry {

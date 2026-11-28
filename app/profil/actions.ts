@@ -523,3 +523,30 @@ export async function toggleFavorite(
   await invalidateProfilesCache();
   return !current;
 }
+
+/**
+ * L'auteur d'une proposition en attente répond à la question d'un admin.
+ * Une réponse à la fois : il faut qu'un admin ait écrit en dernier.
+ */
+export async function replyToSuggestion(suggestionId: string, text: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Non authentifié");
+  const reply = text.trim().slice(0, 1000);
+  if (!reply) throw new Error("Écris ta réponse.");
+
+  const suggestion = await prisma.suggestion.findUnique({
+    where: { id: suggestionId },
+    select: {
+      clerkUserId: true,
+      status: true,
+      messages: { orderBy: { createdAt: "desc" }, take: 1, select: { fromAdmin: true } },
+    },
+  });
+  if (!suggestion || suggestion.clerkUserId !== userId) throw new Error("Proposition introuvable.");
+  if (suggestion.status !== "pending") throw new Error("Cette proposition a déjà été traitée.");
+  if (!suggestion.messages[0]?.fromAdmin) throw new Error("Aucune question en attente de réponse.");
+
+  await prisma.suggestionMessage.create({
+    data: { suggestionId, fromAdmin: false, text: reply },
+  });
+}

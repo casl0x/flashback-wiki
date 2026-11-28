@@ -102,6 +102,11 @@ export default async function ModerationPage({ searchParams }: Props) {
                     {i.kind}
                   </span>
                   <span className="font-semibold">{i.title}</span>
+                  {i.replied && (
+                    <span className="w-fit rounded-full bg-[#13213A] px-2 py-0.5 text-[11px] font-bold text-[#8AB4FF]">
+                      Réponse reçue
+                    </span>
+                  )}
                   <span className="text-[12px] text-[#9AA0AA]">
                     par {i.author} · {ago(i.createdAt)}
                   </span>

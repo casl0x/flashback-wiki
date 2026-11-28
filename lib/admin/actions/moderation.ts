@@ -27,6 +27,8 @@ export async function acceptSuggestion(
       include: { character: { select: { nom: true } } },
     });
     const characterId = await applyAcceptedSuggestion(s);
+    // Décision prise : la conversation n'a plus lieu d'être.
+    await prisma.suggestionMessage.deleteMany({ where: { suggestionId: id } });
     if (s.clerkUserId) {
       await notifyUser(
         s.clerkUserId,
@@ -58,6 +60,7 @@ export async function rejectSuggestion(
       },
       include: { character: { select: { nom: true } } },
     });
+    await prisma.suggestionMessage.deleteMany({ where: { suggestionId: id } });
     // Proposition refusée : l'image envoyée n'a plus d'utilité.
     if (s.imageUrl) {
       await deleteCloudinaryImage(s.imageUrl);
@@ -94,12 +97,17 @@ export async function askSuggestionDetails(
       where: { id },
       include: { character: { select: { nom: true } } },
     });
+    if (s.status !== "pending")
+      return { ok: false, error: "Cette proposition a déjà été traitée." };
     if (!s.clerkUserId)
       return { ok: false, error: "Cette proposition n’a pas d’auteur connu." };
+    await prisma.suggestionMessage.create({
+      data: { suggestionId: id, fromAdmin: true, text },
+    });
     await notifyUser(
       s.clerkUserId,
       "suggestion_question",
-      `Question sur ta proposition${label(s.character?.nom ?? s.nom)} : ${text}`,
+      `Question sur ta proposition${label(s.character?.nom ?? s.nom)} : ${text} (réponds depuis Mes propositions)`,
     );
     return { ok: true };
   } catch (e) {

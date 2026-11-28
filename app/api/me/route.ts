@@ -56,7 +56,10 @@ export async function GET() {
     prisma.suggestion.findMany({
       where: { clerkUserId: userId },
       orderBy: { createdAt: "desc" },
-      include: { character: { select: { nom: true } } },
+      include: {
+        character: { select: { nom: true } },
+        messages: { orderBy: { createdAt: "asc" } },
+      },
     }),
     prisma.suggestion.groupBy({
       by: ["status"],
@@ -144,6 +147,12 @@ export async function GET() {
       status: s.status,
       rejectReason: s.rejectReason,
       moderatorMessage: s.moderatorMessage,
+      messages: s.messages.map((m) => ({
+        id: m.id,
+        fromAdmin: m.fromAdmin,
+        text: m.text,
+        createdAt: m.createdAt,
+      })),
     })),
     pointEntries: pointEntries.map((e) => ({
       id: e.id,

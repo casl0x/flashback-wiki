@@ -1,6 +1,10 @@
 "use client";
 
 import { MentionText } from "@/app/_composents/MentionText";
+import {
+  SuggestionThread,
+  type ThreadMessage,
+} from "@/app/_composents/user/SuggestionThread";
 import { useToast } from "@/app/_composents/toast/ToastProvider";
 import { BadgePill } from "@/app/_composents/user/badges";
 import { DiscordLink } from "@/app/_composents/user/DiscordLink";
@@ -47,6 +51,7 @@ import {
   deleteMyAccount,
   fetchMyKickAvatar,
   fetchMyTwitchAvatar,
+  replyToSuggestion,
   requestPlayerLink,
   syncMyDiscordRoles,
   updateBannerColor,
@@ -77,6 +82,7 @@ type Suggestion = {
   status: string;
   rejectReason: string | null;
   moderatorMessage: string | null;
+  messages: ThreadMessage[];
 };
 type MeData = {
   pseudo: string;
@@ -713,6 +719,9 @@ function ProfilePageContent() {
                                 )}
                               </div>
                             )}
+                          {s.status === "pending" && s.messages.length > 0 && (
+                            <SuggestionConversation s={s} onSent={loadMe} />
+                          )}
                         </li>
                       );
                     })}
@@ -766,6 +775,68 @@ function ProfilePageContent() {
           </>
         )}
       </main>
+    </div>
+  );
+}
+
+/** Questions de la modération sur une proposition en attente, et réponse de l'auteur. */
+function SuggestionConversation({
+  s,
+  onSent,
+}: {
+  s: Suggestion;
+  onSent: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const toast = useToast();
+  const waitingForMe = s.messages[s.messages.length - 1]?.fromAdmin === true;
+
+  async function send() {
+    if (!text.trim()) return;
+    setSending(true);
+    try {
+      await replyToSuggestion(s.id, text);
+      setText("");
+      onSent();
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Envoi impossible",
+        text: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-[#23262D] pt-2.5">
+      <SuggestionThread messages={s.messages} viewer="author" />
+      {waitingForMe ? (
+        <div className="flex flex-col gap-2">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={1000}
+            rows={3}
+            aria-label="Ta réponse à la modération"
+            placeholder="Ta réponse à la modération…"
+            className="resize-y rounded-md border border-[#3A3E47] bg-[#0E0F12] px-3 py-2 text-[14px] text-[#ECECEE] placeholder-[#6E7380] outline-none focus:border-[#2F6FEB]"
+          />
+          <button
+            onClick={send}
+            disabled={sending || !text.trim()}
+            className="min-h-11 w-fit rounded-md bg-[#2F6FEB] px-4 text-[14px] font-bold text-white hover:bg-[#4A82F0] disabled:opacity-50"
+          >
+            {sending ? "Envoi…" : "Répondre"}
+          </button>
+        </div>
+      ) : (
+        <p className="m-0 text-[12px] text-[#9AA0AA]">
+          Réponse envoyée, la modération reviendra vers toi.
+        </p>
+      )}
     </div>
   );
 }
