@@ -1,5 +1,6 @@
 "use client";
 
+import { MentionText } from "@/app/_composents/MentionText";
 import { toneStyle, type NotificationTone } from "@/lib/notification-kinds";
 import { AlertTriangle, CheckCircle2, Info, Sparkles, X, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -128,7 +129,9 @@ function ToastCard({
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-semibold text-[#ECECEE]">{toast.title}</p>
         {toast.text && (
-          <p className="mt-0.5 text-[12px] leading-snug text-[#C4C7CF]">{toast.text}</p>
+          <p className="mt-0.5 text-[12px] leading-snug text-[#C4C7CF]">
+            <MentionText text={toast.text} links />
+          </p>
         )}
         {action &&
           (actionHref ? (

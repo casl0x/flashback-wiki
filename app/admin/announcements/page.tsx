@@ -207,7 +207,7 @@ export default function AdminAnnouncementsPage() {
                 Aperçu
               </p>
               <p className="m-0 whitespace-pre-wrap text-[13px] text-text-secondary">
-                <MentionText text={message} />
+                <MentionText text={message} links />
               </p>
             </div>
           )}
@@ -255,7 +255,7 @@ export default function AdminAnnouncementsPage() {
               >
                 <div className="flex-1 min-w-0">
                   <p className="whitespace-pre-wrap text-[13px] text-text-secondary">
-                    <MentionText text={a.message} />
+                    <MentionText text={a.message} links />
                   </p>
                   <p className="text-[10px] text-text-muted mt-1.5">
                     {new Date(a.createdAt).toLocaleDateString("fr-FR", {

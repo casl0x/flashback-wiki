@@ -108,7 +108,7 @@ export function AnnouncementModal() {
               key={a.id}
               className="m-0 whitespace-pre-wrap rounded-md bg-[#0E0F12] p-3 text-[14px] leading-relaxed text-[#C4C7CF]"
             >
-              <MentionText text={a.message} />
+              <MentionText text={a.message} links />
             </p>
           ))}
         </div>
