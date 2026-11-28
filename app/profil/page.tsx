@@ -1,5 +1,6 @@
 "use client";
 
+import { MentionText } from "@/app/_composents/MentionText";
 import { useToast } from "@/app/_composents/toast/ToastProvider";
 import { BadgePill } from "@/app/_composents/user/badges";
 import { DiscordLink } from "@/app/_composents/user/DiscordLink";
@@ -196,6 +197,14 @@ function ProfilePageContent() {
     }
     return "public";
   });
+
+  // Navigation vers /profil?tab=… alors qu'on est déjà sur la page (ex. clic sur la cloche).
+  const tabParam = searchParams.get("tab");
+  const [seenTabParam, setSeenTabParam] = useState(tabParam);
+  if (tabParam !== seenTabParam) {
+    setSeenTabParam(tabParam);
+    if (tabParam && TABS.some((t) => t.key === tabParam)) setTab(tabParam as TabKey);
+  }
 
   function goToTab(t: TabKey) {
     setTab(t);
@@ -698,7 +707,9 @@ function ProfilePageContent() {
                                   </span>
                                 )}
                                 {s.moderatorMessage && (
-                                  <span>{s.moderatorMessage}</span>
+                                  <span className="break-words">
+                                    <MentionText text={s.moderatorMessage} links />
+                                  </span>
                                 )}
                               </div>
                             )}
