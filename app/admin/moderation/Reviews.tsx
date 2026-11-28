@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Notice, TextArea } from "@/app/_composents/admin/ui";
+import { SuggestionThread } from "@/app/_composents/user/SuggestionThread";
 import {
   acceptSuggestion,
   askSuggestionDetails,
@@ -63,6 +64,7 @@ function useReview(nextHref: string) {
       if (!r.ok) return setError(r.error);
       if (opts?.stay) {
         opts.onOk?.();
+        router.refresh(); // recharge la conversation
         return setInfo(opts.stay);
       }
       router.push(opts?.goTo?.(r) ?? nextHref);
@@ -309,6 +311,18 @@ export function SuggestionReview({
             Note de l’utilisateur
           </span>
           <span className="whitespace-pre-line">{d.note}</span>
+        </div>
+      )}
+
+      {d.messages.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-lg bg-[#1A1C21] px-3.5 py-3">
+          <span className="text-[12px] font-bold text-[#A3A8B3]">
+            Conversation avec l’auteur
+          </span>
+          <SuggestionThread messages={d.messages} viewer="admin" authorName={d.author} />
+          <span className="text-[12px] text-[#9AA0AA]">
+            Effacée dès que la proposition est validée ou refusée.
+          </span>
         </div>
       )}
 
